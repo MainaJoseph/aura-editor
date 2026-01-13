@@ -73,7 +73,22 @@ export const demoGenerate = inngest.createFunction(
       return await generateText({
         model: google("gemini-2.5-flash"),
         prompt: finalPrompt,
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: true,
+          recordOutputs: true,
+        },
       });
+    });
+  }
+);
+
+export const demoError = inngest.createFunction(
+  { id: "demo-error" },
+  { event: "demo/error" },
+  async ({ step }) => {
+    await step.run("fail", async () => {
+      throw new Error("Inngest error: Background job failed!");
     });
   }
 );
