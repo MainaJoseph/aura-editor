@@ -41,17 +41,17 @@ export const getById = query({
     const conversation = await ctx.db.get("conversations", args.id);
 
     if (!conversation) {
-      throw new Error("Conversation not found");
+      return null;
     }
 
     const project = await ctx.db.get("projects", conversation.projectId);
 
     if (!project) {
-      throw new Error("Project not found");
+      return null;
     }
 
     if (project.ownerId !== identity.subject) {
-      throw new Error("Unauthorized to access this project");
+      return null;
     }
 
     return conversation;
@@ -67,12 +67,13 @@ export const getByProject = query({
 
     const project = await ctx.db.get("projects", args.projectId);
 
+    // Return empty array if project doesn't exist (e.g., after deletion)
     if (!project) {
-      throw new Error("Project not found");
+      return [];
     }
 
     if (project.ownerId !== identity.subject) {
-      throw new Error("Unauthorized to access this project");
+      return [];
     }
 
     return await ctx.db
@@ -93,17 +94,17 @@ export const getMessages = query({
     const conversation = await ctx.db.get("conversations", args.conversationId);
 
     if (!conversation) {
-      throw new Error("Conversation not found");
+      return [];
     }
 
     const project = await ctx.db.get("projects", conversation.projectId);
 
     if (!project) {
-      throw new Error("Project not found");
+      return [];
     }
 
     if (project.ownerId !== identity.subject) {
-      throw new Error("Unauthorized to access this project");
+      return [];
     }
 
     return await ctx.db
