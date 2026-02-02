@@ -98,6 +98,11 @@ export const useWebContainer = ({
 
     hasStartedRef.current = true;
 
+    // Track if effect is still active (for cleanup)
+    let isActive = true;
+    let commandTimeoutId: NodeJS.Timeout | undefined;
+    let outputStreamController: AbortController | undefined;
+
     const start = async () => {
       try {
         setStatus("booting");
@@ -105,10 +110,17 @@ export const useWebContainer = ({
         setTerminalOutput("");
 
         const appendOutput = (data: string) => {
-          setTerminalOutput((prev) => prev + data);
+          // Only update state if effect is still active
+          if (isActive) {
+            setTerminalOutput((prev) => prev + data);
+          }
         };
 
         const container = await getWebContainer();
+
+        // Check if effect was cleaned up during async operation
+        if (!isActive) return;
+
         containerRef.current = container;
 
         // Mount files if any exist, otherwise mount empty filesystem
@@ -117,28 +129,47 @@ export const useWebContainer = ({
           await container.mount(fileTree);
         }
 
+        // Check again after mount
+        if (!isActive) return;
+
         // Listen for server-ready to show preview
-        container.on("server-ready", (_port, url) => {
-          setPreviewUrl(url);
-        });
+        const serverReadyHandler = (_port: number, url: string) => {
+          if (isActive) {
+            setPreviewUrl(url);
+          }
+        };
+        container.on("server-ready", serverReadyHandler);
 
         // Spawn an interactive shell (jsh)
         const shellProcess = await container.spawn("jsh", [], {
           terminal: { cols: 80, rows: 24 },
         });
+
+        // Check again after spawn
+        if (!isActive) {
+          shellProcess.kill();
+          return;
+        }
+
         shellProcessRef.current = shellProcess;
 
         // Connect input writer for shell
         inputWriterRef.current = shellProcess.input.getWriter();
 
-        // Pipe shell output to terminal
+        // Pipe shell output to terminal with abort controller
+        outputStreamController = new AbortController();
         shellProcess.output.pipeTo(
           new WritableStream({
             write(data) {
               appendOutput(data);
             },
           }),
-        );
+          { signal: outputStreamController.signal },
+        ).catch(() => {
+          // Stream was aborted, this is expected on cleanup
+        });
+
+        if (!isActive) return;
 
         setStatus("ready");
 
@@ -149,17 +180,39 @@ export const useWebContainer = ({
           const devCmd = settings?.devCommand || "npm run dev -- --turbo=false";
 
           // Send commands to shell (with small delay for shell to initialize)
-          setTimeout(() => {
-            inputWriterRef.current?.write(`${installCmd} && ${devCmd}\n`);
+          commandTimeoutId = setTimeout(() => {
+            if (isActive) {
+              inputWriterRef.current?.write(`${installCmd} && ${devCmd}\n`);
+            }
           }, 100);
         }
       } catch (error) {
-        setError(error instanceof Error ? error.message : "Unknown error");
-        setStatus("error");
+        if (isActive) {
+          setError(error instanceof Error ? error.message : "Unknown error");
+          setStatus("error");
+        }
       }
     };
 
     start();
+
+    // Cleanup function
+    return () => {
+      isActive = false;
+
+      // Clear the command timeout
+      if (commandTimeoutId) {
+        clearTimeout(commandTimeoutId);
+      }
+
+      // Abort the output stream
+      if (outputStreamController) {
+        outputStreamController.abort();
+      }
+
+      // Note: We don't teardown the WebContainer here because it's a singleton
+      // and may be reused. The restart() function handles full cleanup.
+    };
   }, [
     enabled,
     files,

@@ -391,6 +391,7 @@ export const updateFile = mutation({
 /**
  * Sync a file from WebContainer to Convex.
  * Creates parent folders as needed and upserts the file.
+ * Handles file/folder name collisions by replacing conflicting entries.
  */
 export const syncFileFromContainer = mutation({
   args: {
@@ -420,11 +421,36 @@ export const syncFileFromContainer = mutation({
 
     let parentId: Id<"files"> | undefined = undefined;
 
+    // Helper to recursively delete a file/folder and its children
+    const deleteRecursive = async (fileId: Id<"files">) => {
+      const item = await ctx.db.get("files", fileId);
+      if (!item) return;
+
+      if (item.type === "folder") {
+        const children = await ctx.db
+          .query("files")
+          .withIndex("by_project_parent", (q) =>
+            q.eq("projectId", item.projectId).eq("parentId", fileId),
+          )
+          .collect();
+
+        for (const child of children) {
+          await deleteRecursive(child._id);
+        }
+      }
+
+      if (item.storageId) {
+        await ctx.storage.delete(item.storageId);
+      }
+
+      await ctx.db.delete("files", fileId);
+    };
+
     // Create/find folders for all but the last part
     for (let i = 0; i < parts.length - 1; i++) {
       const folderName = parts[i];
 
-      // Check if folder exists
+      // Check if anything with this name exists
       const existingFiles = await ctx.db
         .query("files")
         .withIndex("by_project_parent", (q) =>
@@ -439,6 +465,16 @@ export const syncFileFromContainer = mutation({
       if (existingFolder) {
         parentId = existingFolder._id;
       } else {
+        // Check if a FILE with this name exists (name collision)
+        const conflictingFile = existingFiles.find(
+          (f) => f.name === folderName && f.type === "file",
+        );
+
+        if (conflictingFile) {
+          // Delete the conflicting file to make way for the folder
+          await ctx.db.delete("files", conflictingFile._id);
+        }
+
         // Create the folder
         parentId = await ctx.db.insert("files", {
           projectId: args.projectId,
@@ -453,7 +489,7 @@ export const syncFileFromContainer = mutation({
     // Handle the final part (file or folder)
     const fileName = parts[parts.length - 1];
 
-    // Check if it already exists
+    // Check if anything with this name exists
     const siblings = await ctx.db
       .query("files")
       .withIndex("by_project_parent", (q) =>
@@ -461,18 +497,29 @@ export const syncFileFromContainer = mutation({
       )
       .collect();
 
-    const existing = siblings.find(
+    const existingSameType = siblings.find(
       (f) => f.name === fileName && f.type === args.type,
     );
 
-    if (existing) {
-      // Update existing file
+    const existingDifferentType = siblings.find(
+      (f) => f.name === fileName && f.type !== args.type,
+    );
+
+    // Handle name collision with different type
+    if (existingDifferentType) {
+      // Delete the conflicting entry (and its children if it's a folder)
+      await deleteRecursive(existingDifferentType._id);
+    }
+
+    if (existingSameType) {
+      // Update existing file/folder
       if (args.type === "file") {
-        await ctx.db.patch("files", existing._id, {
+        await ctx.db.patch("files", existingSameType._id, {
           content: args.content,
           updatedAt: now,
         });
       }
+      // For folders, nothing to update
     } else {
       // Create new file/folder
       await ctx.db.insert("files", {
@@ -493,6 +540,7 @@ export const syncFileFromContainer = mutation({
 
 /**
  * Delete a file/folder by path from WebContainer sync.
+ * Ensures intermediate path segments are folders to avoid ambiguity.
  */
 export const deleteFileByPath = mutation({
   args: {
@@ -530,14 +578,16 @@ export const deleteFileByPath = mutation({
         )
         .collect();
 
-      const file = files.find((f) => f.name === name);
-
-      if (!file) return; // File not found, nothing to delete
-
       if (isLast) {
+        // For the final segment, match any type (file or folder)
+        const file = files.find((f) => f.name === name);
+        if (!file) return; // File not found, nothing to delete
         targetFile = file;
       } else {
-        parentId = file._id;
+        // For intermediate segments, only match FOLDERS (only folders can have children)
+        const folder = files.find((f) => f.name === name && f.type === "folder");
+        if (!folder) return; // Path doesn't exist (no folder with this name)
+        parentId = folder._id;
       }
     }
 
