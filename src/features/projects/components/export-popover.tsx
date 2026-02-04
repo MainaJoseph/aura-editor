@@ -305,10 +305,10 @@ export const ExportPopover = ({ projectId }: ExportPopoverProps) => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <div className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30">
+        <button className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30">
           {getStatusIcon()}
           <span className="text-sm">Export</span>
-        </div>
+        </button>
       </PopoverTrigger>
       <PopoverContent className="w-80" align="start">
         {renderContent()}

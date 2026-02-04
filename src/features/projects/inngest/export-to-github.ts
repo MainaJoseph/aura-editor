@@ -1,6 +1,7 @@
 import ky from "ky";
 import { Octokit } from "octokit";
 import { NonRetriableError } from "inngest";
+import { createClerkClient } from "@clerk/backend";
 
 import { convex } from "@/lib/convex-client";
 import { inngest } from "@/inngest/client";
@@ -13,7 +14,7 @@ interface ExportToGithubEvent {
   repoName: string;
   visibility: "public" | "private";
   description?: string;
-  githubToken: string;
+  userId: string;
 }
 
 type FileWithUrl = Doc<"files"> & {
@@ -48,7 +49,7 @@ export const exportToGithub = inngest.createFunction(
     event: "github/export.repo",
   },
   async ({ event, step }) => {
-    const { projectId, repoName, visibility, description, githubToken } =
+    const { projectId, repoName, visibility, description, userId } =
       event.data as ExportToGithubEvent;
 
     const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
@@ -63,6 +64,22 @@ export const exportToGithub = inngest.createFunction(
         projectId,
         status: "exporting",
       });
+    });
+
+    // Fetch GitHub OAuth token from Clerk (avoids storing tokens in event payloads)
+    const githubToken = await step.run("fetch-github-token", async () => {
+      const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY,
+      });
+      const tokens = await clerk.users.getUserOauthAccessToken(
+        userId,
+        "github",
+      );
+      const token = tokens.data[0]?.token;
+      if (!token) {
+        throw new NonRetriableError("GitHub OAuth token not found for user");
+      }
+      return token;
     });
 
     const octokit = new Octokit({ auth: githubToken });
@@ -90,7 +107,7 @@ export const exportToGithub = inngest.createFunction(
       const { data: ref } = await octokit.rest.git.getRef({
         owner: user.login,
         repo: repoName,
-        ref: "heads/main",
+        ref: `heads/${repo.default_branch}`,
       });
       return ref.object.sha;
     });
@@ -210,12 +227,12 @@ export const exportToGithub = inngest.createFunction(
       });
     });
 
-    // Update the main branch reference to point to our new commit
+    // Update the default branch reference to point to our new commit
     await step.run("update-branch-ref", async () => {
       return await octokit.rest.git.updateRef({
         owner: user.login,
         repo: repoName,
-        ref: "heads/main",
+        ref: `heads/${repo.default_branch}`,
         sha: commit.sha,
         force: true,
       });

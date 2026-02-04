@@ -557,6 +557,18 @@ export const updateExportStatus = mutation({
   },
 });
 
+export const getProjectById = query({
+  args: {
+    internalKey: v.string(),
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    validateInternalKey(args.internalKey);
+
+    return await ctx.db.get("projects", args.projectId);
+  },
+});
+
 export const getProjectFilesWithUrls = query({
   args: {
     internalKey: v.string(),
