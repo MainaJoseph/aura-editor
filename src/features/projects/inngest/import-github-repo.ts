@@ -2,6 +2,7 @@ import ky from "ky";
 import { Octokit } from "octokit";
 import { isBinaryFile } from "isbinaryfile";
 import { NonRetriableError } from "inngest";
+import { createClerkClient } from "@clerk/backend";
 
 import { convex } from "@/lib/convex-client";
 import { inngest } from "@/inngest/client";
@@ -13,7 +14,7 @@ interface ImportGithubRepoEvent {
   owner: string;
   repo: string;
   projectId: Id<"projects">;
-  githubToken: string;
+  userId: string;
 }
 
 export const importGithubRepo = inngest.createFunction(
@@ -36,13 +37,29 @@ export const importGithubRepo = inngest.createFunction(
   },
   { event: "github/import.repo" },
   async ({ event, step }) => {
-    const { owner, repo, projectId, githubToken } =
+    const { owner, repo, projectId, userId } =
       event.data as ImportGithubRepoEvent;
 
     const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
     if (!internalKey) {
       throw new NonRetriableError("AURA_CONVEX_INTERNAL_KEY is not configured");
     }
+
+    // Fetch GitHub OAuth token from Clerk (avoids storing tokens in event payloads)
+    const githubToken = await step.run("fetch-github-token", async () => {
+      const clerk = createClerkClient({
+        secretKey: process.env.CLERK_SECRET_KEY,
+      });
+      const tokens = await clerk.users.getUserOauthAccessToken(
+        userId,
+        "github",
+      );
+      const token = tokens.data[0]?.token;
+      if (!token) {
+        throw new NonRetriableError("GitHub OAuth token not found for user");
+      }
+      return token;
+    });
 
     const octokit = new Octokit({ auth: githubToken });
 

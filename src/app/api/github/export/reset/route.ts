@@ -30,6 +30,19 @@ export async function POST(request: Request) {
     );
   }
 
+  // Verify project ownership
+  const project = await convex.query(api.system.getProjectById, {
+    internalKey,
+    projectId: projectId as Id<"projects">,
+  });
+
+  if (!project || project.ownerId !== userId) {
+    return NextResponse.json(
+      { error: "Project not found or unauthorized" },
+      { status: 403 },
+    );
+  }
+
   // Clear export status
   await convex.mutation(api.system.updateExportStatus, {
     internalKey,

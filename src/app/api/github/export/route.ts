@@ -2,8 +2,10 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
+import { convex } from "@/lib/convex-client";
 import { inngest } from "@/inngest/client";
 
+import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
 const requestSchema = z.object({
@@ -44,6 +46,19 @@ export async function POST(request: Request) {
     );
   }
 
+  // Verify project ownership
+  const project = await convex.query(api.system.getProjectById, {
+    internalKey,
+    projectId: projectId as Id<"projects">,
+  });
+
+  if (!project || project.ownerId !== userId) {
+    return NextResponse.json(
+      { error: "Project not found or unauthorized" },
+      { status: 403 },
+    );
+  }
+
   const event = await inngest.send({
     name: "github/export.repo",
     data: {
@@ -51,8 +66,7 @@ export async function POST(request: Request) {
       repoName,
       visibility,
       description,
-      githubToken,
-      internalKey,
+      userId,
     },
   });
 

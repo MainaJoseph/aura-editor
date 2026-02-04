@@ -66,7 +66,7 @@ export async function POST(request: Request) {
       owner,
       repo,
       projectId,
-      githubToken,
+      userId,
     },
   });
 
