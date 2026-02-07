@@ -29,6 +29,11 @@ type ToolUIPartApproval =
     }
   | {
       id: string;
+      approved: true;
+      reason?: string;
+    }
+  | {
+      id: string;
       approved: false;
       reason?: string;
     }
@@ -40,7 +45,7 @@ type ConfirmationContextValue = {
 };
 
 const ConfirmationContext = createContext<ConfirmationContextValue | null>(
-  null
+  null,
 );
 
 const useConfirmation = () => {
