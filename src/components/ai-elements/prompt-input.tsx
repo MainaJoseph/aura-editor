@@ -1126,11 +1126,16 @@ export const PromptInputSpeechButton = ({
   onTranscriptionChange,
   ...props
 }: PromptInputSpeechButtonProps) => {
+  const controller = useOptionalPromptInputController();
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(
     null,
   );
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const onTranscriptionChangeRef = useRef(onTranscriptionChange);
+  onTranscriptionChangeRef.current = onTranscriptionChange;
+  const controllerRef = useRef(controller);
+  controllerRef.current = controller;
 
   useEffect(() => {
     if (
@@ -1163,15 +1168,28 @@ export const PromptInputSpeechButton = ({
           }
         }
 
-        if (finalTranscript && textareaRef?.current) {
-          const textarea = textareaRef.current;
-          const currentValue = textarea.value;
-          const newValue =
-            currentValue + (currentValue ? " " : "") + finalTranscript;
-
-          textarea.value = newValue;
-          textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          onTranscriptionChange?.(newValue);
+        if (finalTranscript) {
+          if (controllerRef.current) {
+            // Update through React state via the controller
+            const current = controllerRef.current.textInput.value;
+            const newValue =
+              current + (current ? " " : "") + finalTranscript;
+            controllerRef.current.textInput.setInput(newValue);
+            onTranscriptionChangeRef.current?.(newValue);
+          } else if (textareaRef?.current) {
+            // Uncontrolled fallback: use native input setter to trigger React's onChange
+            const textarea = textareaRef.current;
+            const currentValue = textarea.value;
+            const newValue =
+              currentValue + (currentValue ? " " : "") + finalTranscript;
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+              window.HTMLTextAreaElement.prototype,
+              "value",
+            )?.set;
+            nativeInputValueSetter?.call(textarea, newValue);
+            textarea.dispatchEvent(new Event("input", { bubbles: true }));
+            onTranscriptionChangeRef.current?.(newValue);
+          }
         }
       };
 
@@ -1189,7 +1207,7 @@ export const PromptInputSpeechButton = ({
         recognitionRef.current.stop();
       }
     };
-  }, [textareaRef, onTranscriptionChange]);
+  }, [textareaRef]);
 
   const toggleListening = useCallback(() => {
     if (!recognition) {

@@ -72,15 +72,23 @@ export const NewProjectDialog = ({
   };
 
   const handleCreateBlankProject = async () => {
-    const projectName = uniqueNamesGenerator({
-      dictionaries: [adjectives, animals, colors],
-      separator: "-",
-      length: 3,
-    });
+    setIsSubmitting(true);
 
-    const projectId = await createProject({ name: projectName });
-    onOpenChange(false);
-    router.push(`/projects/${projectId}`);
+    try {
+      const projectName = uniqueNamesGenerator({
+        dictionaries: [adjectives, animals, colors],
+        separator: "-",
+        length: 3,
+      });
+
+      const projectId = await createProject({ name: projectName });
+      onOpenChange(false);
+      router.push(`/projects/${projectId}`);
+    } catch {
+      toast.error("Unable to create project");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

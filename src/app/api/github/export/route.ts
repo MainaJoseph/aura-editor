@@ -28,9 +28,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Pro plan required" }, { status: 403 });
   }
 
-  const body = await request.json();
-  const { projectId, repoName, visibility, description } =
-    requestSchema.parse(body);
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  let projectId: string,
+    repoName: string,
+    visibility: "public" | "private",
+    description: string | undefined;
+  try {
+    ({ projectId, repoName, visibility, description } =
+      requestSchema.parse(body));
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   const client = await clerkClient();
   const tokens = await client.users.getUserOauthAccessToken(userId, "github");
