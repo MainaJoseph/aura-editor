@@ -35,8 +35,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json();
-  const { prompt } = requestSchema.parse(body);
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  let prompt: string;
+  try {
+    ({ prompt } = requestSchema.parse(body));
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   // Generate a random project name
   const projectName = uniqueNamesGenerator({
@@ -56,35 +67,42 @@ export async function POST(request: Request) {
     },
   );
 
-  // Create user message
-  await convex.mutation(api.system.createMessage, {
-    internalKey,
-    conversationId,
-    projectId,
-    role: "user",
-    content: prompt,
-  });
-
-  // Create assistant message placeholder with processing status
-  const assistantMessageId = await convex.mutation(api.system.createMessage, {
-    internalKey,
-    conversationId,
-    projectId,
-    role: "assistant",
-    content: "",
-    status: "processing",
-  });
-
-  // Trigger Inngest to process the message
-  await inngest.send({
-    name: "message/sent",
-    data: {
-      messageId: assistantMessageId,
+  try {
+    // Create user message
+    await convex.mutation(api.system.createMessage, {
+      internalKey,
       conversationId,
       projectId,
-      message: prompt,
-    },
-  });
+      role: "user",
+      content: prompt,
+    });
+
+    // Create assistant message placeholder with processing status
+    const assistantMessageId = await convex.mutation(api.system.createMessage, {
+      internalKey,
+      conversationId,
+      projectId,
+      role: "assistant",
+      content: "",
+      status: "processing",
+    });
+
+    // Trigger Inngest to process the message
+    await inngest.send({
+      name: "message/sent",
+      data: {
+        messageId: assistantMessageId,
+        conversationId,
+        projectId,
+        message: prompt,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to initialize project conversation:", error);
+    // Project was created — return it so the user can still use it,
+    // but signal that the AI prompt was not processed.
+    return NextResponse.json({ projectId, promptFailed: true });
+  }
 
   return NextResponse.json({ projectId });
 }

@@ -113,6 +113,8 @@ export const SpeechInput = ({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const onTranscriptionChangeRef = useRef(onTranscriptionChange);
+  onTranscriptionChangeRef.current = onTranscriptionChange;
 
   // Detect mode on mount
   useEffect(() => {
@@ -152,7 +154,7 @@ export const SpeechInput = ({
       }
 
       if (finalTranscript) {
-        onTranscriptionChange?.(finalTranscript);
+        onTranscriptionChangeRef.current?.(finalTranscript);
       }
     };
 
@@ -169,7 +171,7 @@ export const SpeechInput = ({
         recognitionRef.current.stop();
       }
     };
-  }, [mode, onTranscriptionChange, lang]);
+  }, [mode, lang]);
 
   // Start MediaRecorder recording
   const startMediaRecorder = useCallback(async () => {

@@ -29,8 +29,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json();
-  const { conversationId, message } = requestSchema.parse(body);
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  let conversationId: string, message: string;
+  try {
+    ({ conversationId, message } = requestSchema.parse(body));
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   // Call convex mutation, query
   const conversation = await convex.query(api.system.getConversationById, {
