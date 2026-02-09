@@ -12,6 +12,7 @@ import { suggestion } from "../extensions/suggestion";
 import { quickEdit } from "../extensions/quick-edit";
 import { selectionTooltip } from "../extensions/selection-tooltip";
 import { explain } from "../extensions/explain";
+import { multiCursor } from "../extensions/multi-cursor";
 
 interface Props {
   fileName: string;
@@ -41,6 +42,7 @@ export const CodeEditor = ({
         oneDark,
         customTheme,
         customSetup,
+        multiCursor(),
         languageExtension,
         suggestion(fileName),
         quickEdit(fileName),

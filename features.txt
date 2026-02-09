@@ -1,0 +1,64 @@
+Editor Experience                                                                                                                         
+  
+  - Multi-cursor editing — Select and edit multiple locations simultaneously (CodeMirror supports this with extensions)                       
+  - Split/pane editor — Open files side-by-side for comparison or reference                                                                 
+
+  - Find & replace across files — Project-wide search with regex support
+  - Git diff viewer — Inline diff highlighting for changed files
+  - Keyboard shortcuts panel — Discoverable, customizable keybindings
+
+  AI Features
+
+  - Inline AI autocomplete — Ghost text completions as you type (like Copilot/Cursor Tab)
+  - AI chat context pinning — Pin specific files, folders, or code selections as context for the AI
+  - Multi-file edits in one prompt — AI proposes changes across multiple files with a diff review UI before applying
+  - AI-generated commit messages — Summarize changes and suggest commit messages
+  - Error auto-fix — When terminal/preview shows errors, offer one-click AI fix
+  - Prompt history — Browse and reuse previous AI conversations per project
+  - Model switching mid-conversation — Let users pick a different model per message
+
+  Project & File Management
+
+  - Git integration — Branch management, staging, commits, push/pull from the UI
+  - File search (Cmd+P) — Fuzzy file finder by name
+  - Symbol search (Cmd+Shift+O) — Jump to functions, classes, exports
+  - File templates — Scaffold common files (React component, API route, etc.)
+  - Project templates — Start from Next.js, Vite, Express, etc. boilerplates
+  - Import from GitHub — Clone a repo directly into a project
+  - Export to GitHub — Push a project to a new or existing repo
+  - File history/versioning — View and restore previous versions of a file
+
+  Preview & Runtime
+
+  - Multiple terminal tabs — Run several processes simultaneously
+  - Console panel — Capture and display console.log output separately from terminal
+  - Responsive preview — Toggle between device sizes (mobile, tablet, desktop)
+  - Preview URL sharing — Generate a shareable link for the running preview
+  - Environment variables UI — Manage .env values through a settings panel instead of editing the file
+
+  Collaboration
+
+  - Real-time multiplayer editing — Multiple users editing the same project simultaneously (Convex's real-time subscriptions make this      
+  feasible)
+  - Share project links — Read-only or editable access via link
+  - Comments on code — Leave comments on specific lines for async collaboration
+  - Fork/remix — Let users fork public projects as starting points
+
+  UX & Quality of Life
+
+  - Command palette (Cmd+Shift+P) — Central hub for all actions
+  - Themes — Light/dark/custom editor themes
+  - Settings UI — Font size, tab size, word wrap, autosave preferences
+  - Notification system — Toast notifications for AI completion, errors, deploy status
+  - Undo/redo for AI changes — Checkpoint-based rollback of AI-applied edits
+  - Drag-and-drop file uploads — Drop images/assets into the file explorer
+  - Tab pinning — Permanently pin important tabs that can't be accidentally closed
+
+  Deployment
+
+  - One-click deploy — Deploy to Vercel, Netlify, or Cloudflare from the editor
+  - Deploy previews — Auto-generate preview URLs for each saved state
+  - Custom domain linking — Connect a domain to a deployed project
+
+  The highest-impact additions would likely be inline AI autocomplete, command palette, fuzzy file finder, and split panes — these are the  
+  features power users expect from any modern code editor.
