@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { WebContainer, WebContainerProcess } from "@webcontainer/api";
+import { WebContainer } from "@webcontainer/api";
 import { useMutation } from "convex/react";
 
 import { buildFileTree, getFilePath } from "@/features/preview/utils/file-tree";
+import { spawnShellProcess } from "@/features/preview/utils/spawn-shell-process";
 import { useFiles } from "@/features/projects/hooks/use-files";
+import { useTerminalStore } from "@/features/preview/store/use-terminal-store";
+import {
+  cleanupAllProcessRefs,
+  writeToProcess,
+} from "@/features/preview/store/terminal-process-refs";
 
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -73,21 +79,19 @@ export const useWebContainer = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [restartKey, setRestartKey] = useState(0);
-  const [terminalOutput, setTerminalOutput] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
 
   const containerRef = useRef<WebContainer | null>(null);
   const hasStartedRef = useRef(false);
-  const shellProcessRef = useRef<WebContainerProcess | null>(null);
-  const inputWriterRef = useRef<WritableStreamDefaultWriter<string> | null>(
-    null,
-  );
 
   // Convex mutation for syncing files
   const syncFile = useMutation(api.files.syncFileFromContainer);
 
   // Fetch files from Convex (auto-updates on changes)
   const files = useFiles(projectId);
+
+  // Expose container ref for terminal management
+  const getContainer = useCallback(() => containerRef.current, []);
 
   // Initial boot and mount
   useEffect(() => {
@@ -101,20 +105,11 @@ export const useWebContainer = ({
     // Track if effect is still active (for cleanup)
     let isActive = true;
     let commandTimeoutId: NodeJS.Timeout | undefined;
-    let outputStreamController: AbortController | undefined;
 
     const start = async () => {
       try {
         setStatus("booting");
         setError(null);
-        setTerminalOutput("");
-
-        const appendOutput = (data: string) => {
-          // Only update state if effect is still active
-          if (isActive) {
-            setTerminalOutput((prev) => prev + data);
-          }
-        };
 
         const container = await getWebContainer();
 
@@ -140,34 +135,17 @@ export const useWebContainer = ({
         };
         container.on("server-ready", serverReadyHandler);
 
-        // Spawn an interactive shell (jsh)
-        const shellProcess = await container.spawn("jsh", [], {
-          terminal: { cols: 80, rows: 24 },
-        });
+        // Create and spawn the primary terminal
+        const terminalId = useTerminalStore
+          .getState()
+          .createTerminal(projectId, {
+            label: "Terminal 1",
+            isPrimary: true,
+          });
 
-        // Check again after spawn
-        if (!isActive) {
-          shellProcess.kill();
-          return;
-        }
+        if (!isActive || !terminalId) return;
 
-        shellProcessRef.current = shellProcess;
-
-        // Connect input writer for shell
-        inputWriterRef.current = shellProcess.input.getWriter();
-
-        // Pipe shell output to terminal with abort controller
-        outputStreamController = new AbortController();
-        shellProcess.output.pipeTo(
-          new WritableStream({
-            write(data) {
-              appendOutput(data);
-            },
-          }),
-          { signal: outputStreamController.signal },
-        ).catch(() => {
-          // Stream was aborted, this is expected on cleanup
-        });
+        await spawnShellProcess(container, terminalId, projectId);
 
         if (!isActive) return;
 
@@ -177,12 +155,13 @@ export const useWebContainer = ({
         if (files && files.length > 0) {
           const installCmd = settings?.installCommand || "npm install";
           // Use --turbo=false because Turbopack native bindings don't work in WebContainer
-          const devCmd = settings?.devCommand || "npm run dev -- --turbo=false";
+          const devCmd =
+            settings?.devCommand || "npm run dev -- --turbo=false";
 
           // Send commands to shell (with small delay for shell to initialize)
           commandTimeoutId = setTimeout(() => {
             if (isActive) {
-              inputWriterRef.current?.write(`${installCmd} && ${devCmd}\n`);
+              writeToProcess(terminalId, `${installCmd} && ${devCmd}\n`);
             }
           }, 100);
         }
@@ -205,11 +184,6 @@ export const useWebContainer = ({
         clearTimeout(commandTimeoutId);
       }
 
-      // Abort the output stream
-      if (outputStreamController) {
-        outputStreamController.abort();
-      }
-
       // Note: We don't teardown the WebContainer here because it's a singleton
       // and may be reused. The restart() function handles full cleanup.
     };
@@ -217,6 +191,7 @@ export const useWebContainer = ({
     enabled,
     files,
     restartKey,
+    projectId,
     settings?.devCommand,
     settings?.installCommand,
   ]);
@@ -279,30 +254,18 @@ export const useWebContainer = ({
 
   // Restart the entire WebContainer process
   const restart = useCallback(() => {
-    // Kill shell process
-    shellProcessRef.current?.kill();
-    shellProcessRef.current = null;
-    inputWriterRef.current?.releaseLock();
-    inputWriterRef.current = null;
+    // Cleanup all terminal processes
+    cleanupAllProcessRefs();
+    useTerminalStore.getState().clearAllTerminals(projectId);
+
     teardownWebContainer();
     containerRef.current = null;
     hasStartedRef.current = false;
     setStatus("idle");
     setPreviewUrl(null);
     setError(null);
-    setTerminalOutput("");
     setRestartKey((k) => k + 1);
-  }, []);
-
-  // Write to terminal input (for interactive processes)
-  const writeToTerminal = useCallback((data: string) => {
-    inputWriterRef.current?.write(data);
-  }, []);
-
-  // Resize the terminal/shell
-  const resizeTerminal = useCallback((cols: number, rows: number) => {
-    shellProcessRef.current?.resize({ cols, rows });
-  }, []);
+  }, [projectId]);
 
   // Recursively read all files from WebContainer
   const readAllFiles = useCallback(
@@ -390,9 +353,7 @@ export const useWebContainer = ({
     previewUrl,
     error,
     restart,
-    terminalOutput,
-    writeToTerminal,
-    resizeTerminal,
+    getContainer,
     syncFilesToConvex,
     isSyncing,
   };

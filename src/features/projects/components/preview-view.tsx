@@ -8,17 +8,22 @@ import {
   AlertTriangleIcon,
   RefreshCwIcon,
   FolderSyncIcon,
+  PlusIcon,
 } from "lucide-react";
 
 import { useWebContainer } from "@/features/preview/hooks/use-webcontainer";
+import { useTerminal } from "@/features/preview/hooks/use-terminal";
 import { PreviewSettingsPopover } from "@/features/preview/components/preview-settings-popover";
 import { PreviewTerminal } from "@/features/preview/components/preview-terminal";
+import { TerminalTabs } from "@/features/preview/components/terminal-tabs";
 
 import { Button } from "@/components/ui/button";
 
 import { useProject } from "../hooks/use-projects";
 
 import { Id } from "../../../../convex/_generated/dataModel";
+
+const MAX_TERMINALS = 5;
 
 export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const project = useProject(projectId);
@@ -29,9 +34,7 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
     previewUrl,
     error,
     restart,
-    terminalOutput,
-    writeToTerminal,
-    resizeTerminal,
+    getContainer,
     syncFilesToConvex,
     isSyncing,
   } = useWebContainer({
@@ -39,6 +42,17 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
     enabled: true,
     settings: project?.settings,
   });
+
+  const {
+    terminals,
+    activeTerminalId,
+    createNewTerminal,
+    closeTerminal,
+    setActiveTerminal,
+    renameTerminal,
+    writeToTerminal,
+    resizeTerminal,
+  } = useTerminal({ projectId, getContainer });
 
   const isBooting = status === "booting";
 
@@ -149,21 +163,51 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
             )}
           </Allotment.Pane>
 
-          {showTerminal && (
-            <Allotment.Pane minSize={100} maxSize={500} preferredSize={200}>
+          <Allotment.Pane visible={showTerminal} minSize={100} maxSize={500} preferredSize={200}>
               <div className="h-full flex flex-col bg-background border-t">
-                <div className="h-7 flex items-center px-3 text-xs gap-1.5 text-muted-foreground border-b border-border/50 shrink-0">
-                  <TerminalSquareIcon className="size-3" />
-                  Terminal
+                {terminals.length <= 1 && (
+                  <div className="h-7 flex items-center justify-between px-3 text-xs text-muted-foreground border-b border-border/50 shrink-0 bg-sidebar">
+                    <div className="flex items-center gap-1.5">
+                      <TerminalSquareIcon className="size-3" />
+                      Terminal
+                    </div>
+                    <button
+                      className="p-1 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      onClick={createNewTerminal}
+                      title="New Terminal"
+                    >
+                      <PlusIcon className="size-3.5" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex-1 min-h-0 flex flex-row">
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    {terminals.map((terminal) => (
+                      <PreviewTerminal
+                        key={terminal.id}
+                        output={terminal.output}
+                        isVisible={terminal.id === activeTerminalId}
+                        onInput={(data) => writeToTerminal(terminal.id, data)}
+                        onResize={(cols, rows) =>
+                          resizeTerminal(terminal.id, cols, rows)
+                        }
+                      />
+                    ))}
+                  </div>
+                  {terminals.length > 1 && (
+                    <TerminalTabs
+                      terminals={terminals}
+                      activeTerminalId={activeTerminalId}
+                      onSelect={setActiveTerminal}
+                      onClose={closeTerminal}
+                      onRename={renameTerminal}
+                      onCreateTerminal={createNewTerminal}
+                      canCreate={terminals.length < MAX_TERMINALS}
+                    />
+                  )}
                 </div>
-                <PreviewTerminal
-                  output={terminalOutput}
-                  onInput={writeToTerminal}
-                  onResize={resizeTerminal}
-                />
               </div>
             </Allotment.Pane>
-          )}
         </Allotment>
       </div>
     </div>
