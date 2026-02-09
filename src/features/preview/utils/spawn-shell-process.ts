@@ -22,15 +22,23 @@ export async function spawnShellProcess(
     const inputWriter = shellProcess.input.getWriter();
 
     // Batch output chunks to reduce store update frequency
+    const FLUSH_INTERVAL = 16;
+    const FLUSH_SIZE_THRESHOLD = 8_192;
     let outputBuffer = "";
-    let flushScheduled = false;
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
     const flushOutput = () => {
-      flushScheduled = false;
+      flushTimer = null;
       if (outputBuffer) {
         const data = outputBuffer;
         outputBuffer = "";
         useTerminalStore.getState().appendOutput(projectId, terminalId, data);
+      }
+    };
+
+    const scheduleFlush = () => {
+      if (flushTimer === null) {
+        flushTimer = setTimeout(flushOutput, FLUSH_INTERVAL);
       }
     };
 
@@ -40,9 +48,14 @@ export async function spawnShellProcess(
         new WritableStream({
           write(data) {
             outputBuffer += data;
-            if (!flushScheduled) {
-              flushScheduled = true;
-              requestAnimationFrame(flushOutput);
+            if (outputBuffer.length >= FLUSH_SIZE_THRESHOLD) {
+              if (flushTimer !== null) {
+                clearTimeout(flushTimer);
+                flushTimer = null;
+              }
+              flushOutput();
+            } else {
+              scheduleFlush();
             }
           },
         }),
