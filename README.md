@@ -4,10 +4,29 @@ Aura is a full-featured, AI-powered code editor with in-browser project runtime.
 
 Built with Next.js 16, React 19, Convex, Clerk, and WebContainer API.
 
+**[Try Aura Live](https://aura.azuritek.com)**
+
+---
+
+## Screenshots
+
+### Landing Page
+![Landing Page](public/screenshots/landing-page.png)
+
+### Projects Dashboard
+![Projects Dashboard](public/screenshots/projects-dashboard.png)
+
+### Code Editor — AI Chat & File Explorer
+![Code Editor](public/screenshots/code-editor.png)
+
+### Live Preview — In-Browser Runtime & Terminal
+![Live Preview](public/screenshots/live-preview.png)
+
 ---
 
 ## Table of Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
