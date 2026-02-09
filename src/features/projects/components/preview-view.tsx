@@ -16,14 +16,13 @@ import { useTerminal } from "@/features/preview/hooks/use-terminal";
 import { PreviewSettingsPopover } from "@/features/preview/components/preview-settings-popover";
 import { PreviewTerminal } from "@/features/preview/components/preview-terminal";
 import { TerminalTabs } from "@/features/preview/components/terminal-tabs";
+import { MAX_TERMINALS } from "@/features/preview/store/use-terminal-store";
 
 import { Button } from "@/components/ui/button";
 
 import { useProject } from "../hooks/use-projects";
 
 import { Id } from "../../../../convex/_generated/dataModel";
-
-const MAX_TERMINALS = 5;
 
 export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const project = useProject(projectId);

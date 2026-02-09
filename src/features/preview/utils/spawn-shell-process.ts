@@ -14,37 +14,76 @@ export async function spawnShellProcess(
 
   store.setTerminalStatus(projectId, terminalId, "spawning");
 
-  const shellProcess = await container.spawn("jsh", [], {
-    terminal: { cols: 80, rows: 24 },
-  });
-
-  const inputWriter = shellProcess.input.getWriter();
-
-  const outputAbortController = new AbortController();
-  shellProcess.output
-    .pipeTo(
-      new WritableStream({
-        write(data) {
-          useTerminalStore.getState().appendOutput(projectId, terminalId, data);
-        },
-      }),
-      { signal: outputAbortController.signal },
-    )
-    .catch(() => {
-      // Stream was aborted, expected on cleanup
+  try {
+    const shellProcess = await container.spawn("jsh", [], {
+      terminal: { cols: 80, rows: 24 },
     });
 
-  setProcessRefs(terminalId, {
-    shellProcess,
-    inputWriter,
-    outputAbortController,
-  });
+    const inputWriter = shellProcess.input.getWriter();
 
-  store.setTerminalStatus(projectId, terminalId, "running");
+    // Batch output chunks to reduce store update frequency
+    const FLUSH_INTERVAL = 16;
+    const FLUSH_SIZE_THRESHOLD = 8_192;
+    let outputBuffer = "";
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-  shellProcess.exit.then(() => {
+    const flushOutput = () => {
+      flushTimer = null;
+      if (outputBuffer) {
+        const data = outputBuffer;
+        outputBuffer = "";
+        useTerminalStore.getState().appendOutput(projectId, terminalId, data);
+      }
+    };
+
+    const scheduleFlush = () => {
+      if (flushTimer === null) {
+        flushTimer = setTimeout(flushOutput, FLUSH_INTERVAL);
+      }
+    };
+
+    const outputAbortController = new AbortController();
+    shellProcess.output
+      .pipeTo(
+        new WritableStream({
+          write(data) {
+            outputBuffer += data;
+            if (outputBuffer.length >= FLUSH_SIZE_THRESHOLD) {
+              if (flushTimer !== null) {
+                clearTimeout(flushTimer);
+                flushTimer = null;
+              }
+              flushOutput();
+            } else {
+              scheduleFlush();
+            }
+          },
+        }),
+        { signal: outputAbortController.signal },
+      )
+      .catch(() => {
+        // Stream was aborted, expected on cleanup
+        // Flush any remaining buffered output
+        flushOutput();
+      });
+
+    setProcessRefs(terminalId, {
+      shellProcess,
+      inputWriter,
+      outputAbortController,
+    });
+
+    store.setTerminalStatus(projectId, terminalId, "running");
+
+    shellProcess.exit.then(() => {
+      flushOutput();
+      useTerminalStore
+        .getState()
+        .setTerminalStatus(projectId, terminalId, "exited");
+    });
+  } catch {
     useTerminalStore
       .getState()
       .setTerminalStatus(projectId, terminalId, "exited");
-  });
+  }
 }

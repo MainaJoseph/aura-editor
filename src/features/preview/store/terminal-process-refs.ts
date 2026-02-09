@@ -12,6 +12,7 @@ export function setProcessRefs(
   terminalId: string,
   refs: TerminalProcessRefs,
 ): void {
+  cleanupProcessRefs(terminalId);
   processRefs.set(terminalId, refs);
 }
 
@@ -50,7 +51,9 @@ export function cleanupAllProcessRefs(): void {
 
 export function writeToProcess(terminalId: string, data: string): void {
   const refs = processRefs.get(terminalId);
-  refs?.inputWriter.write(data);
+  refs?.inputWriter.write(data).catch(() => {
+    // Stream may already be closed
+  });
 }
 
 export function resizeProcess(
