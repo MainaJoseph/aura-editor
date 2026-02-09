@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { cn } from "@/lib/utils";
 import {
   ContextMenu,
@@ -34,10 +36,24 @@ export const TreeItemWrapper = ({
   onCreateFile?: () => void;
   onCreateFolder?: () => void;
 }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const isFile = item.type === "file";
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <button
+          draggable={isFile}
+          onDragStart={(e) => {
+            if (!isFile) {
+              e.preventDefault();
+              return;
+            }
+            e.dataTransfer.setData("application/aura-file-id", item._id);
+            e.dataTransfer.effectAllowed = "copy";
+            setIsDragging(true);
+          }}
+          onDragEnd={() => setIsDragging(false)}
           onClick={onClick}
           onDoubleClick={onDoubleClick}
           onKeyDown={(e) => {
@@ -48,9 +64,10 @@ export const TreeItemWrapper = ({
           }}
           className={cn(
             "group flex items-center gap-1 w-full h-5.5 hover:bg-accent/30 outline-none focus:ring-1 focus:ring-inset focus:ring-ring",
-            isActive && "bg-accent/30"
+            isActive && "bg-accent/30",
+            isDragging && "opacity-50"
           )}
-          style={{ paddingLeft: getItemPadding(level, item.type === "file") }}
+          style={{ paddingLeft: getItemPadding(level, isFile) }}
         >
           {children}
         </button>

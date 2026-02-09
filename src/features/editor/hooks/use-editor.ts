@@ -32,6 +32,13 @@ export const useEditor = (projectId: Id<"projects">) => {
     [store, projectId]
   );
 
+  const reorderTab = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      store.reorderTab(projectId, fromIndex, toIndex);
+    },
+    [store, projectId]
+  );
+
   return {
     openTabs: tabState.openTabs,
     activeTabId: tabState.activeTabId,
@@ -40,5 +47,6 @@ export const useEditor = (projectId: Id<"projects">) => {
     closeTab,
     closeAllTabs,
     setActiveTab,
+    reorderTab,
   };
 };

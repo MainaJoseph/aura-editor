@@ -25,6 +25,11 @@ interface EditorStore {
   closeTab: (projectId: Id<"projects">, fileId: Id<"files">) => void;
   closeAllTabs: (projectId: Id<"projects">) => void;
   setActiveTab: (projectId: Id<"projects">, fileId: Id<"files">) => void;
+  reorderTab: (
+    projectId: Id<"projects">,
+    fromIndex: number,
+    toIndex: number
+  ) => void;
 }
 
 export const useEditorStore = create<EditorStore>()((set, get) => ({
@@ -115,6 +120,28 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
     const tabs = new Map(get().tabs);
     const state = tabs.get(projectId) ?? defaultTabState;
     tabs.set(projectId, { ...state, activeTabId: fileId });
+    set({ tabs });
+  },
+
+  reorderTab: (projectId, fromIndex, toIndex) => {
+    const tabs = new Map(get().tabs);
+    const state = tabs.get(projectId) ?? defaultTabState;
+    const openTabs = [...state.openTabs];
+
+    if (
+      fromIndex < 0 ||
+      fromIndex >= openTabs.length ||
+      toIndex < 0 ||
+      toIndex >= openTabs.length ||
+      fromIndex === toIndex
+    ) {
+      return;
+    }
+
+    const [moved] = openTabs.splice(fromIndex, 1);
+    openTabs.splice(toIndex, 0, moved);
+
+    tabs.set(projectId, { ...state, openTabs });
     set({ tabs });
   },
 }));
