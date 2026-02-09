@@ -8,7 +8,7 @@ import { Trash2Icon, Loader2Icon } from "lucide-react";
 import { useMutation } from "convex/react";
 
 import { cn } from "@/lib/utils";
-import { EditorView } from "@/features/editor/components/editor-view";
+import { SplitEditorView } from "@/features/editor/components/split-editor-view";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -149,7 +149,7 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
               <FileExplorer projectId={projectId} />
             </Allotment.Pane>
             <Allotment.Pane>
-              <EditorView projectId={projectId} />
+              <SplitEditorView projectId={projectId} />
             </Allotment.Pane>
           </Allotment>
         </div>

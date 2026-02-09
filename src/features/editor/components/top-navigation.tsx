@@ -4,29 +4,32 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 import { useFile } from "@/features/projects/hooks/use-files";
 
+import { useEditorPane } from "../hooks/use-editor-pane";
 import { useEditor } from "../hooks/use-editor";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 import { FileIcon } from "@react-symbols/icons/utils";
-import { XIcon } from "lucide-react";
+import { Columns2Icon, XIcon } from "lucide-react";
 
 const Tab = ({
   fileId,
   isFirst,
   projectId,
+  paneIndex,
   index,
   onReorder,
 }: {
   fileId: Id<"files">;
   isFirst: boolean;
   projectId: Id<"projects">;
+  paneIndex: number;
   index: number;
   onReorder: (fromIndex: number, toIndex: number) => void;
 }) => {
   const file = useFile(fileId);
   const { activeTabId, previewTabId, setActiveTab, openFile, closeTab } =
-    useEditor(projectId);
+    useEditorPane(projectId, paneIndex);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dropSide, setDropSide] = useState<"left" | "right" | null>(null);
@@ -116,54 +119,92 @@ const Tab = ({
   );
 };
 
-export const TopNavigation = ({ projectId }: { projectId: Id<"projects"> }) => {
-  const { openTabs, openFile, reorderTab } = useEditor(projectId);
+export const TopNavigation = ({
+  projectId,
+  paneIndex,
+}: {
+  projectId: Id<"projects">;
+  paneIndex: number;
+}) => {
+  const { openTabs, openFile, reorderTab } = useEditorPane(
+    projectId,
+    paneIndex
+  );
+  const { isSplit, splitEditor, closeSplit } = useEditor(projectId);
   const [isDragOver, setIsDragOver] = useState(false);
 
   return (
-    <ScrollArea className="flex-1">
-      <nav
-        className={cn(
-          "bg-sidebar flex items-center h-8.75 border-b",
-          isDragOver && "ring-1 ring-inset ring-ring"
-        )}
-        onDragOver={(e) => {
-          if (e.dataTransfer.types.includes("application/aura-file-id")) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
-            setIsDragOver(true);
-          }
-        }}
-        onDragEnter={(e) => {
-          if (e.dataTransfer.types.includes("application/aura-file-id")) {
-            setIsDragOver(true);
-          }
-        }}
-        onDragLeave={(e) => {
-          if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) {
+    <div className="flex items-center w-full">
+      <ScrollArea className="flex-1">
+        <nav
+          className={cn(
+            "bg-sidebar flex items-center h-8.75 border-b",
+            isDragOver && "ring-1 ring-inset ring-ring"
+          )}
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes("application/aura-file-id")) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+              setIsDragOver(true);
+            }
+          }}
+          onDragEnter={(e) => {
+            if (e.dataTransfer.types.includes("application/aura-file-id")) {
+              setIsDragOver(true);
+            }
+          }}
+          onDragLeave={(e) => {
+            if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) {
+              setIsDragOver(false);
+            }
+          }}
+          onDrop={(e) => {
             setIsDragOver(false);
-          }
-        }}
-        onDrop={(e) => {
-          setIsDragOver(false);
-          const fileId = e.dataTransfer.getData("application/aura-file-id");
-          if (!fileId) return;
-          e.preventDefault();
-          openFile(fileId as Id<"files">, { pinned: true });
-        }}
-      >
-        {openTabs.map((fileId, index) => (
-          <Tab
-            key={fileId}
-            fileId={fileId}
-            isFirst={index === 0}
-            projectId={projectId}
-            index={index}
-            onReorder={reorderTab}
-          />
-        ))}
-      </nav>
-      <ScrollBar orientation="horizontal" />
-    </ScrollArea>
+            const fileId = e.dataTransfer.getData("application/aura-file-id");
+            if (!fileId) return;
+            e.preventDefault();
+            openFile(fileId as Id<"files">, { pinned: true });
+          }}
+        >
+          {openTabs.map((fileId, index) => (
+            <Tab
+              key={fileId}
+              fileId={fileId}
+              isFirst={index === 0}
+              projectId={projectId}
+              paneIndex={paneIndex}
+              index={index}
+              onReorder={reorderTab}
+            />
+          ))}
+        </nav>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+      <div className="flex items-center h-8.75 border-b bg-sidebar">
+        {isSplit ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              closeSplit(paneIndex);
+            }}
+            className="flex items-center justify-center size-8.75 text-muted-foreground hover:text-foreground hover:bg-accent/30"
+            title="Close split"
+          >
+            <XIcon className="size-3.5" />
+          </button>
+        ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              splitEditor();
+            }}
+            className="flex items-center justify-center size-8.75 text-muted-foreground hover:text-foreground hover:bg-accent/30"
+            title="Split editor (Ctrl+\)"
+          >
+            <Columns2Icon className="size-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
   );
 };

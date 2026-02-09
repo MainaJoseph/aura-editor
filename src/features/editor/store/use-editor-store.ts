@@ -14,36 +14,73 @@ const defaultTabState: TabState = {
   previewTabId: null,
 };
 
+interface ProjectEditorState {
+  panes: TabState[];
+  activePaneIndex: number;
+}
+
+const defaultProjectState: ProjectEditorState = {
+  panes: [{ ...defaultTabState }],
+  activePaneIndex: 0,
+};
+
 interface EditorStore {
-  tabs: Map<Id<"projects">, TabState>;
-  getTabState: (projectId: Id<"projects">) => TabState;
+  tabs: Map<Id<"projects">, ProjectEditorState>;
+  getProjectState: (projectId: Id<"projects">) => ProjectEditorState;
+  getTabState: (projectId: Id<"projects">, paneIndex?: number) => TabState;
   openFile: (
     projectId: Id<"projects">,
     fileId: Id<"files">,
-    options: { pinned: boolean }
+    options: { pinned: boolean },
+    paneIndex?: number
   ) => void;
-  closeTab: (projectId: Id<"projects">, fileId: Id<"files">) => void;
-  closeAllTabs: (projectId: Id<"projects">) => void;
-  setActiveTab: (projectId: Id<"projects">, fileId: Id<"files">) => void;
+  closeTab: (
+    projectId: Id<"projects">,
+    fileId: Id<"files">,
+    paneIndex?: number
+  ) => void;
+  closeAllTabs: (projectId: Id<"projects">, paneIndex?: number) => void;
+  setActiveTab: (
+    projectId: Id<"projects">,
+    fileId: Id<"files">,
+    paneIndex?: number
+  ) => void;
   reorderTab: (
     projectId: Id<"projects">,
     fromIndex: number,
-    toIndex: number
+    toIndex: number,
+    paneIndex?: number
   ) => void;
+  splitEditor: (projectId: Id<"projects">, fileId?: Id<"files">) => void;
+  closeSplit: (projectId: Id<"projects">, paneIndex: number) => void;
+  setActivePane: (projectId: Id<"projects">, paneIndex: number) => void;
 }
 
 export const useEditorStore = create<EditorStore>()((set, get) => ({
   tabs: new Map(),
 
-  getTabState: (projectId) => {
-    return get().tabs.get(projectId) ?? defaultTabState;
+  getProjectState: (projectId) => {
+    return get().tabs.get(projectId) ?? defaultProjectState;
   },
 
-  openFile: (projectId, fileId, { pinned }) => {
+  getTabState: (projectId, paneIndex?) => {
+    const project = get().tabs.get(projectId) ?? defaultProjectState;
+    const idx = paneIndex ?? project.activePaneIndex;
+    return project.panes[idx] ?? defaultTabState;
+  },
+
+  openFile: (projectId, fileId, { pinned }, paneIndex?) => {
     const tabs = new Map(get().tabs);
-    const state = tabs.get(projectId) ?? defaultTabState;
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+    const idx = paneIndex ?? project.activePaneIndex;
+    const state = project.panes[idx] ?? defaultTabState;
     const { openTabs, previewTabId } = state;
     const isOpen = openTabs.includes(fileId);
+
+    let newPaneState: TabState;
 
     // Case 1: Opening as preview - replace existing preview or add new
     if (!isOpen && !pinned) {
@@ -51,39 +88,44 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
         ? openTabs.map((id) => (id === previewTabId ? fileId : id))
         : [...openTabs, fileId];
 
-      tabs.set(projectId, {
+      newPaneState = {
         openTabs: newTabs,
         activeTabId: fileId,
         previewTabId: fileId,
-      });
-      set({ tabs });
-      return;
+      };
     }
-
     // Case 2: Opening as pinned - add new tab
-    if (!isOpen && pinned) {
-      tabs.set(projectId, {
+    else if (!isOpen && pinned) {
+      newPaneState = {
         ...state,
         openTabs: [...openTabs, fileId],
         activeTabId: fileId,
-      });
-      set({ tabs });
-      return;
+      };
+    }
+    // Case 3: File already open - just activate (and pin if double-clicked)
+    else {
+      const shouldPin = pinned && previewTabId === fileId;
+      newPaneState = {
+        ...state,
+        activeTabId: fileId,
+        previewTabId: shouldPin ? null : previewTabId,
+      };
     }
 
-    // Case 3: File already open - just activate (and pin if double-clicked)
-    const shouldPin = pinned && previewTabId === fileId;
-    tabs.set(projectId, {
-      ...state,
-      activeTabId: fileId,
-      previewTabId: shouldPin ? null : previewTabId,
-    });
+    const newPanes = [...project.panes];
+    newPanes[idx] = newPaneState;
+    tabs.set(projectId, { ...project, panes: newPanes });
     set({ tabs });
   },
 
-  closeTab: (projectId, fileId) => {
+  closeTab: (projectId, fileId, paneIndex?) => {
     const tabs = new Map(get().tabs);
-    const state = tabs.get(projectId) ?? defaultTabState;
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+    const idx = paneIndex ?? project.activePaneIndex;
+    const state = project.panes[idx] ?? defaultTabState;
     const { openTabs, activeTabId, previewTabId } = state;
     const tabIndex = openTabs.indexOf(fileId);
 
@@ -102,30 +144,77 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
       }
     }
 
-    tabs.set(projectId, {
+    const newPaneState: TabState = {
       openTabs: newTabs,
       activeTabId: newActiveTabId,
       previewTabId: previewTabId === fileId ? null : previewTabId,
-    });
+    };
+
+    const newPanes = [...project.panes];
+    newPanes[idx] = newPaneState;
+
+    // Auto-close split when last tab in a pane is closed
+    if (newTabs.length === 0 && newPanes.length > 1) {
+      newPanes.splice(idx, 1);
+      tabs.set(projectId, {
+        panes: newPanes,
+        activePaneIndex: 0,
+      });
+    } else {
+      tabs.set(projectId, { ...project, panes: newPanes });
+    }
+
     set({ tabs });
   },
 
-  closeAllTabs: (projectId) => {
+  closeAllTabs: (projectId, paneIndex?) => {
     const tabs = new Map(get().tabs);
-    tabs.set(projectId, defaultTabState);
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+    const idx = paneIndex ?? project.activePaneIndex;
+
+    // Auto-close split when clearing all tabs
+    if (project.panes.length > 1) {
+      const newPanes = [...project.panes];
+      newPanes.splice(idx, 1);
+      tabs.set(projectId, {
+        panes: newPanes,
+        activePaneIndex: 0,
+      });
+    } else {
+      const newPanes = [...project.panes];
+      newPanes[idx] = { ...defaultTabState };
+      tabs.set(projectId, { ...project, panes: newPanes });
+    }
+
     set({ tabs });
   },
 
-  setActiveTab: (projectId, fileId) => {
+  setActiveTab: (projectId, fileId, paneIndex?) => {
     const tabs = new Map(get().tabs);
-    const state = tabs.get(projectId) ?? defaultTabState;
-    tabs.set(projectId, { ...state, activeTabId: fileId });
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+    const idx = paneIndex ?? project.activePaneIndex;
+    const state = project.panes[idx] ?? defaultTabState;
+
+    const newPanes = [...project.panes];
+    newPanes[idx] = { ...state, activeTabId: fileId };
+    tabs.set(projectId, { ...project, panes: newPanes });
     set({ tabs });
   },
 
-  reorderTab: (projectId, fromIndex, toIndex) => {
+  reorderTab: (projectId, fromIndex, toIndex, paneIndex?) => {
     const tabs = new Map(get().tabs);
-    const state = tabs.get(projectId) ?? defaultTabState;
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+    const idx = paneIndex ?? project.activePaneIndex;
+    const state = project.panes[idx] ?? defaultTabState;
     const openTabs = [...state.openTabs];
 
     if (
@@ -141,7 +230,69 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
     const [moved] = openTabs.splice(fromIndex, 1);
     openTabs.splice(toIndex, 0, moved);
 
-    tabs.set(projectId, { ...state, openTabs });
+    const newPanes = [...project.panes];
+    newPanes[idx] = { ...state, openTabs };
+    tabs.set(projectId, { ...project, panes: newPanes });
+    set({ tabs });
+  },
+
+  splitEditor: (projectId, fileId?) => {
+    const tabs = new Map(get().tabs);
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+
+    // Already split — don't add more panes
+    if (project.panes.length >= 2) return;
+
+    const activePane = project.panes[project.activePaneIndex] ?? defaultTabState;
+    const newFileId = fileId ?? activePane.activeTabId;
+
+    const newPane: TabState = newFileId
+      ? {
+          openTabs: [newFileId],
+          activeTabId: newFileId,
+          previewTabId: null,
+        }
+      : { ...defaultTabState };
+
+    tabs.set(projectId, {
+      panes: [...project.panes, newPane],
+      activePaneIndex: 1,
+    });
+    set({ tabs });
+  },
+
+  closeSplit: (projectId, paneIndex) => {
+    const tabs = new Map(get().tabs);
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+
+    if (project.panes.length <= 1) return;
+
+    const newPanes = [...project.panes];
+    newPanes.splice(paneIndex, 1);
+
+    tabs.set(projectId, {
+      panes: newPanes,
+      activePaneIndex: 0,
+    });
+    set({ tabs });
+  },
+
+  setActivePane: (projectId, paneIndex) => {
+    const tabs = new Map(get().tabs);
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+
+    if (paneIndex < 0 || paneIndex >= project.panes.length) return;
+
+    tabs.set(projectId, { ...project, activePaneIndex: paneIndex });
     set({ tabs });
   },
 }));
