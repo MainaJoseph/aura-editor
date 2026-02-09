@@ -4,16 +4,26 @@ import { useEffect, useRef } from "react";
 import { useFile, useUpdateFile } from "@/features/projects/hooks/use-files";
 
 import { CodeEditor } from "./code-editor";
-import { useEditor } from "../hooks/use-editor";
+import { useEditorPane } from "../hooks/use-editor-pane";
 import { TopNavigation } from "./top-navigation";
 import { FileBreadcrumbs } from "./file-breadcrumbs";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { AlertTriangleIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const DEBOUNCE_MS = 1500;
 
-export const EditorView = ({ projectId }: { projectId: Id<"projects"> }) => {
-  const { activeTabId } = useEditor(projectId);
+export const EditorPane = ({
+  projectId,
+  paneIndex,
+}: {
+  projectId: Id<"projects">;
+  paneIndex: number;
+}) => {
+  const { activeTabId, isActivePane, setActivePane } = useEditorPane(
+    projectId,
+    paneIndex
+  );
   const activeFile = useFile(activeTabId);
   const updateFile = useUpdateFile();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -31,11 +41,19 @@ export const EditorView = ({ projectId }: { projectId: Id<"projects"> }) => {
   }, [activeTabId]);
 
   return (
-    <div className="h-full flex flex-col">
+    <div
+      className={cn(
+        "h-full flex flex-col",
+        isActivePane && "ring-1 ring-ring/50 ring-inset"
+      )}
+      onClick={setActivePane}
+    >
       <div className="flex items-center">
-        <TopNavigation projectId={projectId} />
+        <TopNavigation projectId={projectId} paneIndex={paneIndex} />
       </div>
-      {activeTabId && <FileBreadcrumbs projectId={projectId} />}
+      {activeTabId && (
+        <FileBreadcrumbs projectId={projectId} paneIndex={paneIndex} />
+      )}
       <div className="flex-1 min-h-0 bg-background">
         {!activeFile && (
           <div className="size-full flex items-center justify-center">

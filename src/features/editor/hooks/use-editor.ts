@@ -5,7 +5,15 @@ import { Id } from "../../../../convex/_generated/dataModel";
 
 export const useEditor = (projectId: Id<"projects">) => {
   const store = useEditorStore();
-  const tabState = useEditorStore((state) => state.getTabState(projectId));
+  const projectState = useEditorStore((state) =>
+    state.getProjectState(projectId)
+  );
+  const activePaneIndex = projectState.activePaneIndex;
+  const tabState = projectState.panes[activePaneIndex] ?? {
+    openTabs: [] as Id<"files">[],
+    activeTabId: null,
+    previewTabId: null,
+  };
 
   const openFile = useCallback(
     (fileId: Id<"files">, options: { pinned: boolean }) => {
@@ -39,6 +47,27 @@ export const useEditor = (projectId: Id<"projects">) => {
     [store, projectId]
   );
 
+  const splitEditor = useCallback(
+    (fileId?: Id<"files">) => {
+      store.splitEditor(projectId, fileId);
+    },
+    [store, projectId]
+  );
+
+  const closeSplit = useCallback(
+    (paneIndex: number) => {
+      store.closeSplit(projectId, paneIndex);
+    },
+    [store, projectId]
+  );
+
+  const setActivePane = useCallback(
+    (paneIndex: number) => {
+      store.setActivePane(projectId, paneIndex);
+    },
+    [store, projectId]
+  );
+
   return {
     openTabs: tabState.openTabs,
     activeTabId: tabState.activeTabId,
@@ -48,5 +77,12 @@ export const useEditor = (projectId: Id<"projects">) => {
     closeAllTabs,
     setActiveTab,
     reorderTab,
+    // Split editor
+    paneCount: projectState.panes.length,
+    activePaneIndex,
+    isSplit: projectState.panes.length > 1,
+    splitEditor,
+    closeSplit,
+    setActivePane,
   };
 };

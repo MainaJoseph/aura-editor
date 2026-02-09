@@ -2,7 +2,7 @@ import React from "react";
 import { FileIcon } from "@react-symbols/icons/utils";
 
 import { useFilePath } from "@/features/projects/hooks/use-files";
-import { useEditor } from "@/features/editor/hooks/use-editor";
+import { useEditorPane } from "@/features/editor/hooks/use-editor-pane";
 
 import {
   Breadcrumb,
@@ -17,10 +17,12 @@ import { Id } from "../../../../convex/_generated/dataModel";
 
 export const FileBreadcrumbs = ({
   projectId,
+  paneIndex,
 }: {
   projectId: Id<"projects">;
+  paneIndex: number;
 }) => {
-  const { activeTabId } = useEditor(projectId);
+  const { activeTabId } = useEditorPane(projectId, paneIndex);
   const filePath = useFilePath(activeTabId);
 
   if (filePath === undefined || !activeTabId) {
