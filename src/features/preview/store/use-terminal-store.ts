@@ -5,7 +5,8 @@ import { cleanupProcessRefs } from "./terminal-process-refs";
 
 import { Id } from "../../../../convex/_generated/dataModel";
 
-const MAX_TERMINALS = 5;
+export const MAX_TERMINALS = 5;
+const MAX_OUTPUT_LENGTH = 500_000; // ~500KB cap per terminal
 
 export interface TerminalInstance {
   id: string;
@@ -163,9 +164,14 @@ export const useTerminalStore = create<TerminalStore>()((set, get) => ({
 
     state.set(projectId, {
       ...project,
-      terminals: project.terminals.map((t) =>
-        t.id === terminalId ? { ...t, output: t.output + data } : t,
-      ),
+      terminals: project.terminals.map((t) => {
+        if (t.id !== terminalId) return t;
+        let output = t.output + data;
+        if (output.length > MAX_OUTPUT_LENGTH) {
+          output = output.slice(output.length - MAX_OUTPUT_LENGTH);
+        }
+        return { ...t, output };
+      }),
     });
 
     set({ state });
