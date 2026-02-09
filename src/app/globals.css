@@ -147,6 +147,98 @@
   }
 }
 
+/* Landing page animations */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.05);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-gradient {
+  background: linear-gradient(
+    135deg,
+    oklch(0.29 0.02 264) 0%,
+    oklch(0.25 0.04 280) 30%,
+    oklch(0.27 0.03 260) 60%,
+    oklch(0.29 0.02 264) 100%
+  );
+  background-size: 300% 300%;
+  animation: gradient-shift 12s ease infinite;
+}
+
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
+  animation: float 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.glass-card {
+  background: oklch(1 0 0 / 5%);
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(1 0 0 / 10%);
+  border-radius: 1rem;
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.glass-card:hover {
+  background: oklch(1 0 0 / 8%);
+  border-color: oklch(1 0 0 / 18%);
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s ease-out both;
+}
+
+@keyframes blink-cursor {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 3px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: linear-gradient(to bottom, #FFD200, #1F84EF, #06E07F);
+  animation: blink-cursor 0.8s step-end infinite;
+}
+
 ::-webkit-scrollbar {
   @apply w-2.5 h-2.5;
 }

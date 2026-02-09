@@ -1,9 +1,12 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { Poppins } from "next/font/google";
 import { SparkleIcon } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import { useEffect, useState } from "react";
+import { UserButton } from "@clerk/nextjs";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -60,13 +63,28 @@ export const ProjectsView = () => {
         open={newProjectDialogOpen}
         onOpenChange={setNewProjectDialogOpen}
       />
-      <div className="min-h-screen bg-sidebar flex flex-col items-center justify-center p-6 md:p-16">
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-sidebar">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/logo.svg" alt="Aura" width={22} height={22} />
+            <span className={cn("text-sm font-semibold", font.className)}>
+              Aura
+            </span>
+          </Link>
+          <UserButton />
+        </div>
+      </nav>
+
+      <div className="min-h-screen bg-sidebar flex flex-col items-center justify-center p-6 pt-20 md:p-16 md:pt-20">
         <div className="w-full max-w-sm mx-auto flex flex-col gap-4 items-center">
           <div className="flex justify-between gap-4 w-full items-center">
             <div className="flex items-center gap-2 w-full group/logo">
-              <img
+              <Image
                 src="/logo.svg"
                 alt="Aura"
+                width={46}
+                height={46}
                 className="size-[32px] md:size-[46px]"
               />
               <h1
