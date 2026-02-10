@@ -92,6 +92,7 @@ export const OpenEditors = ({
           <Button
             onClick={(e) => {
               e.stopPropagation();
+              triggerSaveAll();
               closeAllTabsAllPanes();
             }}
             variant="highlight"
