@@ -22,15 +22,14 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { FileExplorer } from "./file-explorer";
+import { ActivityBar } from "./activity-bar";
+import { SearchPanel } from "./search-panel";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { PreviewView } from "./preview-view";
 import { ExportPopover } from "./export-popover";
 
-const MIN_SIDEBAR_WIDTH = 200;
-const MAX_SIDEBAR_WIDTH = 800;
-const DEFAULT_SIDEBAR_WIDTH = 350;
-const DEFAULT_MAIN_SIZE = 1000;
+const SIDEBAR_WIDTH = 350;
 
 const Tab = ({
   label,
@@ -57,8 +56,17 @@ const Tab = ({
 export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const router = useRouter();
   const [activeView, setActiveView] = useState<"editor" | "preview">("editor");
+  const [activePanel, setActivePanel] = useState<"explorer" | "search" | null>(
+    "explorer"
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handlePanelToggle = (panel: string) => {
+    if (panel === "explorer" || panel === "search") {
+      setActivePanel((current) => (current === panel ? null : panel));
+    }
+  };
 
   const deleteProject = useMutation(api.projects.deleteProject);
 
@@ -135,23 +143,50 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
       <div className="flex-1 relative">
         <div
           className={cn(
-            "absolute inset-0",
+            "absolute inset-0 flex",
             activeView === "editor" ? "visible" : "invisible",
           )}
         >
-          <Allotment defaultSizes={[DEFAULT_SIDEBAR_WIDTH, DEFAULT_MAIN_SIZE]}>
-            <Allotment.Pane
-              snap
-              minSize={MIN_SIDEBAR_WIDTH}
-              maxSize={MAX_SIDEBAR_WIDTH}
-              preferredSize={DEFAULT_SIDEBAR_WIDTH}
+          <ActivityBar
+            activePanel={activePanel}
+            onPanelToggle={handlePanelToggle}
+          />
+          <div className="flex-1 flex overflow-hidden">
+            {/* Keep panels mounted to avoid refetching on toggle */}
+            <div
+              className={cn(
+                "h-full shrink-0 overflow-hidden transition-[width] duration-200",
+                activePanel ? "border-r" : "w-0"
+              )}
+              style={{ width: activePanel ? SIDEBAR_WIDTH : 0 }}
             >
-              <FileExplorer projectId={projectId} />
-            </Allotment.Pane>
-            <Allotment.Pane>
-              <SplitEditorView projectId={projectId} />
-            </Allotment.Pane>
-          </Allotment>
+              <div className="h-full" style={{ width: SIDEBAR_WIDTH }}>
+                <div
+                  className={cn(
+                    "h-full",
+                    activePanel !== "explorer" && "hidden"
+                  )}
+                >
+                  <FileExplorer projectId={projectId} />
+                </div>
+                <div
+                  className={cn(
+                    "h-full",
+                    activePanel !== "search" && "hidden"
+                  )}
+                >
+                  <SearchPanel projectId={projectId} />
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <Allotment>
+                <Allotment.Pane>
+                  <SplitEditorView projectId={projectId} />
+                </Allotment.Pane>
+              </Allotment>
+            </div>
+          </div>
         </div>
         <div
           className={cn(
