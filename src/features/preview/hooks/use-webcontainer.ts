@@ -3,12 +3,13 @@ import { WebContainer } from "@webcontainer/api";
 import { useMutation } from "convex/react";
 
 import { buildFileTree, getFilePath } from "@/features/preview/utils/file-tree";
+import { CONSOLE_BRIDGE_SCRIPT } from "@/features/preview/utils/console-bridge-script";
 import { spawnShellProcess } from "@/features/preview/utils/spawn-shell-process";
 import { useFiles } from "@/features/projects/hooks/use-files";
 import { useTerminalStore } from "@/features/preview/store/use-terminal-store";
+import { useConsoleStore } from "@/features/preview/store/use-console-store";
 import {
   cleanupAllProcessRefs,
-  writeToProcess,
 } from "@/features/preview/store/terminal-process-refs";
 
 import { api } from "../../../../convex/_generated/api";
@@ -32,6 +33,7 @@ const IGNORED_PATHS = new Set([
   ".parcel-cache",
   ".DS_Store",
   "thumbs.db",
+  "__aura_console_bridge.js",
 ]);
 
 // Singleton WebContainer instance
@@ -58,6 +60,112 @@ const teardownWebContainer = () => {
   }
   bootPromise = null;
 };
+
+// Dev server process ref (separate from interactive terminals)
+let devServerProcessRef: { kill: () => void } | null = null;
+
+async function injectConsoleBridge(container: WebContainer) {
+  // Write bridge script to container filesystem
+  await container.fs.writeFile(
+    "/__aura_console_bridge.js",
+    CONSOLE_BRIDGE_SCRIPT,
+  );
+
+  // Try to inject <script> tag into index.html
+  const htmlPaths = ["index.html", "public/index.html"];
+  for (const htmlPath of htmlPaths) {
+    try {
+      const html = await container.fs.readFile(htmlPath, "utf-8");
+      if (html.includes("__aura_console_bridge")) break; // already injected
+      const injected = html.replace(
+        "<head>",
+        '<head><script src="/__aura_console_bridge.js"></script>',
+      );
+      if (injected !== html) {
+        await container.fs.writeFile(htmlPath, injected);
+        break;
+      }
+    } catch {
+      // File doesn't exist, try next path
+    }
+  }
+}
+
+function spawnDevServerProcess(
+  container: WebContainer,
+  projectId: Id<"projects">,
+  command: string,
+) {
+  const consoleStore = useConsoleStore.getState();
+
+  container
+    .spawn("sh", ["-c", command])
+    .then((process) => {
+      devServerProcessRef = process;
+
+      // Batch output to reduce store updates
+      const FLUSH_INTERVAL = 50;
+      let outputBuffer = "";
+      let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const flushOutput = () => {
+        flushTimer = null;
+        if (outputBuffer) {
+          const data = outputBuffer;
+          outputBuffer = "";
+          // Split into lines for individual entries
+          const lines = data.split("\n");
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed) {
+              useConsoleStore.getState().addEntry(projectId, {
+                level: "log",
+                source: "server",
+                args: [trimmed],
+                timestamp: Date.now(),
+              });
+            }
+          }
+        }
+      };
+
+      const scheduleFlush = () => {
+        if (flushTimer === null) {
+          flushTimer = setTimeout(flushOutput, FLUSH_INTERVAL);
+        }
+      };
+
+      process.output.pipeTo(
+        new WritableStream({
+          write(data) {
+            outputBuffer += data;
+            scheduleFlush();
+          },
+        }),
+      ).catch(() => {
+        flushOutput();
+      });
+
+      process.exit.then((code) => {
+        flushOutput();
+        consoleStore.addEntry(projectId, {
+          level: "info",
+          source: "server",
+          args: [`Server process exited with code ${code}`],
+          timestamp: Date.now(),
+        });
+        devServerProcessRef = null;
+      });
+    })
+    .catch((err) => {
+      consoleStore.addEntry(projectId, {
+        level: "error",
+        source: "server",
+        args: [`Failed to start server: ${err}`],
+        timestamp: Date.now(),
+      });
+    });
+}
 
 interface UseWebContainerProps {
   projectId: Id<"projects">;
@@ -104,7 +212,6 @@ export const useWebContainer = ({
 
     // Track if effect is still active (for cleanup)
     let isActive = true;
-    let commandTimeoutId: NodeJS.Timeout | undefined;
 
     const start = async () => {
       try {
@@ -124,6 +231,9 @@ export const useWebContainer = ({
           await container.mount(fileTree);
         }
 
+        // Inject console bridge script after mount
+        await injectConsoleBridge(container);
+
         // Check again after mount
         if (!isActive) return;
 
@@ -135,7 +245,7 @@ export const useWebContainer = ({
         };
         container.on("server-ready", serverReadyHandler);
 
-        // Create and spawn the primary terminal
+        // Create and spawn the primary terminal (clean, no auto commands)
         const terminalId = useTerminalStore
           .getState()
           .createTerminal(projectId, {
@@ -151,19 +261,18 @@ export const useWebContainer = ({
 
         setStatus("ready");
 
-        // Only auto-run commands if there are files (has package.json likely)
+        // Spawn install+dev as a separate background process → output to console
         if (files && files.length > 0) {
           const installCmd = settings?.installCommand || "npm install";
           // Use --turbo=false because Turbopack native bindings don't work in WebContainer
           const devCmd =
             settings?.devCommand || "npm run dev -- --turbo=false";
 
-          // Send commands to shell (with small delay for shell to initialize)
-          commandTimeoutId = setTimeout(() => {
-            if (isActive) {
-              writeToProcess(terminalId, `${installCmd} && ${devCmd}\n`);
-            }
-          }, 100);
+          spawnDevServerProcess(
+            container,
+            projectId,
+            `${installCmd} && ${devCmd}`,
+          );
         }
       } catch (error) {
         if (isActive) {
@@ -178,11 +287,6 @@ export const useWebContainer = ({
     // Cleanup function
     return () => {
       isActive = false;
-
-      // Clear the command timeout
-      if (commandTimeoutId) {
-        clearTimeout(commandTimeoutId);
-      }
 
       // Note: We don't teardown the WebContainer here because it's a singleton
       // and may be reused. The restart() function handles full cleanup.
@@ -254,9 +358,20 @@ export const useWebContainer = ({
 
   // Restart the entire WebContainer process
   const restart = useCallback(() => {
+    // Kill dev server process
+    if (devServerProcessRef) {
+      try {
+        devServerProcessRef.kill();
+      } catch {
+        // Process may already be dead
+      }
+      devServerProcessRef = null;
+    }
+
     // Cleanup all terminal processes
     cleanupAllProcessRefs();
     useTerminalStore.getState().clearAllTerminals(projectId);
+    useConsoleStore.getState().clearEntries(projectId);
 
     teardownWebContainer();
     containerRef.current = null;

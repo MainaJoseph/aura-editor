@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Allotment } from "allotment";
 import {
   Loader2Icon,
@@ -8,14 +8,17 @@ import {
   AlertTriangleIcon,
   RefreshCwIcon,
   FolderSyncIcon,
-  PlusIcon,
 } from "lucide-react";
+import { VscTerminal } from "react-icons/vsc";
 
 import { useWebContainer } from "@/features/preview/hooks/use-webcontainer";
 import { useTerminal } from "@/features/preview/hooks/use-terminal";
+import { useConsole } from "@/features/preview/hooks/use-console";
 import { PreviewSettingsPopover } from "@/features/preview/components/preview-settings-popover";
 import { PreviewTerminal } from "@/features/preview/components/preview-terminal";
+import { PreviewConsole } from "@/features/preview/components/preview-console";
 import { TerminalTabs } from "@/features/preview/components/terminal-tabs";
+import { PanelTabs } from "@/features/preview/components/panel-tabs";
 import { MAX_TERMINALS } from "@/features/preview/store/use-terminal-store";
 
 import { Button } from "@/components/ui/button";
@@ -27,6 +30,9 @@ import { Id } from "../../../../convex/_generated/dataModel";
 export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const project = useProject(projectId);
   const [showTerminal, setShowTerminal] = useState(true);
+  const [activePanel, setActivePanel] = useState<"terminal" | "console">(
+    "terminal",
+  );
 
   const {
     status,
@@ -53,7 +59,31 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
     resizeTerminal,
   } = useTerminal({ projectId, getContainer });
 
+  const { entries: consoleEntries, clearEntries: clearConsoleEntries } =
+    useConsole({ projectId });
+
   const isBooting = status === "booting";
+
+  const togglePanel = useCallback(() => {
+    setShowTerminal((value) => !value);
+  }, []);
+
+  // Ctrl+` (Windows/Linux) or Cmd+` (Mac) to toggle bottom panel
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (
+        e.key === "`" &&
+        (e.ctrlKey || e.metaKey) &&
+        !e.shiftKey &&
+        !e.altKey
+      ) {
+        e.preventDefault();
+        togglePanel();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [togglePanel]);
 
   return (
     <div className="h-full flex flex-col bg-background">
@@ -82,7 +112,9 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
               Syncing files...
             </div>
           )}
-          {previewUrl && !isSyncing && <span className="truncate">{previewUrl}</span>}
+          {previewUrl && !isSyncing && (
+            <span className="truncate">{previewUrl}</span>
+          )}
           {!isBooting && !isSyncing && !previewUrl && !error && (
             <span>Terminal ready</span>
           )}
@@ -106,10 +138,10 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
           size="sm"
           variant="ghost"
           className="h-full rounded-none"
-          title="Toggle terminal"
-          onClick={() => setShowTerminal((value) => !value)}
+          title="Toggle panel (⌘+`)"
+          onClick={togglePanel}
         >
-          <TerminalSquareIcon className="size-3" />
+          <VscTerminal className="size-3" />
         </Button>
         <PreviewSettingsPopover
           projectId={projectId}
@@ -147,8 +179,12 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
               <div className="size-full flex items-center justify-center text-muted-foreground">
                 <div className="flex flex-col items-center gap-2 max-w-md mx-auto text-center">
                   <TerminalSquareIcon className="size-6" />
-                  <p className="text-sm font-medium">Run a dev server to see preview</p>
-                  <p className="text-xs">Use the terminal below to run commands</p>
+                  <p className="text-sm font-medium">
+                    Run a dev server to see preview
+                  </p>
+                  <p className="text-xs">
+                    Use the terminal below to run commands
+                  </p>
                 </div>
               </div>
             )}
@@ -162,23 +198,21 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
             )}
           </Allotment.Pane>
 
-          <Allotment.Pane visible={showTerminal} minSize={100} maxSize={500} preferredSize={200}>
-              <div className="h-full flex flex-col bg-background border-t">
-                {terminals.length <= 1 && (
-                  <div className="h-7 flex items-center justify-between px-3 text-xs text-muted-foreground border-b border-border/50 shrink-0 bg-sidebar">
-                    <div className="flex items-center gap-1.5">
-                      <TerminalSquareIcon className="size-3" />
-                      Terminal
-                    </div>
-                    <button
-                      className="p-1 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                      onClick={createNewTerminal}
-                      title="New Terminal"
-                    >
-                      <PlusIcon className="size-3.5" />
-                    </button>
-                  </div>
-                )}
+          <Allotment.Pane
+            visible={showTerminal}
+            minSize={100}
+            maxSize={500}
+            preferredSize={200}
+          >
+            <div className="h-full flex flex-col bg-background border-t">
+              <PanelTabs
+                activePanel={activePanel}
+                onPanelChange={setActivePanel}
+                onCreateTerminal={createNewTerminal}
+                canCreateTerminal={terminals.length < MAX_TERMINALS}
+                consoleEntryCount={consoleEntries.length}
+              />
+              {activePanel === "terminal" && (
                 <div className="flex-1 min-h-0 flex flex-row">
                   <div className="flex-1 min-w-0 flex flex-col">
                     {terminals.map((terminal) => (
@@ -205,8 +239,15 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
                     />
                   )}
                 </div>
-              </div>
-            </Allotment.Pane>
+              )}
+              {activePanel === "console" && (
+                <PreviewConsole
+                  entries={consoleEntries}
+                  onClear={clearConsoleEntries}
+                />
+              )}
+            </div>
+          </Allotment.Pane>
         </Allotment>
       </div>
     </div>
