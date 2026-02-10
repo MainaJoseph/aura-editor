@@ -26,6 +26,7 @@ const defaultProjectState: ProjectEditorState = {
 
 interface EditorStore {
   tabs: Map<Id<"projects">, ProjectEditorState>;
+  saveAllSignal: number;
   getProjectState: (projectId: Id<"projects">) => ProjectEditorState;
   getTabState: (projectId: Id<"projects">, paneIndex?: number) => TabState;
   openFile: (
@@ -40,6 +41,7 @@ interface EditorStore {
     paneIndex?: number
   ) => void;
   closeAllTabs: (projectId: Id<"projects">, paneIndex?: number) => void;
+  closeAllTabsAllPanes: (projectId: Id<"projects">) => void;
   setActiveTab: (
     projectId: Id<"projects">,
     fileId: Id<"files">,
@@ -54,10 +56,12 @@ interface EditorStore {
   splitEditor: (projectId: Id<"projects">, fileId?: Id<"files">) => void;
   closeSplit: (projectId: Id<"projects">, paneIndex: number) => void;
   setActivePane: (projectId: Id<"projects">, paneIndex: number) => void;
+  triggerSaveAll: () => void;
 }
 
 export const useEditorStore = create<EditorStore>()((set, get) => ({
   tabs: new Map(),
+  saveAllSignal: 0,
 
   getProjectState: (projectId) => {
     return get().tabs.get(projectId) ?? defaultProjectState;
@@ -192,6 +196,15 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
     set({ tabs });
   },
 
+  closeAllTabsAllPanes: (projectId) => {
+    const tabs = new Map(get().tabs);
+    tabs.set(projectId, {
+      panes: [{ ...defaultTabState }],
+      activePaneIndex: 0,
+    });
+    set({ tabs });
+  },
+
   setActiveTab: (projectId, fileId, paneIndex?) => {
     const tabs = new Map(get().tabs);
     const project = tabs.get(projectId) ?? {
@@ -294,5 +307,9 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
 
     tabs.set(projectId, { ...project, activePaneIndex: paneIndex });
     set({ tabs });
+  },
+
+  triggerSaveAll: () => {
+    set((state) => ({ saveAllSignal: state.saveAllSignal + 1 }));
   },
 }));

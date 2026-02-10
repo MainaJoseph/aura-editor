@@ -5,6 +5,7 @@ import { useFile, useUpdateFile } from "@/features/projects/hooks/use-files";
 
 import { CodeEditor } from "./code-editor";
 import { useEditorPane } from "../hooks/use-editor-pane";
+import { useEditorStore } from "../store/use-editor-store";
 import { TopNavigation } from "./top-navigation";
 import { FileBreadcrumbs } from "./file-breadcrumbs";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -27,6 +28,8 @@ export const EditorPane = ({
   const activeFile = useFile(activeTabId);
   const updateFile = useUpdateFile();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingContentRef = useRef<{ fileId: Id<"files">; content: string } | null>(null);
+  const saveAllSignal = useEditorStore((s) => s.saveAllSignal);
 
   const isActiveFileBinary = activeFile && activeFile.storageId;
   const isActiveFileText = activeFile && !activeFile.storageId;
@@ -39,6 +42,17 @@ export const EditorPane = ({
       }
     };
   }, [activeTabId]);
+
+  // Flush pending save when saveAllSignal fires
+  useEffect(() => {
+    if (saveAllSignal > 0 && timeoutRef.current && pendingContentRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+      const { fileId, content } = pendingContentRef.current;
+      pendingContentRef.current = null;
+      updateFile({ id: fileId, content });
+    }
+  }, [saveAllSignal, updateFile]);
 
   return (
     <div
@@ -76,7 +90,9 @@ export const EditorPane = ({
                 clearTimeout(timeoutRef.current);
               }
 
+              pendingContentRef.current = { fileId: activeFile._id, content };
               timeoutRef.current = setTimeout(() => {
+                pendingContentRef.current = null;
                 updateFile({ id: activeFile._id, content });
               }, DEBOUNCE_MS);
             }}

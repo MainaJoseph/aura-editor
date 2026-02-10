@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 import { useEditorStore } from "../store/use-editor-store";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -8,6 +8,10 @@ export const useEditor = (projectId: Id<"projects">) => {
   const projectState = useEditorStore((state) =>
     state.getProjectState(projectId)
   );
+
+  const allOpenTabs = useMemo(() => {
+    return [...new Set(projectState.panes.flatMap((p) => p.openTabs))];
+  }, [projectState.panes]);
   const activePaneIndex = projectState.activePaneIndex;
   const tabState = projectState.panes[activePaneIndex] ?? {
     openTabs: [] as Id<"files">[],
@@ -68,6 +72,14 @@ export const useEditor = (projectId: Id<"projects">) => {
     [store, projectId]
   );
 
+  const closeAllTabsAllPanes = useCallback(() => {
+    store.closeAllTabsAllPanes(projectId);
+  }, [store, projectId]);
+
+  const triggerSaveAll = useCallback(() => {
+    store.triggerSaveAll();
+  }, [store]);
+
   return {
     openTabs: tabState.openTabs,
     activeTabId: tabState.activeTabId,
@@ -84,5 +96,9 @@ export const useEditor = (projectId: Id<"projects">) => {
     splitEditor,
     closeSplit,
     setActivePane,
+    // Open editors
+    allOpenTabs,
+    closeAllTabsAllPanes,
+    triggerSaveAll,
   };
 };
