@@ -19,6 +19,7 @@ import {
 } from "../../hooks/use-files";
 import { CreateInput } from "./create-input";
 import { LoadingRow } from "./loading-row";
+import { OpenEditors } from "./open-editors";
 import { Tree } from "./tree";
 
 export const FileExplorer = ({ projectId }: { projectId: Id<"projects"> }) => {
@@ -56,6 +57,7 @@ export const FileExplorer = ({ projectId }: { projectId: Id<"projects"> }) => {
   return (
     <div className="h-full bg-sidebar">
       <ScrollArea>
+        <OpenEditors projectId={projectId} />
         <div
           role="button"
           onClick={() => setIsOpen((value) => !value)}
