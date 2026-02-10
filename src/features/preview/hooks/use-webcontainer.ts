@@ -62,7 +62,8 @@ const teardownWebContainer = () => {
 };
 
 // Dev server process ref (separate from interactive terminals)
-let devServerProcessRef: { kill: () => void } | null = null;
+let devServerProcessRef: { kill: () => void; cleanup: () => void } | null =
+  null;
 
 async function injectConsoleBridge(container: WebContainer) {
   // Write bridge script to root (for static sites / Vite)
@@ -74,12 +75,13 @@ async function injectConsoleBridge(container: WebContainer) {
   // Also write to public/ for SSR frameworks (Next.js, Nuxt, etc.) that
   // serve static assets from there
   try {
+    await container.fs.mkdir("public", { recursive: true });
     await container.fs.writeFile(
       "public/__aura_console_bridge.js",
       CONSOLE_BRIDGE_SCRIPT,
     );
   } catch {
-    // public/ may not exist
+    // Directory creation or write failed
   }
 
   // Strategy 1: Static HTML files (Vite, CRA, static sites)
@@ -136,30 +138,28 @@ function spawnDevServerProcess(
   container
     .spawn("sh", ["-c", command])
     .then((process) => {
-      devServerProcessRef = process;
-
       // Batch output to reduce store updates
       const FLUSH_INTERVAL = 50;
       let outputBuffer = "";
       let flushTimer: ReturnType<typeof setTimeout> | null = null;
+      let disposed = false;
 
       const flushOutput = () => {
         flushTimer = null;
-        if (outputBuffer) {
-          const data = outputBuffer;
-          outputBuffer = "";
-          // Split into lines for individual entries
-          const lines = data.split("\n");
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed) {
-              useConsoleStore.getState().addEntry(projectId, {
-                level: "log",
-                source: "server",
-                args: [trimmed],
-                timestamp: Date.now(),
-              });
-            }
+        if (disposed || !outputBuffer) return;
+        const data = outputBuffer;
+        outputBuffer = "";
+        // Split into lines for individual entries
+        const lines = data.split("\n");
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed) {
+            useConsoleStore.getState().addEntry(projectId, {
+              level: "log",
+              source: "server",
+              args: [trimmed],
+              timestamp: Date.now(),
+            });
           }
         }
       };
@@ -168,6 +168,18 @@ function spawnDevServerProcess(
         if (flushTimer === null) {
           flushTimer = setTimeout(flushOutput, FLUSH_INTERVAL);
         }
+      };
+
+      devServerProcessRef = {
+        kill: () => process.kill(),
+        cleanup: () => {
+          disposed = true;
+          if (flushTimer !== null) {
+            clearTimeout(flushTimer);
+            flushTimer = null;
+          }
+          outputBuffer = "";
+        },
       };
 
       process.output.pipeTo(
@@ -266,8 +278,12 @@ export const useWebContainer = ({
           await container.mount(fileTree);
         }
 
-        // Inject console bridge script after mount
-        await injectConsoleBridge(container);
+        // Inject console bridge script after mount (best-effort)
+        try {
+          await injectConsoleBridge(container);
+        } catch {
+          // Console bridge is non-critical; continue without it
+        }
 
         // Check again after mount
         if (!isActive) return;
@@ -393,8 +409,9 @@ export const useWebContainer = ({
 
   // Restart the entire WebContainer process
   const restart = useCallback(() => {
-    // Kill dev server process
+    // Kill dev server process and cancel pending flush timers
     if (devServerProcessRef) {
+      devServerProcessRef.cleanup();
       try {
         devServerProcessRef.kill();
       } catch {
