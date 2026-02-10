@@ -30,8 +30,8 @@ Editor Experience
 
   Preview & Runtime
 
-  - Multiple terminal tabs — Run several processes simultaneously
-  - Console panel — Capture and display console.log output separately from terminal
+  - Multiple terminal tabs — Run several processes simultaneously ✅
+  - Console panel — Capture and display console.log output separately from terminal ✅
   - Responsive preview — Toggle between device sizes (mobile, tablet, desktop)
   - Preview URL sharing — Generate a shareable link for the running preview
   - Environment variables UI — Manage .env values through a settings panel instead of editing the file
