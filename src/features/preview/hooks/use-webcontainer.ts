@@ -65,25 +65,60 @@ const teardownWebContainer = () => {
 let devServerProcessRef: { kill: () => void } | null = null;
 
 async function injectConsoleBridge(container: WebContainer) {
-  // Write bridge script to container filesystem
+  // Write bridge script to root (for static sites / Vite)
   await container.fs.writeFile(
     "/__aura_console_bridge.js",
     CONSOLE_BRIDGE_SCRIPT,
   );
 
-  // Try to inject <script> tag into index.html
+  // Also write to public/ for SSR frameworks (Next.js, Nuxt, etc.) that
+  // serve static assets from there
+  try {
+    await container.fs.writeFile(
+      "public/__aura_console_bridge.js",
+      CONSOLE_BRIDGE_SCRIPT,
+    );
+  } catch {
+    // public/ may not exist
+  }
+
+  // Strategy 1: Static HTML files (Vite, CRA, static sites)
   const htmlPaths = ["index.html", "public/index.html"];
   for (const htmlPath of htmlPaths) {
     try {
       const html = await container.fs.readFile(htmlPath, "utf-8");
-      if (html.includes("__aura_console_bridge")) break; // already injected
+      if (html.includes("__aura_console_bridge")) return;
       const injected = html.replace(
         "<head>",
         '<head><script src="/__aura_console_bridge.js"></script>',
       );
       if (injected !== html) {
         await container.fs.writeFile(htmlPath, injected);
-        break;
+        return;
+      }
+    } catch {
+      // File doesn't exist, try next path
+    }
+  }
+
+  // Strategy 2: SSR layout files (Next.js App Router)
+  const layoutPaths = [
+    "src/app/layout.tsx",
+    "src/app/layout.jsx",
+    "app/layout.tsx",
+    "app/layout.jsx",
+  ];
+  for (const layoutPath of layoutPaths) {
+    try {
+      const layout = await container.fs.readFile(layoutPath, "utf-8");
+      if (layout.includes("__aura_console_bridge")) return;
+      const injected = layout.replace(
+        /(<body[^>]*>)/,
+        '$1\n        <script src="/__aura_console_bridge.js" />',
+      );
+      if (injected !== layout) {
+        await container.fs.writeFile(layoutPath, injected);
+        return;
       }
     } catch {
       // File doesn't exist, try next path

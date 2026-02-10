@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Trash2Icon, MonitorIcon } from "lucide-react";
 
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 import { ConsoleEntry } from "@/features/preview/store/use-console-store";
@@ -64,11 +63,13 @@ export const PreviewConsole = ({ entries, onClear }: PreviewConsoleProps) => {
   }, []);
 
   // Auto-scroll on new entries
+  const lastEntryId = filteredEntries.at(-1)?.id;
+
   useEffect(() => {
     if (isAutoScrollRef.current && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [filteredEntries.length]);
+  }, [lastEntryId]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-sidebar">
@@ -107,41 +108,39 @@ export const PreviewConsole = ({ entries, onClear }: PreviewConsoleProps) => {
           </div>
         </div>
       ) : (
-        <ScrollArea className="flex-1 min-h-0">
-          <div
-            ref={scrollRef}
-            className="h-full overflow-y-auto"
-            onScroll={handleScroll}
-          >
-            {filteredEntries.map((entry) => (
-              <div
-                key={entry.id}
+        <div
+          ref={scrollRef}
+          className="flex-1 min-h-0 overflow-y-auto"
+          onScroll={handleScroll}
+        >
+          {filteredEntries.map((entry) => (
+            <div
+              key={entry.id}
+              className={cn(
+                "flex items-start gap-2 px-3 py-0.5 text-xs font-mono border-b border-border/20",
+                levelBgStyles[entry.level],
+              )}
+            >
+              <span className="text-muted-foreground shrink-0 text-[10px] pt-px">
+                {formatTimestamp(entry.timestamp)}
+              </span>
+              <span
                 className={cn(
-                  "flex items-start gap-2 px-3 py-0.5 text-xs font-mono border-b border-border/20",
-                  levelBgStyles[entry.level],
+                  "shrink-0 text-[10px] uppercase font-semibold w-10 pt-px",
+                  levelStyles[entry.level],
                 )}
               >
-                <span className="text-muted-foreground shrink-0 text-[10px] pt-px">
-                  {formatTimestamp(entry.timestamp)}
-                </span>
-                <span
-                  className={cn(
-                    "shrink-0 text-[10px] uppercase font-semibold w-10 pt-px",
-                    levelStyles[entry.level],
-                  )}
-                >
-                  {entry.level}
-                </span>
-                <span className="shrink-0 text-[10px] text-muted-foreground/70 pt-px">
-                  {entry.source}
-                </span>
-                <span className="flex-1 min-w-0 whitespace-pre-wrap break-all text-foreground">
-                  {entry.args.join(" ")}
-                </span>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
+                {entry.level}
+              </span>
+              <span className="shrink-0 text-[10px] text-muted-foreground/70 pt-px">
+                {entry.source}
+              </span>
+              <span className="flex-1 min-w-0 whitespace-pre-wrap break-all text-foreground">
+                {entry.args.join(" ")}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
