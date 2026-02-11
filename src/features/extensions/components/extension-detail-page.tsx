@@ -39,7 +39,7 @@ export const ExtensionDetailPage = ({
   const isInstalled = useMemo(() => {
     if (!installedExtensions) return false;
     return installedExtensions.some(
-      (i) => (i as { extensionId: string }).extensionId === extension._id,
+      (i) => i.extensionId === extension._id,
     );
   }, [installedExtensions, extension._id]);
 

@@ -202,6 +202,7 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
     if (newTabs.length === 0 && newPanes.length > 1) {
       newPanes.splice(idx, 1);
       tabs.set(projectId, {
+        ...project,
         panes: newPanes,
         activePaneIndex: 0,
       });
@@ -225,6 +226,7 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
       const newPanes = [...project.panes];
       newPanes.splice(idx, 1);
       tabs.set(projectId, {
+        ...project,
         panes: newPanes,
         activePaneIndex: 0,
       });
@@ -314,6 +316,7 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
       : { ...defaultTabState };
 
     tabs.set(projectId, {
+      ...project,
       panes: [...project.panes, newPane],
       activePaneIndex: 1,
     });
@@ -333,6 +336,7 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
     newPanes.splice(paneIndex, 1);
 
     tabs.set(projectId, {
+      ...project,
       panes: newPanes,
       activePaneIndex: 0,
     });

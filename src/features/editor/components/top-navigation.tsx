@@ -230,7 +230,7 @@ export const TopNavigation = ({
   const { isSplit, splitEditor, closeSplit, reorderExtensionTab } = useEditor(projectId);
   const materialIcons = useMaterialIcons(projectId);
   const projectState = useEditorStore((s) => s.getProjectState(projectId));
-  const openExtensions = paneIndex === 0 ? (projectState.openExtensions ?? []) : [];
+  const openExtensions = paneIndex === 0 ? projectState.openExtensions : [];
   const [isDragOver, setIsDragOver] = useState(false);
 
   return (

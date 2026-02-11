@@ -48,7 +48,7 @@ export const ExtensionsPanel = ({ projectId, onSelectExtension }: ExtensionsPane
   const installedIds = useMemo(() => {
     if (!installedExtensions) return new Set<string>();
     return new Set(
-      installedExtensions.map((i) => (i as { extensionId: string }).extensionId),
+      installedExtensions.map((i) => i.extensionId),
     );
   }, [installedExtensions]);
 
@@ -69,7 +69,7 @@ export const ExtensionsPanel = ({ projectId, onSelectExtension }: ExtensionsPane
     if (!search) return installedExtensions;
     const q = search.toLowerCase();
     return installedExtensions.filter((item) => {
-      const ext = (item as { extension: Doc<"extensions"> }).extension;
+      const ext = item.extension;
       return (
         ext.name.toLowerCase().includes(q) ||
         ext.description.toLowerCase().includes(q) ||
@@ -147,23 +147,15 @@ export const ExtensionsPanel = ({ projectId, onSelectExtension }: ExtensionsPane
               </Badge>
             </button>
             {!installedCollapsed &&
-              filteredInstalled.map((item) => {
-                const typed = item as {
-                  _id: string;
-                  extensionId: Id<"extensions">;
-                  enabled: boolean;
-                  extension: Doc<"extensions">;
-                };
-                return (
+              filteredInstalled.map((item) => (
                   <InstalledExtensionItem
-                    key={typed._id}
-                    extension={typed.extension}
-                    enabled={typed.enabled}
-                    onToggle={(enabled) => handleToggle(typed.extensionId, enabled)}
-                    onClick={() => onSelectExtension(typed.extension)}
+                    key={item._id}
+                    extension={item.extension}
+                    enabled={item.enabled}
+                    onToggle={(enabled) => handleToggle(item.extensionId, enabled)}
+                    onClick={() => onSelectExtension(item.extension)}
                   />
-                );
-              })}
+              ))}
           </div>
         )}
 

@@ -80,8 +80,8 @@ export const useEditor = (projectId: Id<"projects">) => {
     store.triggerSaveAll();
   }, [store]);
 
-  const openExtensions = projectState.openExtensions ?? [];
-  const activeExtensionId = projectState.activeExtensionId ?? null;
+  const openExtensions = projectState.openExtensions;
+  const activeExtensionId = projectState.activeExtensionId;
 
   const openExtensionTab = useCallback(
     (extension: ExtensionTabData) => {

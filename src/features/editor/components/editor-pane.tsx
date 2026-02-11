@@ -36,7 +36,7 @@ export const EditorPane = ({
   const projectState = useEditorStore((s) => s.getProjectState(projectId));
   const activeExtension =
     paneIndex === 0
-      ? (projectState.openExtensions ?? []).find(
+      ? projectState.openExtensions.find(
           (e) => e._id === projectState.activeExtensionId
         ) ?? null
       : null;
