@@ -3,7 +3,7 @@ Editor Experience
   - Multi-cursor editing — Select and edit multiple locations simultaneously (CodeMirror supports this with extensions) ✅                      
   - Split/pane editor — Open files side-by-side for comparison or reference ✅                                                                
 
-  - Find & replace across files — Project-wide search with regex support
+  - Find & replace across files — Project-wide search with regex support✅
   - Git diff viewer — Inline diff highlighting for changed files
   - Keyboard shortcuts panel — Discoverable, customizable keybindings
 
