@@ -49,6 +49,48 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_project", ["projectId"]),
 
+  extensions: defineTable({
+    slug: v.string(),
+    name: v.string(),
+    description: v.string(),
+    longDescription: v.string(),
+    author: v.string(),
+    version: v.string(),
+    icon: v.string(),
+    category: v.union(
+      v.literal("themes"),
+      v.literal("languages"),
+      v.literal("formatters"),
+      v.literal("ai"),
+      v.literal("productivity"),
+      v.literal("snippets"),
+    ),
+    tags: v.array(v.string()),
+    downloads: v.number(),
+    rating: v.number(),
+    extensionType: v.union(
+      v.literal("codemirror-theme"),
+      v.literal("codemirror-language"),
+      v.literal("editor-feature"),
+      v.literal("ui-feature"),
+      v.literal("ai-integration"),
+      v.literal("formatter"),
+    ),
+    configKey: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_category", ["category"]),
+
+  installedExtensions: defineTable({
+    projectId: v.id("projects"),
+    extensionId: v.id("extensions"),
+    enabled: v.boolean(),
+    installedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_extension", ["projectId", "extensionId"]),
+
   messages: defineTable({
     conversationId: v.id("conversations"),
     projectId: v.id("projects"),

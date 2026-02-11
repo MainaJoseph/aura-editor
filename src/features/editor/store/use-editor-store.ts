@@ -2,6 +2,25 @@ import { create } from "zustand";
 
 import { Id } from "../../../../convex/_generated/dataModel";
 
+export interface ExtensionTabData {
+  _id: Id<"extensions">;
+  _creationTime: number;
+  slug: string;
+  name: string;
+  description: string;
+  longDescription: string;
+  author: string;
+  version: string;
+  icon: string;
+  category: string;
+  tags: string[];
+  downloads: number;
+  rating: number;
+  extensionType: string;
+  configKey?: string;
+  updatedAt: number;
+}
+
 interface TabState {
   openTabs: Id<"files">[];
   activeTabId: Id<"files"> | null;
@@ -17,11 +36,15 @@ const defaultTabState: TabState = {
 interface ProjectEditorState {
   panes: TabState[];
   activePaneIndex: number;
+  openExtensions: ExtensionTabData[];
+  activeExtensionId: Id<"extensions"> | null;
 }
 
 const defaultProjectState: ProjectEditorState = {
   panes: [{ ...defaultTabState }],
   activePaneIndex: 0,
+  openExtensions: [],
+  activeExtensionId: null,
 };
 
 interface EditorStore {
@@ -57,6 +80,24 @@ interface EditorStore {
   closeSplit: (projectId: Id<"projects">, paneIndex: number) => void;
   setActivePane: (projectId: Id<"projects">, paneIndex: number) => void;
   triggerSaveAll: () => void;
+  openExtensionTab: (
+    projectId: Id<"projects">,
+    extension: ExtensionTabData
+  ) => void;
+  closeExtensionTab: (
+    projectId: Id<"projects">,
+    extensionId: Id<"extensions">
+  ) => void;
+  setActiveExtensionTab: (
+    projectId: Id<"projects">,
+    extensionId: Id<"extensions">
+  ) => void;
+  clearActiveExtension: (projectId: Id<"projects">) => void;
+  reorderExtensionTab: (
+    projectId: Id<"projects">,
+    fromIndex: number,
+    toIndex: number
+  ) => void;
 }
 
 export const useEditorStore = create<EditorStore>()((set, get) => ({
@@ -118,7 +159,7 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
 
     const newPanes = [...project.panes];
     newPanes[idx] = newPaneState;
-    tabs.set(projectId, { ...project, panes: newPanes });
+    tabs.set(projectId, { ...project, panes: newPanes, activeExtensionId: null });
     set({ tabs });
   },
 
@@ -201,6 +242,8 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
     tabs.set(projectId, {
       panes: [{ ...defaultTabState }],
       activePaneIndex: 0,
+      openExtensions: [],
+      activeExtensionId: null,
     });
     set({ tabs });
   },
@@ -216,7 +259,7 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
 
     const newPanes = [...project.panes];
     newPanes[idx] = { ...state, activeTabId: fileId };
-    tabs.set(projectId, { ...project, panes: newPanes });
+    tabs.set(projectId, { ...project, panes: newPanes, activeExtensionId: null });
     set({ tabs });
   },
 
@@ -311,5 +354,87 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
 
   triggerSaveAll: () => {
     set((state) => ({ saveAllSignal: state.saveAllSignal + 1 }));
+  },
+
+  openExtensionTab: (projectId, extension) => {
+    const tabs = new Map(get().tabs);
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+    const alreadyOpen = project.openExtensions.some(
+      (e) => e._id === extension._id
+    );
+    const openExtensions = alreadyOpen
+      ? project.openExtensions
+      : [...project.openExtensions, extension];
+    tabs.set(projectId, {
+      ...project,
+      openExtensions,
+      activeExtensionId: extension._id,
+    });
+    set({ tabs });
+  },
+
+  closeExtensionTab: (projectId, extensionId) => {
+    const tabs = new Map(get().tabs);
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+    const openExtensions = project.openExtensions.filter(
+      (e) => e._id !== extensionId
+    );
+    const activeExtensionId =
+      project.activeExtensionId === extensionId
+        ? null
+        : project.activeExtensionId;
+    tabs.set(projectId, { ...project, openExtensions, activeExtensionId });
+    set({ tabs });
+  },
+
+  setActiveExtensionTab: (projectId, extensionId) => {
+    const tabs = new Map(get().tabs);
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+    tabs.set(projectId, { ...project, activeExtensionId: extensionId });
+    set({ tabs });
+  },
+
+  clearActiveExtension: (projectId) => {
+    const tabs = new Map(get().tabs);
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+    tabs.set(projectId, { ...project, activeExtensionId: null });
+    set({ tabs });
+  },
+
+  reorderExtensionTab: (projectId, fromIndex, toIndex) => {
+    const tabs = new Map(get().tabs);
+    const project = tabs.get(projectId) ?? {
+      ...defaultProjectState,
+      panes: [{ ...defaultTabState }],
+    };
+    const openExtensions = [...project.openExtensions];
+
+    if (
+      fromIndex < 0 ||
+      fromIndex >= openExtensions.length ||
+      toIndex < 0 ||
+      toIndex >= openExtensions.length ||
+      fromIndex === toIndex
+    ) {
+      return;
+    }
+
+    const [moved] = openExtensions.splice(fromIndex, 1);
+    openExtensions.splice(toIndex, 0, moved);
+
+    tabs.set(projectId, { ...project, openExtensions });
+    set({ tabs });
   },
 }));

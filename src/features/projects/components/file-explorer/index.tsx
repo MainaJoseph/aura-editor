@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { useProject } from "../../hooks/use-projects";
+import { useMaterialIcons } from "../../hooks/use-material-icons";
+import { IconStyleProvider } from "./icon-context";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import {
   useCreateFile,
@@ -28,6 +30,7 @@ export const FileExplorer = ({ projectId }: { projectId: Id<"projects"> }) => {
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
 
   const project = useProject(projectId);
+  const materialIcons = useMaterialIcons(projectId);
   const rootFiles = useFolderContents({
     projectId,
     enabled: isOpen,
@@ -55,6 +58,7 @@ export const FileExplorer = ({ projectId }: { projectId: Id<"projects"> }) => {
   };
 
   return (
+    <IconStyleProvider value={materialIcons}>
     <div className="h-full bg-sidebar">
       <ScrollArea>
         <OpenEditors projectId={projectId} />
@@ -133,5 +137,6 @@ export const FileExplorer = ({ projectId }: { projectId: Id<"projects"> }) => {
         )}
       </ScrollArea>
     </div>
+    </IconStyleProvider>
   );
 };

@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { ChevronRightIcon } from "lucide-react";
-import { FileIcon, FolderIcon } from "@react-symbols/icons/utils";
+import { AppFileIcon, AppFolderIcon } from "./app-file-icon";
 
 import { cn } from "@/lib/utils";
 
@@ -117,7 +117,7 @@ export const Tree = ({
           deleteFile({ id: item._id });
         }}
       >
-        <FileIcon fileName={fileName} autoAssign className="size-4" />
+        <AppFileIcon fileName={fileName} className="size-4" />
         <span className="truncate text-sm">{fileName}</span>
       </TreeItemWrapper>
     );
@@ -134,7 +134,7 @@ export const Tree = ({
             isOpen && "rotate-90",
           )}
         />
-        <FolderIcon folderName={folderName} className="size-4" />
+        <AppFolderIcon folderName={folderName} isOpen={isOpen} className="size-4" />
       </div>
       <span className="truncate text-sm">{folderName}</span>
     </>
