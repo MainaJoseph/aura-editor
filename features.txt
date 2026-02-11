@@ -9,7 +9,7 @@ Editor Experience
 
   AI Features
 
-  - Inline AI autocomplete — Ghost text completions as you type (like Copilot/Cursor Tab)
+  - Inline AI autocomplete — Ghost text completions as you type (like Copilot/Cursor Tab) ✅
   - AI chat context pinning — Pin specific files, folders, or code selections as context for the AI
   - Multi-file edits in one prompt — AI proposes changes across multiple files with a diff review UI before applying
   - AI-generated commit messages — Summarize changes and suggest commit messages
@@ -20,7 +20,7 @@ Editor Experience
   Project & File Management
 
   - Git integration — Branch management, staging, commits, push/pull from the UI
-  - File search (Cmd+P) — Fuzzy file finder by name
+  - File search (Cmd+P) — Fuzzy file finder by name ✅
   - Symbol search (Cmd+Shift+O) — Jump to functions, classes, exports
   - File templates — Scaffold common files (React component, API route, etc.)
   - Project templates — Start from Next.js, Vite, Express, etc. boilerplates
@@ -46,7 +46,7 @@ Editor Experience
 
   UX & Quality of Life
 
-  - Command palette (Cmd+Shift+P) — Central hub for all actions
+  - Command palette (Cmd+Shift+P) — Central hub for all actions 
   - Themes — Light/dark/custom editor themes
   - Settings UI — Font size, tab size, word wrap, autosave preferences
   - Notification system — Toast notifications for AI completion, errors, deploy status

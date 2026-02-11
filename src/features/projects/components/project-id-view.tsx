@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Allotment } from "allotment";
 import { FaGithub } from "react-icons/fa";
@@ -30,7 +30,9 @@ import { PreviewView } from "./preview-view";
 import { ExportPopover } from "./export-popover";
 import { FileFinderDialog } from "./file-finder-dialog";
 
-const SIDEBAR_WIDTH = 350;
+const DEFAULT_SIDEBAR_WIDTH = 260;
+const MIN_SIDEBAR_WIDTH = 200;
+const MAX_SIDEBAR_WIDTH = 400;
 
 const Tab = ({
   label,
@@ -63,6 +65,35 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [fileFinderOpen, setFileFinderOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const isDragging = useRef(false);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const newWidth = startWidth + (e.clientX - startX);
+      setSidebarWidth(Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, [sidebarWidth]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -181,17 +212,18 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
           <ActivityBar
             activePanel={activePanel}
             onPanelToggle={handlePanelToggle}
+            sidebarWidth={sidebarWidth}
           />
           <div className="flex-1 flex overflow-hidden">
             {/* Keep panels mounted to avoid refetching on toggle */}
             <div
               className={cn(
-                "h-full shrink-0 overflow-hidden transition-[width] duration-200",
-                activePanel ? "border-r" : "w-0"
+                "h-full shrink-0 overflow-hidden",
+                !activePanel && "w-0"
               )}
-              style={{ width: activePanel ? SIDEBAR_WIDTH : 0 }}
+              style={{ width: activePanel ? sidebarWidth : 0 }}
             >
-              <div className="h-full" style={{ width: SIDEBAR_WIDTH }}>
+              <div className="h-full" style={{ width: sidebarWidth }}>
                 <div
                   className={cn(
                     "h-full",
@@ -210,6 +242,12 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
                 </div>
               </div>
             </div>
+            {activePanel && (
+              <div
+                onMouseDown={handleResizeStart}
+                className="w-1 h-full shrink-0 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/50 transition-colors"
+              />
+            )}
             <div className="flex-1 min-w-0">
               <Allotment>
                 <Allotment.Pane>
