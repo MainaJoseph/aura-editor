@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Allotment } from "allotment";
 import { FaGithub } from "react-icons/fa";
-import { Trash2Icon, Loader2Icon } from "lucide-react";
+import { Trash2Icon, Loader2Icon, SearchIcon } from "lucide-react";
 import { useMutation } from "convex/react";
 
 import { cn } from "@/lib/utils";
@@ -28,6 +28,7 @@ import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { PreviewView } from "./preview-view";
 import { ExportPopover } from "./export-popover";
+import { FileFinderDialog } from "./file-finder-dialog";
 
 const SIDEBAR_WIDTH = 350;
 
@@ -61,6 +62,19 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [fileFinderOpen, setFileFinderOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "p") {
+        e.preventDefault();
+        setFileFinderOpen(true);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handlePanelToggle = (panel: string) => {
     if (panel === "explorer" || panel === "search") {
@@ -95,8 +109,25 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
           isActive={activeView === "preview"}
           onClick={() => setActiveView("preview")}
         />
-        <div className="flex-1 flex justify-end h-full">
-          <div className="flex-1 flex justify-end h-full">
+        <div className="flex-1 flex items-center h-full">
+          {activeView === "editor" && (
+            <div className="flex-1 flex justify-center px-4 relative">
+              <button
+                onClick={() => setFileFinderOpen(true)}
+                className="flex items-center gap-2 w-full max-w-md h-5.5 px-2.5 rounded-md bg-background/50 border border-border/50 text-muted-foreground text-xs hover:bg-accent/30 hover:border-border transition-colors cursor-pointer"
+              >
+                <SearchIcon className="size-3 shrink-0" />
+                <span className="truncate">Search files...</span>
+              </button>
+              <FileFinderDialog
+                projectId={projectId}
+                open={fileFinderOpen}
+                onOpenChange={setFileFinderOpen}
+              />
+            </div>
+          )}
+          {activeView === "preview" && <div className="flex-1" />}
+          <div className="flex items-center h-full">
             <ExportPopover projectId={projectId} />
           </div>
           <AlertDialog
