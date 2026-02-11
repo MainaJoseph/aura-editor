@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 
-import { useEditorStore } from "../store/use-editor-store";
+import { useEditorStore, ExtensionTabData } from "../store/use-editor-store";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 export const useEditor = (projectId: Id<"projects">) => {
@@ -80,6 +80,41 @@ export const useEditor = (projectId: Id<"projects">) => {
     store.triggerSaveAll();
   }, [store]);
 
+  const openExtensions = projectState.openExtensions;
+  const activeExtensionId = projectState.activeExtensionId;
+
+  const openExtensionTab = useCallback(
+    (extension: ExtensionTabData) => {
+      store.openExtensionTab(projectId, extension);
+    },
+    [store, projectId]
+  );
+
+  const closeExtensionTab = useCallback(
+    (extensionId: Id<"extensions">) => {
+      store.closeExtensionTab(projectId, extensionId);
+    },
+    [store, projectId]
+  );
+
+  const setActiveExtensionTab = useCallback(
+    (extensionId: Id<"extensions">) => {
+      store.setActiveExtensionTab(projectId, extensionId);
+    },
+    [store, projectId]
+  );
+
+  const clearActiveExtension = useCallback(() => {
+    store.clearActiveExtension(projectId);
+  }, [store, projectId]);
+
+  const reorderExtensionTab = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      store.reorderExtensionTab(projectId, fromIndex, toIndex);
+    },
+    [store, projectId]
+  );
+
   return {
     openTabs: tabState.openTabs,
     activeTabId: tabState.activeTabId,
@@ -100,5 +135,13 @@ export const useEditor = (projectId: Id<"projects">) => {
     allOpenTabs,
     closeAllTabsAllPanes,
     triggerSaveAll,
+    // Extension tabs
+    openExtensions,
+    activeExtensionId,
+    openExtensionTab,
+    closeExtensionTab,
+    setActiveExtensionTab,
+    clearActiveExtension,
+    reorderExtensionTab,
   };
 };

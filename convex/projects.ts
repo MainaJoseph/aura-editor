@@ -206,6 +206,24 @@ export const deleteProject = mutation({
       return;
     }
 
+    // Delete installed extensions in batches
+    const installedExtensions = await ctx.db
+      .query("installedExtensions")
+      .withIndex("by_project", (q) => q.eq("projectId", args.id))
+      .take(DELETE_BATCH_SIZE);
+
+    for (const ext of installedExtensions) {
+      await ctx.db.delete(ext._id);
+    }
+
+    if (installedExtensions.length === DELETE_BATCH_SIZE) {
+      await ctx.scheduler.runAfter(0, internal.projects.continueDeleteProject, {
+        projectId: args.id,
+        ownerId: identity.subject,
+      });
+      return;
+    }
+
     // All related data deleted, now delete the project
     await ctx.db.delete("projects", args.id);
   },
@@ -276,6 +294,24 @@ export const continueDeleteProject = internalMutation({
     }
 
     if (conversations.length === DELETE_BATCH_SIZE) {
+      await ctx.scheduler.runAfter(0, internal.projects.continueDeleteProject, {
+        projectId: args.projectId,
+        ownerId: args.ownerId,
+      });
+      return;
+    }
+
+    // Delete installed extensions in batches
+    const installedExtensions = await ctx.db
+      .query("installedExtensions")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .take(DELETE_BATCH_SIZE);
+
+    for (const ext of installedExtensions) {
+      await ctx.db.delete(ext._id);
+    }
+
+    if (installedExtensions.length === DELETE_BATCH_SIZE) {
       await ctx.scheduler.runAfter(0, internal.projects.continueDeleteProject, {
         projectId: args.projectId,
         ownerId: args.ownerId,

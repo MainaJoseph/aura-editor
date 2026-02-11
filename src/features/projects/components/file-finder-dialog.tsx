@@ -1,5 +1,7 @@
 import { useEffect, useRef, useMemo } from "react";
-import { FileIcon } from "@react-symbols/icons/utils";
+import { AppFileIcon } from "./file-explorer/app-file-icon";
+import { IconStyleProvider } from "./file-explorer/icon-context";
+import { useMaterialIcons } from "../hooks/use-material-icons";
 
 import {
   Command,
@@ -28,6 +30,7 @@ export const FileFinderDialog = ({
   onOpenChange,
 }: FileFinderDialogProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const materialIcons = useMaterialIcons(projectId);
   const files = useFiles(projectId);
   const { openFile, allOpenTabs } = useEditor(projectId);
 
@@ -100,6 +103,7 @@ export const FileFinderDialog = ({
   if (!open) return null;
 
   return (
+    <IconStyleProvider value={materialIcons}>
     <div
       ref={containerRef}
       className="absolute top-full left-1/2 -translate-x-1/2 z-50 w-full max-w-md mt-1 rounded-md border bg-popover shadow-lg animate-in fade-in-0 slide-in-from-top-1 duration-100"
@@ -116,9 +120,8 @@ export const FileFinderDialog = ({
                   value={file.path}
                   onSelect={() => handleSelect(file.id)}
                 >
-                  <FileIcon
+                  <AppFileIcon
                     fileName={file.name}
-                    autoAssign
                     className="size-4"
                   />
                   <span>{file.name}</span>
@@ -136,9 +139,8 @@ export const FileFinderDialog = ({
                 value={file.path}
                 onSelect={() => handleSelect(file.id)}
               >
-                <FileIcon
+                <AppFileIcon
                   fileName={file.name}
-                  autoAssign
                   className="size-4"
                 />
                 <span>{file.name}</span>
@@ -151,5 +153,6 @@ export const FileFinderDialog = ({
         </CommandList>
       </Command>
     </div>
+    </IconStyleProvider>
   );
 };

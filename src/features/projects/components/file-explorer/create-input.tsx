@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronRightIcon } from "lucide-react";
-import { FileIcon, FolderIcon } from "@react-symbols/icons/utils";
+import { AppFileIcon, AppFolderIcon } from "./app-file-icon";
 import { getItemPadding } from "./constants";
 
 export const CreateInput = ({
@@ -35,10 +35,10 @@ export const CreateInput = ({
           <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
         )}
         {type === "file" && (
-          <FileIcon fileName={value} autoAssign className="size-4" />
+          <AppFileIcon fileName={value} className="size-4" />
         )}
         {type === "folder" && (
-          <FolderIcon className="size-4" folderName={value} />
+          <AppFolderIcon className="size-4" folderName={value} />
         )}
       </div>
       <input

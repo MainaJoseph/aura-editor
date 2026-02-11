@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { ChevronRightIcon, SaveIcon, XIcon } from "lucide-react";
-import { FileIcon } from "@react-symbols/icons/utils";
+import { BlocksIcon, ChevronRightIcon, SaveIcon, XIcon } from "lucide-react";
+import { AppFileIcon } from "./app-file-icon";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 import { useEditor } from "@/features/editor/hooks/use-editor";
+import { ExtensionTabData } from "@/features/editor/store/use-editor-store";
 import { useFile } from "../../hooks/use-files";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
@@ -32,7 +33,7 @@ const OpenEditorItem = ({
         isActive && "bg-accent/30"
       )}
     >
-      <FileIcon fileName={fileName} autoAssign className="size-4 shrink-0" />
+      <AppFileIcon fileName={fileName} className="size-4 shrink-0" />
       <span
         className={cn("truncate text-sm flex-1", isPreview && "italic")}
       >
@@ -54,13 +55,51 @@ const OpenEditorItem = ({
   );
 };
 
+const OpenExtensionEditorItem = ({
+  ext,
+  projectId,
+}: {
+  ext: ExtensionTabData;
+  projectId: Id<"projects">;
+}) => {
+  const { activeExtensionId, setActiveExtensionTab, closeExtensionTab } =
+    useEditor(projectId);
+  const isActive = activeExtensionId === ext._id;
+
+  return (
+    <div
+      role="button"
+      onClick={() => setActiveExtensionTab(ext._id)}
+      className={cn(
+        "group/item flex items-center gap-1 h-5.5 pl-5.5 pr-1 cursor-pointer hover:bg-accent/30",
+        isActive && "bg-accent/30"
+      )}
+    >
+      <BlocksIcon className="size-4 shrink-0 text-muted-foreground" />
+      <span className="truncate text-sm flex-1">{ext.name}</span>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          closeExtensionTab(ext._id);
+        }}
+        className={cn(
+          "p-0.5 rounded-sm hover:bg-white/10 opacity-0 group-hover/item:opacity-100 shrink-0",
+          isActive && "opacity-100"
+        )}
+      >
+        <XIcon className="size-3.5" />
+      </button>
+    </div>
+  );
+};
+
 export const OpenEditors = ({
   projectId,
 }: {
   projectId: Id<"projects">;
 }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const { allOpenTabs, closeAllTabsAllPanes, triggerSaveAll } =
+  const { allOpenTabs, closeAllTabsAllPanes, triggerSaveAll, openExtensions } =
     useEditor(projectId);
 
   return (
@@ -103,14 +142,24 @@ export const OpenEditors = ({
           </Button>
         </div>
       </div>
-      {isOpen &&
-        allOpenTabs.map((fileId) => (
-          <OpenEditorItem
-            key={fileId}
-            fileId={fileId}
-            projectId={projectId}
-          />
-        ))}
+      {isOpen && (
+        <>
+          {openExtensions.map((ext) => (
+            <OpenExtensionEditorItem
+              key={ext._id}
+              ext={ext}
+              projectId={projectId}
+            />
+          ))}
+          {allOpenTabs.map((fileId) => (
+            <OpenEditorItem
+              key={fileId}
+              fileId={fileId}
+              projectId={projectId}
+            />
+          ))}
+        </>
+      )}
     </div>
   );
 };

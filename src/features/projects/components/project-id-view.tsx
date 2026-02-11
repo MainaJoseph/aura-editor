@@ -9,6 +9,7 @@ import { useMutation } from "convex/react";
 
 import { cn } from "@/lib/utils";
 import { SplitEditorView } from "@/features/editor/components/split-editor-view";
+import { useEditorStore, ExtensionTabData } from "@/features/editor/store/use-editor-store";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,7 @@ import {
 import { FileExplorer } from "./file-explorer";
 import { ActivityBar } from "./activity-bar";
 import { SearchPanel } from "./search-panel";
+import { ExtensionsPanel } from "@/features/extensions/components/extensions-panel";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { PreviewView } from "./preview-view";
@@ -59,13 +61,14 @@ const Tab = ({
 export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const router = useRouter();
   const [activeView, setActiveView] = useState<"editor" | "preview">("editor");
-  const [activePanel, setActivePanel] = useState<"explorer" | "search" | null>(
+  const [activePanel, setActivePanel] = useState<"explorer" | "search" | "extensions" | null>(
     "explorer"
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [fileFinderOpen, setFileFinderOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const openExtensionTab = useEditorStore((s) => s.openExtensionTab);
   const isDragging = useRef(false);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -108,7 +111,7 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   }, []);
 
   const handlePanelToggle = (panel: string) => {
-    if (panel === "explorer" || panel === "search") {
+    if (panel === "explorer" || panel === "search" || panel === "extensions") {
       setActivePanel((current) => (current === panel ? null : panel));
     }
   };
@@ -239,6 +242,19 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
                   )}
                 >
                   <SearchPanel projectId={projectId} />
+                </div>
+                <div
+                  className={cn(
+                    "h-full",
+                    activePanel !== "extensions" && "hidden"
+                  )}
+                >
+                  <ExtensionsPanel
+                    projectId={projectId}
+                    onSelectExtension={(ext) =>
+                      openExtensionTab(projectId, ext as unknown as ExtensionTabData)
+                    }
+                  />
                 </div>
               </div>
             </div>

@@ -11,8 +11,10 @@
 import type * as auth from "../auth.js";
 import type * as constants from "../constants.js";
 import type * as conversations from "../conversations.js";
+import type * as extensions from "../extensions.js";
 import type * as files from "../files.js";
 import type * as projects from "../projects.js";
+import type * as seedExtensions from "../seedExtensions.js";
 import type * as system from "../system.js";
 
 import type {
@@ -25,8 +27,10 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   constants: typeof constants;
   conversations: typeof conversations;
+  extensions: typeof extensions;
   files: typeof files;
   projects: typeof projects;
+  seedExtensions: typeof seedExtensions;
   system: typeof system;
 }>;
 
