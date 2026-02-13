@@ -12,6 +12,7 @@ export const updatePresence = mutation({
     projectId: v.id("projects"),
     fileId: v.optional(v.id("files")),
     userColor: v.string(),
+    cursorOffset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
@@ -38,6 +39,7 @@ export const updatePresence = mutation({
         fileId: args.fileId,
         userName,
         userColor: args.userColor,
+        cursorOffset: args.cursorOffset,
         lastSeen: Date.now(),
       });
     } else {
@@ -47,6 +49,7 @@ export const updatePresence = mutation({
         fileId: args.fileId,
         userName,
         userColor: args.userColor,
+        cursorOffset: args.cursorOffset,
         lastSeen: Date.now(),
       });
     }

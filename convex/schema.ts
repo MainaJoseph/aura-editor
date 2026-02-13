@@ -159,6 +159,7 @@ export default defineSchema({
     fileId: v.optional(v.id("files")),
     userName: v.string(),
     userColor: v.string(),
+    cursorOffset: v.optional(v.number()),
     lastSeen: v.number(),
   })
     .index("by_project", ["projectId"])

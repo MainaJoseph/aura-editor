@@ -1,7 +1,10 @@
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { useUser } from "@clerk/nextjs";
 
 import { useFile, useUpdateFile } from "@/features/projects/hooks/use-files";
+import { useProjectRole } from "@/features/projects/hooks/use-members";
 
 import { CodeEditor } from "./code-editor";
 import { useEditorPane } from "../hooks/use-editor-pane";
@@ -13,10 +16,33 @@ import { TopNavigation } from "./top-navigation";
 import { FileBreadcrumbs } from "./file-breadcrumbs";
 import { ExtensionDetailPage } from "@/features/extensions/components/extension-detail-page";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { api } from "../../../../convex/_generated/api";
 import { AlertTriangleIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { RemoteCursor } from "../extensions/remote-cursors";
 
 const DEBOUNCE_MS = 1500;
+const PRESENCE_INTERVAL_MS = 10_000;
+const CURSOR_BROADCAST_DEBOUNCE_MS = 500;
+
+const CURSOR_COLORS = [
+  "#e06c75",
+  "#e5c07b",
+  "#98c379",
+  "#56b6c2",
+  "#61afef",
+  "#c678dd",
+  "#d19a66",
+  "#be5046",
+];
+
+function hashToColor(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  }
+  return CURSOR_COLORS[Math.abs(hash) % CURSOR_COLORS.length];
+}
 
 export const EditorPane = ({
   projectId,
@@ -34,6 +60,11 @@ export const EditorPane = ({
   const activeEditorFeatures = useActiveEditorFeatures(projectId);
   const activeFile = useFile(activeTabId);
   const updateFile = useUpdateFile();
+  const role = useProjectRole(projectId);
+  const { user } = useUser();
+
+  // Treat undefined (loading) as read-only to prevent viewers from briefly editing
+  const isReadOnly = role === undefined || role === "viewer";
 
   const projectState = useEditorStore((s) => s.getProjectState(projectId));
   const activeExtension =
@@ -44,10 +75,76 @@ export const EditorPane = ({
       : null;
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingContentRef = useRef<{ fileId: Id<"files">; content: string } | null>(null);
+  const [hasPendingEdits, setHasPendingEdits] = useState(false);
   const saveAllSignal = useEditorStore((s) => s.saveAllSignal);
 
   const isActiveFileBinary = activeFile && activeFile.storageId;
   const isActiveFileText = activeFile && !activeFile.storageId;
+
+  // --- Presence ---
+  const updatePresence = useMutation(api.presence.updatePresence);
+  const removePresence = useMutation(api.presence.removePresence);
+  const cursorOffsetRef = useRef<number | undefined>(undefined);
+
+  const userColor = useMemo(() => {
+    return hashToColor(user?.id ?? "anonymous");
+  }, [user?.id]);
+
+  const cursorBroadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const sendPresenceNow = useCallback(() => {
+    updatePresence({
+      projectId,
+      fileId: activeTabId ?? undefined,
+      userColor,
+      cursorOffset: cursorOffsetRef.current,
+    });
+  }, [updatePresence, projectId, activeTabId, userColor]);
+
+  // Presence heartbeat (liveness)
+  useEffect(() => {
+    // Send immediately on mount / file change
+    sendPresenceNow();
+
+    const interval = setInterval(sendPresenceNow, PRESENCE_INTERVAL_MS);
+
+    return () => {
+      clearInterval(interval);
+      if (cursorBroadcastTimerRef.current) {
+        clearTimeout(cursorBroadcastTimerRef.current);
+      }
+      removePresence({ projectId });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, activeTabId, userColor]);
+
+  // Broadcast cursor position immediately (debounced 500ms) on move
+  const handleCursorChange = useCallback((offset: number) => {
+    cursorOffsetRef.current = offset;
+    if (cursorBroadcastTimerRef.current) {
+      clearTimeout(cursorBroadcastTimerRef.current);
+    }
+    cursorBroadcastTimerRef.current = setTimeout(() => {
+      sendPresenceNow();
+    }, CURSOR_BROADCAST_DEBOUNCE_MS);
+  }, [sendPresenceNow]);
+
+  // --- Remote cursors ---
+  const presenceData = useQuery(api.presence.getProjectPresence, { projectId });
+
+  const remoteCursorData: RemoteCursor[] = useMemo(() => {
+    if (!presenceData || !activeTabId) return [];
+    return presenceData
+      .filter(
+        (entry) =>
+          entry.fileId === activeTabId && entry.cursorOffset != null
+      )
+      .map((entry) => ({
+        offset: entry.cursorOffset!,
+        userName: entry.userName,
+        userColor: entry.userColor,
+      }));
+  }, [presenceData, activeTabId]);
 
   // Cleanup pending debounced updates on unmount or file change
   useEffect(() => {
@@ -55,6 +152,7 @@ export const EditorPane = ({
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
+      setHasPendingEdits(false);
     };
   }, [activeTabId]);
 
@@ -65,6 +163,7 @@ export const EditorPane = ({
       timeoutRef.current = null;
       const { fileId, content } = pendingContentRef.current;
       pendingContentRef.current = null;
+      setHasPendingEdits(false);
       updateFile({ id: fileId, content });
     }
   }, [saveAllSignal, updateFile]);
@@ -158,17 +257,28 @@ export const EditorPane = ({
                 initialValue={activeFile.content}
                 themeConfigKey={themeConfigKey}
                 activeEditorFeatures={activeEditorFeatures}
-                onChange={(content: string) => {
-                  if (timeoutRef.current) {
-                    clearTimeout(timeoutRef.current);
-                  }
+                readOnly={isReadOnly}
+                externalContent={activeFile.content}
+                hasPendingEdits={hasPendingEdits}
+                remoteCursorData={remoteCursorData}
+                onChange={
+                  isReadOnly
+                    ? undefined
+                    : (content: string) => {
+                        if (timeoutRef.current) {
+                          clearTimeout(timeoutRef.current);
+                        }
 
-                  pendingContentRef.current = { fileId: activeFile._id, content };
-                  timeoutRef.current = setTimeout(() => {
-                    pendingContentRef.current = null;
-                    updateFile({ id: activeFile._id, content });
-                  }, DEBOUNCE_MS);
-                }}
+                        setHasPendingEdits(true);
+                        pendingContentRef.current = { fileId: activeFile._id, content };
+                        timeoutRef.current = setTimeout(() => {
+                          pendingContentRef.current = null;
+                          setHasPendingEdits(false);
+                          updateFile({ id: activeFile._id, content });
+                        }, DEBOUNCE_MS);
+                      }
+                }
+                onCursorChange={handleCursorChange}
               />
             ) : null}
             {isActiveFileBinary && (
