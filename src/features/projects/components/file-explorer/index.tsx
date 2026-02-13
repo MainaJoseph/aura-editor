@@ -23,6 +23,7 @@ import { CreateInput } from "./create-input";
 import { LoadingRow } from "./loading-row";
 import { OpenEditors } from "./open-editors";
 import { Tree } from "./tree";
+import { PresenceProvider } from "./presence-context";
 
 export const FileExplorer = ({ projectId }: { projectId: Id<"projects"> }) => {
   const [isOpen, setIsOpen] = useState(true);
@@ -59,6 +60,7 @@ export const FileExplorer = ({ projectId }: { projectId: Id<"projects"> }) => {
 
   return (
     <IconStyleProvider value={materialIcons}>
+    <PresenceProvider projectId={projectId}>
     <div className="h-full bg-sidebar">
       <ScrollArea>
         <OpenEditors projectId={projectId} />
@@ -137,6 +139,7 @@ export const FileExplorer = ({ projectId }: { projectId: Id<"projects"> }) => {
         )}
       </ScrollArea>
     </div>
+    </PresenceProvider>
     </IconStyleProvider>
   );
 };

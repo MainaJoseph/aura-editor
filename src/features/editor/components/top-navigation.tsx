@@ -46,6 +46,7 @@ const Tab = ({
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("application/aura-tab-index", String(index));
+        e.dataTransfer.setData("application/aura-file-id", fileId);
         e.dataTransfer.effectAllowed = "move";
         setIsDragging(true);
       }}
@@ -61,6 +62,7 @@ const Tab = ({
       onDragLeave={() => setDropSide(null)}
       onDrop={(e) => {
         e.preventDefault();
+        e.stopPropagation();
         setDropSide(null);
         const fromIndex = Number(
           e.dataTransfer.getData("application/aura-tab-index")

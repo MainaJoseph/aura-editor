@@ -239,6 +239,33 @@
   animation: blink-cursor 0.8s step-end infinite;
 }
 
+/* Yjs remote cursor and selection styles */
+.yRemoteSelection {
+  opacity: 0.3;
+}
+
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: 2px solid;
+  border-color: inherit;
+  height: 100%;
+}
+
+.yRemoteSelectionHead::after {
+  content: attr(data-name);
+  position: absolute;
+  top: -1.4em;
+  left: -2px;
+  padding: 1px 4px;
+  border-radius: 3px 3px 3px 0;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: white;
+  background-color: inherit;
+  font-family: var(--font-sans);
+}
+
 ::-webkit-scrollbar {
   @apply w-2.5 h-2.5;
 }

@@ -20,6 +20,8 @@ import { CreateInput } from "./create-input";
 import { RenameInput } from "./rename-input";
 import { TreeItemWrapper } from "./tree-item-wrapper";
 import { Doc, Id } from "../../../../../convex/_generated/dataModel";
+import { useFilePresence } from "./presence-context";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Tree = ({
   item,
@@ -88,6 +90,8 @@ export const Tree = ({
     setCreating(type);
   };
 
+  const filePresence = useFilePresence(item._id);
+
   if (item.type === "file") {
     const fileName = item.name;
     const isActive = activeTabId === item._id;
@@ -119,6 +123,24 @@ export const Tree = ({
       >
         <AppFileIcon fileName={fileName} className="size-4" />
         <span className="truncate text-sm">{fileName}</span>
+        {filePresence.length > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center -space-x-1 ml-auto mr-1 shrink-0">
+                {filePresence.slice(0, 3).map((p) => (
+                  <div
+                    key={p._id}
+                    className="size-2 rounded-full border border-sidebar"
+                    style={{ backgroundColor: p.userColor }}
+                  />
+                ))}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              {filePresence.map((p) => p.userName).join(", ")}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </TreeItemWrapper>
     );
   }
