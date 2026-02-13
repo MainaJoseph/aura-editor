@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { CloudCheckIcon, LoaderIcon } from "lucide-react";
+import { CloudCheckIcon, LoaderIcon, UsersIcon } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { Poppins } from "next/font/google";
 import { formatDistanceToNow } from "date-fns";
@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 
 import { Id } from "../../../../convex/_generated/dataModel";
 import { useProject, useRenameProject } from "../hooks/use-projects";
+import { ShareDialog } from "./share-dialog";
+import { OnlineUsers } from "@/features/editor/components/online-users";
 
 const font = Poppins({
   subsets: ["latin"],
@@ -126,6 +128,13 @@ export const Navbar = ({ projectId }: { projectId: Id<"projects"> }) => {
         )}
       </div>
       <div className="flex items-center gap-2">
+        <OnlineUsers projectId={projectId} />
+        <ShareDialog projectId={projectId}>
+          <Button variant="outline" size="sm" className="h-7 gap-1.5">
+            <UsersIcon className="size-3.5" />
+            Share
+          </Button>
+        </ShareDialog>
         <UserButton />
       </div>
     </nav>

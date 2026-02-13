@@ -14,13 +14,12 @@ import { explain } from "../extensions/explain";
 import { multiCursor } from "../extensions/multi-cursor";
 import { getThemeExtension } from "../extensions/theme-registry";
 import { getEditorFeatureExtensions } from "../extensions/editor-feature-registry";
-
 interface Props {
   fileName: string;
   initialValue?: string;
   themeConfigKey?: string | null;
   activeEditorFeatures?: string[];
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
 }
 
 export const CodeEditor = ({
@@ -40,35 +39,45 @@ export const CodeEditor = ({
   useEffect(() => {
     if (!editorRef.current) return;
 
-    const view = new EditorView({
-      doc: initialValue,
-      parent: editorRef.current,
-      extensions: [
-        getThemeExtension(themeConfigKey ?? null),
-        customTheme,
-        customSetup,
-        multiCursor(),
-        languageExtension,
-        suggestion(fileName),
-        quickEdit(fileName),
-        explain(fileName),
-        selectionTooltip(),
-        keymap.of([indentWithTab]),
-        minimap(),
-        indentationMarkers(),
-        ...getEditorFeatureExtensions(activeEditorFeatures ?? []),
+    const extensions = [
+      getThemeExtension(themeConfigKey ?? null),
+      customTheme,
+      customSetup,
+      multiCursor(),
+      languageExtension,
+      suggestion(fileName),
+      quickEdit(fileName),
+      explain(fileName),
+      selectionTooltip(),
+      keymap.of([indentWithTab]),
+      minimap(),
+      indentationMarkers(),
+      ...getEditorFeatureExtensions(activeEditorFeatures ?? []),
+    ];
+
+    if (onChange) {
+      extensions.push(
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             onChange(update.state.doc.toString());
           }
         }),
-      ],
+      );
+    }
+
+    const view = new EditorView({
+      doc: initialValue,
+      parent: editorRef.current,
+      extensions,
     });
 
     viewRef.current = view;
 
     return () => {
-      view.destroy();
+      if (viewRef.current) {
+        viewRef.current.destroy();
+        viewRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- initialValue is only used for initial document; activeEditorFeatures serialized for stable comparison
   }, [languageExtension, themeConfigKey, activeEditorFeatures?.join(",")]);

@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { verifyAuth } from "./auth";
+import { requireProjectAccess } from "./members";
 
 export const updateSettings = mutation({
   args: {
@@ -15,17 +16,12 @@ export const updateSettings = mutation({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    const project = await ctx.db.get("projects", args.id);
+    const project = await ctx.db.get(args.id);
+    if (!project) throw new Error("Project not found");
 
-    if (!project) {
-      throw new Error("Project not found");
-    }
+    await requireProjectAccess(ctx, args.id, identity.subject, "editor");
 
-    if (project.ownerId !== identity.subject) {
-      throw new Error("Unauthorized to update this project");
-    }
-
-    await ctx.db.patch("projects", args.id, {
+    await ctx.db.patch(args.id, {
       settings: args.settings,
       updatedAt: Date.now(),
     });
@@ -56,11 +52,33 @@ export const getPartial = query({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    return await ctx.db
+    // Get owned projects
+    const ownedProjects = await ctx.db
       .query("projects")
       .withIndex("by_owner", (q) => q.eq("ownerId", identity.subject))
       .order("desc")
-      .take(args.limit);
+      .collect();
+
+    // Get projects where user is a member
+    const memberships = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    const memberProjects = await Promise.all(
+      memberships.map((m) => ctx.db.get(m.projectId)),
+    );
+
+    const validMemberProjects = memberProjects.filter(
+      (p): p is NonNullable<typeof p> =>
+        p !== null && p.ownerId !== identity.subject,
+    );
+
+    // Combine, deduplicate, sort by updatedAt desc, and take limit
+    const allProjects = [...ownedProjects, ...validMemberProjects];
+    allProjects.sort((a, b) => b.updatedAt - a.updatedAt);
+
+    return allProjects.slice(0, args.limit);
   },
 });
 
@@ -69,11 +87,33 @@ export const get = query({
   handler: async (ctx) => {
     const identity = await verifyAuth(ctx);
 
-    return await ctx.db
+    // Get owned projects
+    const ownedProjects = await ctx.db
       .query("projects")
       .withIndex("by_owner", (q) => q.eq("ownerId", identity.subject))
       .order("desc")
       .collect();
+
+    // Get projects where user is a member
+    const memberships = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    const memberProjects = await Promise.all(
+      memberships.map((m) => ctx.db.get(m.projectId)),
+    );
+
+    const validMemberProjects = memberProjects.filter(
+      (p): p is NonNullable<typeof p> =>
+        p !== null && p.ownerId !== identity.subject,
+    );
+
+    // Combine and sort by updatedAt desc
+    const allProjects = [...ownedProjects, ...validMemberProjects];
+    allProjects.sort((a, b) => b.updatedAt - a.updatedAt);
+
+    return allProjects;
   },
 });
 
@@ -84,15 +124,12 @@ export const getById = query({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    const project = await ctx.db.get("projects", args.id);
+    const project = await ctx.db.get(args.id);
+    if (!project) return null;
 
-    // Return null if project doesn't exist (e.g., after deletion)
-    if (!project) {
-      return null;
-    }
-
-    // Return null if user doesn't own this project
-    if (project.ownerId !== identity.subject) {
+    try {
+      await requireProjectAccess(ctx, args.id, identity.subject, "viewer");
+    } catch {
       return null;
     }
 
@@ -108,17 +145,12 @@ export const rename = mutation({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    const project = await ctx.db.get("projects", args.id);
+    const project = await ctx.db.get(args.id);
+    if (!project) throw new Error("Project not found");
 
-    if (!project) {
-      throw new Error("Project not found");
-    }
+    await requireProjectAccess(ctx, args.id, identity.subject, "editor");
 
-    if (project.ownerId !== identity.subject) {
-      throw new Error("Unauthorized access to this project");
-    }
-
-    await ctx.db.patch("projects", args.id, {
+    await ctx.db.patch(args.id, {
       name: args.name,
       updatedAt: Date.now(),
     });
@@ -126,7 +158,6 @@ export const rename = mutation({
 });
 
 // Batch size for deletion to stay within Convex limits
-// (16,000 doc writes max, but we stay conservative)
 const DELETE_BATCH_SIZE = 500;
 
 export const deleteProject = mutation({
@@ -136,15 +167,10 @@ export const deleteProject = mutation({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    const project = await ctx.db.get("projects", args.id);
+    const project = await ctx.db.get(args.id);
+    if (!project) throw new Error("Project not found");
 
-    if (!project) {
-      throw new Error("Project not found");
-    }
-
-    if (project.ownerId !== identity.subject) {
-      throw new Error("Unauthorized: Only the project owner can delete this project");
-    }
+    await requireProjectAccess(ctx, args.id, identity.subject, "owner");
 
     // Delete files in batches
     const files = await ctx.db
@@ -156,10 +182,9 @@ export const deleteProject = mutation({
       if (file.storageId) {
         await ctx.storage.delete(file.storageId);
       }
-      await ctx.db.delete("files", file._id);
+      await ctx.db.delete(file._id);
     }
 
-    // If there are more files, schedule continuation
     if (files.length === DELETE_BATCH_SIZE) {
       await ctx.scheduler.runAfter(0, internal.projects.continueDeleteProject, {
         projectId: args.id,
@@ -168,17 +193,16 @@ export const deleteProject = mutation({
       return;
     }
 
-    // Delete messages in batches (query by project status index)
+    // Delete messages in batches
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_project_status", (q) => q.eq("projectId", args.id))
       .take(DELETE_BATCH_SIZE);
 
     for (const message of messages) {
-      await ctx.db.delete("messages", message._id);
+      await ctx.db.delete(message._id);
     }
 
-    // If there are more messages, schedule continuation
     if (messages.length === DELETE_BATCH_SIZE) {
       await ctx.scheduler.runAfter(0, internal.projects.continueDeleteProject, {
         projectId: args.id,
@@ -194,10 +218,9 @@ export const deleteProject = mutation({
       .take(DELETE_BATCH_SIZE);
 
     for (const conversation of conversations) {
-      await ctx.db.delete("conversations", conversation._id);
+      await ctx.db.delete(conversation._id);
     }
 
-    // If there are more conversations, schedule continuation
     if (conversations.length === DELETE_BATCH_SIZE) {
       await ctx.scheduler.runAfter(0, internal.projects.continueDeleteProject, {
         projectId: args.id,
@@ -224,8 +247,48 @@ export const deleteProject = mutation({
       return;
     }
 
+    // Delete members
+    const members = await ctx.db
+      .query("members")
+      .withIndex("by_project", (q) => q.eq("projectId", args.id))
+      .collect();
+
+    for (const member of members) {
+      await ctx.db.delete(member._id);
+    }
+
+    // Delete invite links
+    const inviteLinks = await ctx.db
+      .query("inviteLinks")
+      .withIndex("by_project", (q) => q.eq("projectId", args.id))
+      .collect();
+
+    for (const link of inviteLinks) {
+      await ctx.db.delete(link._id);
+    }
+
+    // Delete email invites
+    const emailInvites = await ctx.db
+      .query("emailInvites")
+      .withIndex("by_project", (q) => q.eq("projectId", args.id))
+      .collect();
+
+    for (const invite of emailInvites) {
+      await ctx.db.delete(invite._id);
+    }
+
+    // Delete presence entries
+    const presenceEntries = await ctx.db
+      .query("presence")
+      .withIndex("by_project", (q) => q.eq("projectId", args.id))
+      .collect();
+
+    for (const entry of presenceEntries) {
+      await ctx.db.delete(entry._id);
+    }
+
     // All related data deleted, now delete the project
-    await ctx.db.delete("projects", args.id);
+    await ctx.db.delete(args.id);
   },
 });
 
@@ -236,12 +299,8 @@ export const continueDeleteProject = internalMutation({
     ownerId: v.string(),
   },
   handler: async (ctx, args) => {
-    const project = await ctx.db.get("projects", args.projectId);
-
-    // Project already deleted
+    const project = await ctx.db.get(args.projectId);
     if (!project) return;
-
-    // Verify ownership hasn't changed
     if (project.ownerId !== args.ownerId) return;
 
     // Delete files in batches
@@ -254,7 +313,7 @@ export const continueDeleteProject = internalMutation({
       if (file.storageId) {
         await ctx.storage.delete(file.storageId);
       }
-      await ctx.db.delete("files", file._id);
+      await ctx.db.delete(file._id);
     }
 
     if (files.length === DELETE_BATCH_SIZE) {
@@ -272,7 +331,7 @@ export const continueDeleteProject = internalMutation({
       .take(DELETE_BATCH_SIZE);
 
     for (const message of messages) {
-      await ctx.db.delete("messages", message._id);
+      await ctx.db.delete(message._id);
     }
 
     if (messages.length === DELETE_BATCH_SIZE) {
@@ -290,7 +349,7 @@ export const continueDeleteProject = internalMutation({
       .take(DELETE_BATCH_SIZE);
 
     for (const conversation of conversations) {
-      await ctx.db.delete("conversations", conversation._id);
+      await ctx.db.delete(conversation._id);
     }
 
     if (conversations.length === DELETE_BATCH_SIZE) {
@@ -320,6 +379,6 @@ export const continueDeleteProject = internalMutation({
     }
 
     // All related data deleted, now delete the project
-    await ctx.db.delete("projects", args.projectId);
+    await ctx.db.delete(args.projectId);
   },
 });

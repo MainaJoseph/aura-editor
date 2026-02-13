@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 import { verifyAuth } from "./auth";
+import { requireProjectAccess } from "./members";
 
 export const create = mutation({
   args: {
@@ -11,15 +12,10 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    const project = await ctx.db.get("projects", args.projectId);
+    const project = await ctx.db.get(args.projectId);
+    if (!project) throw new Error("Project not found");
 
-    if (!project) {
-      throw new Error("Project not found");
-    }
-
-    if (project.ownerId !== identity.subject) {
-      throw new Error("Unauthorized to access this project");
-    }
+    await requireProjectAccess(ctx, args.projectId, identity.subject, "editor");
 
     const conversationId = await ctx.db.insert("conversations", {
       projectId: args.projectId,
@@ -38,19 +34,15 @@ export const getById = query({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    const conversation = await ctx.db.get("conversations", args.id);
+    const conversation = await ctx.db.get(args.id);
+    if (!conversation) return null;
 
-    if (!conversation) {
-      return null;
-    }
+    const project = await ctx.db.get(conversation.projectId);
+    if (!project) return null;
 
-    const project = await ctx.db.get("projects", conversation.projectId);
-
-    if (!project) {
-      return null;
-    }
-
-    if (project.ownerId !== identity.subject) {
+    try {
+      await requireProjectAccess(ctx, conversation.projectId, identity.subject, "viewer");
+    } catch {
       return null;
     }
 
@@ -65,14 +57,12 @@ export const getByProject = query({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    const project = await ctx.db.get("projects", args.projectId);
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return [];
 
-    // Return empty array if project doesn't exist (e.g., after deletion)
-    if (!project) {
-      return [];
-    }
-
-    if (project.ownerId !== identity.subject) {
+    try {
+      await requireProjectAccess(ctx, args.projectId, identity.subject, "viewer");
+    } catch {
       return [];
     }
 
@@ -91,19 +81,15 @@ export const getMessages = query({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    const conversation = await ctx.db.get("conversations", args.conversationId);
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) return [];
 
-    if (!conversation) {
-      return [];
-    }
+    const project = await ctx.db.get(conversation.projectId);
+    if (!project) return [];
 
-    const project = await ctx.db.get("projects", conversation.projectId);
-
-    if (!project) {
-      return [];
-    }
-
-    if (project.ownerId !== identity.subject) {
+    try {
+      await requireProjectAccess(ctx, conversation.projectId, identity.subject, "viewer");
+    } catch {
       return [];
     }
 

@@ -106,4 +106,61 @@ export default defineSchema({
   })
     .index("by_conversation", ["conversationId"])
     .index("by_project_status", ["projectId", "status"]),
+
+  // Phase 1: Project Sharing
+  members: defineTable({
+    projectId: v.id("projects"),
+    userId: v.string(),
+    userName: v.optional(v.string()),
+    role: v.union(
+      v.literal("owner"),
+      v.literal("editor"),
+      v.literal("viewer"),
+    ),
+    invitedBy: v.string(),
+    joinedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_user", ["userId"])
+    .index("by_project_user", ["projectId", "userId"]),
+
+  inviteLinks: defineTable({
+    projectId: v.id("projects"),
+    token: v.string(),
+    role: v.union(v.literal("editor"), v.literal("viewer")),
+    createdBy: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.optional(v.number()),
+    maxUses: v.optional(v.number()),
+    useCount: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_project", ["projectId"]),
+
+  emailInvites: defineTable({
+    projectId: v.id("projects"),
+    email: v.string(),
+    role: v.union(v.literal("editor"), v.literal("viewer")),
+    invitedBy: v.string(),
+    createdAt: v.number(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("declined"),
+    ),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_email", ["email"]),
+
+  // Phase 3: Presence
+  presence: defineTable({
+    projectId: v.id("projects"),
+    userId: v.string(),
+    fileId: v.optional(v.id("files")),
+    userName: v.string(),
+    userColor: v.string(),
+    lastSeen: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_user", ["projectId", "userId"]),
 });

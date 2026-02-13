@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useFile, useUpdateFile } from "@/features/projects/hooks/use-files";
 
@@ -8,6 +8,7 @@ import { useEditorPane } from "../hooks/use-editor-pane";
 import { useActiveTheme } from "../hooks/use-active-theme";
 import { useActiveEditorFeatures } from "../hooks/use-active-editor-features";
 import { useEditorStore } from "../store/use-editor-store";
+
 import { TopNavigation } from "./top-navigation";
 import { FileBreadcrumbs } from "./file-breadcrumbs";
 import { ExtensionDetailPage } from "@/features/extensions/components/extension-detail-page";
@@ -24,10 +25,11 @@ export const EditorPane = ({
   projectId: Id<"projects">;
   paneIndex: number;
 }) => {
-  const { activeTabId, isActivePane, setActivePane } = useEditorPane(
+  const { activeTabId, isActivePane, setActivePane, openFile } = useEditorPane(
     projectId,
     paneIndex
   );
+  const [isDragOver, setIsDragOver] = useState(false);
   const themeConfigKey = useActiveTheme(projectId);
   const activeEditorFeatures = useActiveEditorFeatures(projectId);
   const activeFile = useFile(activeTabId);
@@ -67,13 +69,60 @@ export const EditorPane = ({
     }
   }, [saveAllSignal, updateFile]);
 
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (e.dataTransfer.types.includes("application/aura-file-id")) {
+        e.preventDefault();
+        setIsDragOver(true);
+      }
+    },
+    []
+  );
+
+  const handleDragEnter = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (e.dataTransfer.types.includes("application/aura-file-id")) {
+        setIsDragOver(true);
+      }
+    },
+    []
+  );
+
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (
+        !e.currentTarget.contains(e.relatedTarget as Node)
+      ) {
+        setIsDragOver(false);
+      }
+    },
+    []
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsDragOver(false);
+      const fileId = e.dataTransfer.getData("application/aura-file-id");
+      if (fileId) {
+        openFile(fileId as Id<"files">, { pinned: true });
+      }
+    },
+    [openFile]
+  );
+
   return (
     <div
       className={cn(
         "h-full flex flex-col",
-        isActivePane && "ring-1 ring-ring/50 ring-inset"
+        isActivePane && "ring-1 ring-ring/50 ring-inset",
+        isDragOver && "ring-2 ring-ring/50 ring-inset"
       )}
       onClick={setActivePane}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       <div className="flex items-center">
         <TopNavigation projectId={projectId} paneIndex={paneIndex} />
@@ -102,7 +151,7 @@ export const EditorPane = ({
                 />
               </div>
             )}
-            {isActiveFileText && (
+            {isActiveFileText ? (
               <CodeEditor
                 key={activeFile._id}
                 fileName={activeFile.name}
@@ -121,7 +170,7 @@ export const EditorPane = ({
                   }, DEBOUNCE_MS);
                 }}
               />
-            )}
+            ) : null}
             {isActiveFileBinary && (
               <div className="size-full flex items-center justify-center">
                 <div className="flex flex-col items-center gap-2.5 max-w-md text-center">
