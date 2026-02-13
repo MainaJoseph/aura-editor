@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as constants from "../constants.js";
 import type * as conversations from "../conversations.js";
+import type * as crons from "../crons.js";
 import type * as extensions from "../extensions.js";
 import type * as files from "../files.js";
 import type * as invites from "../invites.js";
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   constants: typeof constants;
   conversations: typeof conversations;
+  crons: typeof crons;
   extensions: typeof extensions;
   files: typeof files;
   invites: typeof invites;

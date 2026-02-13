@@ -81,7 +81,6 @@ export class ConvexYjsProvider {
       await this.convex.mutation(api.presence.updatePresence, {
         projectId: this.presenceConfig.projectId,
         fileId: this.fileId,
-        userName: this.presenceConfig.userName,
         userColor: this.presenceConfig.userColor,
       });
     } catch {
@@ -218,7 +217,7 @@ export class ConvexYjsProvider {
   }
 
   private async syncToFileContent() {
-    if (this.destroyed) return;
+    if (this.destroyed || !this._synced) return;
 
     const text = this.doc.getText("content").toString();
     try {

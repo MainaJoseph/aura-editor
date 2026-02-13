@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 function buildEmailHtml({
   inviterName,
@@ -15,8 +25,10 @@ function buildEmailHtml({
   inviteUrl: string;
 }) {
   const roleLabel = role === "editor" ? "an Editor" : "a Viewer";
+  const safeProjectName = escapeHtml(projectName);
+  const safeInviteUrl = encodeURI(inviteUrl);
   const inviterLine = inviterName
-    ? `<strong style="color: #e2e8f0;">${inviterName}</strong> has invited you to collaborate on`
+    ? `<strong style="color: #e2e8f0;">${escapeHtml(inviterName)}</strong> has invited you to collaborate on`
     : `You've been invited to collaborate on`;
 
   return `
@@ -87,7 +99,7 @@ function buildEmailHtml({
                       <tr>
                         <td>
                           <p style="margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 600;">Project</p>
-                          <p style="margin: 0; font-size: 18px; font-weight: 600; color: #e2e8f0;">${projectName}</p>
+                          <p style="margin: 0; font-size: 18px; font-weight: 600; color: #e2e8f0;">${safeProjectName}</p>
                         </td>
                       </tr>
                       <tr>
@@ -114,7 +126,7 @@ function buildEmailHtml({
               <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
                   <td align="center" style="border-radius: 10px; background: linear-gradient(135deg, #6366f1, #7c3aed);">
-                    <a href="${inviteUrl}" target="_blank" style="display: block; padding: 14px 32px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; text-align: center; letter-spacing: 0.2px;">
+                    <a href="${safeInviteUrl}" target="_blank" style="display: block; padding: 14px 32px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none; text-align: center; letter-spacing: 0.2px;">
                       Accept Invite
                     </a>
                   </td>
@@ -130,7 +142,7 @@ function buildEmailHtml({
                 Or copy and paste this link into your browser:
               </p>
               <p style="margin: 6px 0 0; font-size: 12px; text-align: center; word-break: break-all;">
-                <a href="${inviteUrl}" style="color: #818cf8; text-decoration: none;">${inviteUrl}</a>
+                <a href="${safeInviteUrl}" style="color: #818cf8; text-decoration: none;">${safeInviteUrl}</a>
               </p>
             </td>
           </tr>
@@ -159,10 +171,15 @@ function buildEmailHtml({
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { email, projectName, role, inviterName, token } =
       await request.json();
 
-    if (!email || !projectName) {
+    if (!email || !projectName || !token || !role) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
@@ -174,7 +191,7 @@ export async function POST(request: NextRequest) {
     const { error } = await resend.emails.send({
       from: "Aura <noreply@aura.azuritek.com>",
       to: email,
-      subject: `You've been invited to collaborate on ${projectName}`,
+      subject: `You've been invited to collaborate on ${projectName.replace(/[<>"]/g, "")}`,
       html: buildEmailHtml({ inviterName, projectName, role, inviteUrl }),
     });
 

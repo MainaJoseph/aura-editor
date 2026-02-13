@@ -149,12 +149,12 @@ export const compact = internalMutation({
     }
 
     // Create new snapshot
-    const snapshotData = Y.encodeStateAsUpdate(doc);
+    const snapshotData = Y.encodeStateAsUpdate(doc).slice();
     const maxSeq = updates[updates.length - 1].sequenceNum;
 
     await ctx.db.insert("yjsSnapshots", {
       fileId: args.fileId,
-      data: snapshotData.buffer as ArrayBuffer,
+      data: snapshotData as unknown as ArrayBuffer,
       sequenceNum: maxSeq,
       createdAt: Date.now(),
     });
@@ -244,7 +244,7 @@ export const pushContentAsUpdate = internalMutation({
     });
 
     // Get the update from the transaction
-    const fullUpdate = Y.encodeStateAsUpdate(doc);
+    const fullUpdate = Y.encodeStateAsUpdate(doc).slice();
 
     // Determine next sequence number
     const maxSeq = Math.max(
@@ -254,7 +254,7 @@ export const pushContentAsUpdate = internalMutation({
 
     await ctx.db.insert("yjsUpdates", {
       fileId: args.fileId,
-      data: fullUpdate.buffer as ArrayBuffer,
+      data: fullUpdate as unknown as ArrayBuffer,
       clientId: "ai-agent",
       sequenceNum: maxSeq + 1,
       createdAt: Date.now(),

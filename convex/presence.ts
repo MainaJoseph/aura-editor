@@ -11,7 +11,6 @@ export const updatePresence = mutation({
   args: {
     projectId: v.id("projects"),
     fileId: v.optional(v.id("files")),
-    userName: v.string(),
     userColor: v.string(),
   },
   handler: async (ctx, args) => {
@@ -22,6 +21,9 @@ export const updatePresence = mutation({
     } catch {
       return;
     }
+
+    // Resolve display name server-side from the authenticated identity
+    const userName = identity.name ?? identity.nickname ?? "Anonymous";
 
     // Upsert presence
     const existing = await ctx.db
@@ -34,7 +36,7 @@ export const updatePresence = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, {
         fileId: args.fileId,
-        userName: args.userName,
+        userName,
         userColor: args.userColor,
         lastSeen: Date.now(),
       });
@@ -43,7 +45,7 @@ export const updatePresence = mutation({
         projectId: args.projectId,
         userId: identity.subject,
         fileId: args.fileId,
-        userName: args.userName,
+        userName,
         userColor: args.userColor,
         lastSeen: Date.now(),
       });

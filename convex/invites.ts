@@ -80,9 +80,11 @@ export const acceptInviteLink = mutation({
     }
 
     // Add member
+    const userName = identity.name ?? identity.nickname ?? "Anonymous";
     await ctx.db.insert("members", {
       projectId: link.projectId,
       userId: identity.subject,
+      userName,
       role: link.role,
       invitedBy: link.createdBy,
       joinedAt: Date.now(),
@@ -172,6 +174,16 @@ export const acceptEmailInvite = mutation({
       throw new Error("This invite is no longer pending");
     }
 
+    // Verify the caller's email matches the invite recipient
+    const callerEmail =
+      identity.email ?? identity.emailAddresses?.[0]?.emailAddress;
+    if (
+      !callerEmail ||
+      callerEmail.toLowerCase() !== invite.email.toLowerCase()
+    ) {
+      throw new Error("This invite was sent to a different email address");
+    }
+
     const project = await ctx.db.get(invite.projectId);
     if (!project) throw new Error("Project not found");
 
@@ -189,9 +201,11 @@ export const acceptEmailInvite = mutation({
       .unique();
 
     if (!existingMember) {
+      const userName = identity.name ?? identity.nickname ?? "Anonymous";
       await ctx.db.insert("members", {
         projectId: invite.projectId,
         userId: identity.subject,
+        userName,
         role: invite.role,
         invitedBy: invite.invitedBy,
         joinedAt: Date.now(),
@@ -209,10 +223,20 @@ export const declineEmailInvite = mutation({
     inviteId: v.id("emailInvites"),
   },
   handler: async (ctx, args) => {
-    await verifyAuth(ctx);
+    const identity = await verifyAuth(ctx);
 
     const invite = await ctx.db.get(args.inviteId);
     if (!invite) throw new Error("Invite not found");
+
+    // Verify the caller is the intended recipient
+    const callerEmail =
+      identity.email ?? identity.emailAddresses?.[0]?.emailAddress;
+    if (
+      !callerEmail ||
+      callerEmail.toLowerCase() !== invite.email.toLowerCase()
+    ) {
+      throw new Error("This invite was sent to a different email address");
+    }
 
     await ctx.db.patch(args.inviteId, { status: "declined" });
   },
@@ -298,7 +322,17 @@ export const getPendingInvitesForUser = query({
     email: v.string(),
   },
   handler: async (ctx, args) => {
-    await verifyAuth(ctx);
+    const identity = await verifyAuth(ctx);
+
+    // Only allow users to query their own pending invites
+    const callerEmail =
+      identity.email ?? identity.emailAddresses?.[0]?.emailAddress;
+    if (
+      !callerEmail ||
+      callerEmail.toLowerCase() !== args.email.toLowerCase()
+    ) {
+      return [];
+    }
 
     const invites = await ctx.db
       .query("emailInvites")

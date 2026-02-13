@@ -91,19 +91,31 @@ export const ShareDialog = ({
 
   const handleCopyLink = async (token: string, linkId: string) => {
     const url = `${window.location.origin}/invite/${token}`;
-    await navigator.clipboard.writeText(url);
-    setCopiedLinkId(linkId);
-    setTimeout(() => setCopiedLinkId(null), 2000);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLinkId(linkId);
+      setTimeout(() => setCopiedLinkId(null), 2000);
+    } catch {
+      toast.error("Failed to copy link");
+    }
   };
 
   const handleSendEmail = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) return;
 
+    const userEmail =
+      user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses?.[0]?.emailAddress;
+    if (userEmail && trimmedEmail.toLowerCase() === userEmail.toLowerCase()) {
+      toast.error("You can't invite yourself to your own project");
+      return;
+    }
+
     setSendingEmail(true);
+    let inviteId: Awaited<ReturnType<typeof sendEmailInvite>> | null = null;
     try {
       // 1. Create/update the invite in the database
-      await sendEmailInvite({ projectId, email: trimmedEmail, role: emailRole });
+      inviteId = await sendEmailInvite({ projectId, email: trimmedEmail, role: emailRole });
 
       // 2. Create an invite link for the email recipient
       const linkResult = await createInviteLink({
@@ -132,6 +144,14 @@ export const ShareDialog = ({
       setEmail("");
       toast.success(`Invite sent to ${trimmedEmail}`);
     } catch (err) {
+      // Roll back the pending invite so it doesn't appear as a phantom entry
+      if (inviteId) {
+        try {
+          await cancelEmailInvite({ inviteId });
+        } catch {
+          // Best-effort cleanup
+        }
+      }
       toast.error(err instanceof Error ? err.message : "Failed to send invite");
     } finally {
       setSendingEmail(false);
@@ -324,10 +344,10 @@ export const ShareDialog = ({
                 >
                   <div className="flex items-center gap-2">
                     <div className="size-6 rounded-full bg-accent flex items-center justify-center text-xs font-medium">
-                      {member.userId.substring(0, 2).toUpperCase()}
+                      {(member.userName ?? member.userId).substring(0, 2).toUpperCase()}
                     </div>
                     <span className="truncate max-w-[180px]">
-                      {member.userId}
+                      {member.userName ?? member.userId}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">

@@ -111,6 +111,7 @@ export default defineSchema({
   members: defineTable({
     projectId: v.id("projects"),
     userId: v.string(),
+    userName: v.optional(v.string()),
     role: v.union(
       v.literal("owner"),
       v.literal("editor"),
