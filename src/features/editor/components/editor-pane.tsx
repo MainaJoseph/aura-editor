@@ -1,7 +1,9 @@
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 
 import { useFile, useUpdateFile } from "@/features/projects/hooks/use-files";
+import { useProjectRole } from "@/features/projects/hooks/use-members";
 
 import { CodeEditor } from "./code-editor";
 import { useEditorPane } from "../hooks/use-editor-pane";
@@ -13,10 +15,32 @@ import { TopNavigation } from "./top-navigation";
 import { FileBreadcrumbs } from "./file-breadcrumbs";
 import { ExtensionDetailPage } from "@/features/extensions/components/extension-detail-page";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { api } from "../../../../convex/_generated/api";
 import { AlertTriangleIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { RemoteCursor } from "../extensions/remote-cursors";
 
 const DEBOUNCE_MS = 1500;
+const PRESENCE_INTERVAL_MS = 10_000;
+
+const CURSOR_COLORS = [
+  "#e06c75",
+  "#e5c07b",
+  "#98c379",
+  "#56b6c2",
+  "#61afef",
+  "#c678dd",
+  "#d19a66",
+  "#be5046",
+];
+
+function hashToColor(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = (hash * 31 + userId.charCodeAt(i)) | 0;
+  }
+  return CURSOR_COLORS[Math.abs(hash) % CURSOR_COLORS.length];
+}
 
 export const EditorPane = ({
   projectId,
@@ -34,6 +58,9 @@ export const EditorPane = ({
   const activeEditorFeatures = useActiveEditorFeatures(projectId);
   const activeFile = useFile(activeTabId);
   const updateFile = useUpdateFile();
+  const role = useProjectRole(projectId);
+
+  const isViewer = role === "viewer";
 
   const projectState = useEditorStore((s) => s.getProjectState(projectId));
   const activeExtension =
@@ -48,6 +75,63 @@ export const EditorPane = ({
 
   const isActiveFileBinary = activeFile && activeFile.storageId;
   const isActiveFileText = activeFile && !activeFile.storageId;
+
+  // --- Presence ---
+  const updatePresence = useMutation(api.presence.updatePresence);
+  const removePresence = useMutation(api.presence.removePresence);
+  const cursorOffsetRef = useRef<number | undefined>(undefined);
+
+  const userColor = useMemo(() => {
+    // Use a stable color per session; the userId from Clerk isn't available here,
+    // so we derive from projectId + paneIndex as a fallback seed.
+    // The actual userId will be resolved server-side, but for color consistency
+    // we hash a stable local value.
+    return hashToColor(projectId + "-" + paneIndex);
+  }, [projectId, paneIndex]);
+
+  // Presence heartbeat
+  useEffect(() => {
+    const sendPresence = () => {
+      updatePresence({
+        projectId,
+        fileId: activeTabId ?? undefined,
+        userColor,
+        cursorOffset: cursorOffsetRef.current,
+      });
+    };
+
+    // Send immediately on mount / file change
+    sendPresence();
+
+    const interval = setInterval(sendPresence, PRESENCE_INTERVAL_MS);
+
+    return () => {
+      clearInterval(interval);
+      removePresence({ projectId });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, activeTabId, userColor]);
+
+  const handleCursorChange = useCallback((offset: number) => {
+    cursorOffsetRef.current = offset;
+  }, []);
+
+  // --- Remote cursors ---
+  const presenceData = useQuery(api.presence.getProjectPresence, { projectId });
+
+  const remoteCursorData: RemoteCursor[] = useMemo(() => {
+    if (!presenceData || !activeTabId) return [];
+    return presenceData
+      .filter(
+        (entry) =>
+          entry.fileId === activeTabId && entry.cursorOffset != null
+      )
+      .map((entry) => ({
+        offset: entry.cursorOffset!,
+        userName: entry.userName,
+        userColor: entry.userColor,
+      }));
+  }, [presenceData, activeTabId]);
 
   // Cleanup pending debounced updates on unmount or file change
   useEffect(() => {
@@ -158,17 +242,25 @@ export const EditorPane = ({
                 initialValue={activeFile.content}
                 themeConfigKey={themeConfigKey}
                 activeEditorFeatures={activeEditorFeatures}
-                onChange={(content: string) => {
-                  if (timeoutRef.current) {
-                    clearTimeout(timeoutRef.current);
-                  }
+                readOnly={isViewer}
+                externalContent={activeFile.content}
+                remoteCursorData={remoteCursorData}
+                onChange={
+                  isViewer
+                    ? undefined
+                    : (content: string) => {
+                        if (timeoutRef.current) {
+                          clearTimeout(timeoutRef.current);
+                        }
 
-                  pendingContentRef.current = { fileId: activeFile._id, content };
-                  timeoutRef.current = setTimeout(() => {
-                    pendingContentRef.current = null;
-                    updateFile({ id: activeFile._id, content });
-                  }, DEBOUNCE_MS);
-                }}
+                        pendingContentRef.current = { fileId: activeFile._id, content };
+                        timeoutRef.current = setTimeout(() => {
+                          pendingContentRef.current = null;
+                          updateFile({ id: activeFile._id, content });
+                        }, DEBOUNCE_MS);
+                      }
+                }
+                onCursorChange={handleCursorChange}
               />
             ) : null}
             {isActiveFileBinary && (

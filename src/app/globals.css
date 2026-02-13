@@ -239,6 +239,37 @@
   animation: blink-cursor 0.8s step-end infinite;
 }
 
+/* Remote cursor decorations */
+.remote-cursor-wrapper {
+  position: relative;
+  display: inline;
+  pointer-events: none;
+}
+
+.remote-cursor {
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  width: 0;
+  border-left: 2px solid currentColor;
+  height: 1.2em;
+  z-index: 10;
+}
+
+.remote-cursor-label {
+  position: absolute;
+  bottom: 100%;
+  left: -1px;
+  padding: 1px 4px;
+  font-size: 10px;
+  line-height: 14px;
+  font-family: var(--font-sans), sans-serif;
+  color: #fff;
+  border-radius: 3px 3px 3px 0;
+  white-space: nowrap;
+  z-index: 11;
+}
+
 ::-webkit-scrollbar {
   @apply w-2.5 h-2.5;
 }
