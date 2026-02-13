@@ -28,6 +28,7 @@ interface Props {
   activeEditorFeatures?: string[];
   readOnly?: boolean;
   externalContent?: string;
+  hasPendingEdits?: boolean;
   remoteCursorData?: RemoteCursor[];
   onChange?: (value: string) => void;
   onCursorChange?: (offset: number) => void;
@@ -40,13 +41,13 @@ export const CodeEditor = ({
   activeEditorFeatures,
   readOnly = false,
   externalContent,
+  hasPendingEdits = false,
   remoteCursorData,
   onChange,
   onCursorChange,
 }: Props) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const localChangeRef = useRef(false);
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const languageExtension = useMemo(() => {
@@ -61,7 +62,6 @@ export const CodeEditor = ({
   onCursorChangeRef.current = onCursorChange;
 
   const stableOnChange = useCallback((value: string) => {
-    localChangeRef.current = true;
     onChangeRef.current?.(value);
   }, []);
 
@@ -127,15 +127,13 @@ export const CodeEditor = ({
   }, [languageExtension, themeConfigKey, activeEditorFeatures?.join(","), readOnly]);
 
   // External content sync — update editor when content changes from outside (other users, AI agent)
+  // Skip when the user has pending unsaved local edits to avoid overwriting their in-flight work.
   useEffect(() => {
     const view = viewRef.current;
     if (!view || externalContent === undefined) return;
 
-    // Skip if this was our own change
-    if (localChangeRef.current) {
-      localChangeRef.current = false;
-      return;
-    }
+    // Don't overwrite if the user has unsaved local edits (debounce in flight)
+    if (hasPendingEdits) return;
 
     const currentDoc = view.state.doc.toString();
     if (externalContent === currentDoc) return;
@@ -152,7 +150,7 @@ export const CodeEditor = ({
         head: Math.min(selection.head, externalContent.length),
       },
     });
-  }, [externalContent]);
+  }, [externalContent, hasPendingEdits]);
 
   // Remote cursors sync
   useEffect(() => {
