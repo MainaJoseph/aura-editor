@@ -126,14 +126,16 @@ export const sendEmailInvite = mutation({
 
     await requireProjectAccess(ctx, args.projectId, identity.subject, "editor");
 
-    // Check if a pending invite already exists — update it instead of duplicating
+    const normalizedEmail = args.email.toLowerCase();
+
+    // Check if a pending invite already exists — use by_email index instead of loading all project invites
     const existingInvites = await ctx.db
       .query("emailInvites")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .collect();
 
     const existing = existingInvites.find(
-      (inv) => inv.email === args.email && inv.status === "pending",
+      (inv) => inv.projectId === args.projectId && inv.status === "pending",
     );
 
     let inviteId;
@@ -148,7 +150,7 @@ export const sendEmailInvite = mutation({
     } else {
       inviteId = await ctx.db.insert("emailInvites", {
         projectId: args.projectId,
-        email: args.email,
+        email: normalizedEmail,
         role: args.role,
         invitedBy: identity.subject,
         createdAt: Date.now(),
@@ -331,16 +333,17 @@ export const getPendingInvitesForUser = query({
     // Only allow users to query their own pending invites
     const callerEmail =
       identity.email ?? (identity.emailAddresses as Array<{ emailAddress: string }> | undefined)?.[0]?.emailAddress;
+    const normalizedEmail = args.email.toLowerCase();
     if (
       !callerEmail ||
-      callerEmail.toLowerCase() !== args.email.toLowerCase()
+      callerEmail.toLowerCase() !== normalizedEmail
     ) {
       return [];
     }
 
     const invites = await ctx.db
       .query("emailInvites")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
       .collect();
 
     // Only return pending invites
