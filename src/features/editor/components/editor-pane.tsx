@@ -8,7 +8,7 @@ import { useEditorPane } from "../hooks/use-editor-pane";
 import { useActiveTheme } from "../hooks/use-active-theme";
 import { useActiveEditorFeatures } from "../hooks/use-active-editor-features";
 import { useEditorStore } from "../store/use-editor-store";
-import { useCollaborativeEditor } from "../hooks/use-collaborative-editor";
+
 import { TopNavigation } from "./top-navigation";
 import { FileBreadcrumbs } from "./file-breadcrumbs";
 import { ExtensionDetailPage } from "@/features/extensions/components/extension-detail-page";
@@ -48,13 +48,6 @@ export const EditorPane = ({
 
   const isActiveFileBinary = activeFile && activeFile.storageId;
   const isActiveFileText = activeFile && !activeFile.storageId;
-
-  // Collaborative editing
-  const { yjsProvider, isCollabReady } = useCollaborativeEditor(
-    isActiveFileText ? activeFile._id : null,
-    activeFile?.content ?? undefined,
-    projectId,
-  );
 
   // Cleanup pending debounced updates on unmount or file change
   useEffect(() => {
@@ -158,16 +151,7 @@ export const EditorPane = ({
                 />
               </div>
             )}
-            {isActiveFileText && yjsProvider && isCollabReady && (
-              <CodeEditor
-                key={`${activeFile._id}-collab`}
-                fileName={activeFile.name}
-                themeConfigKey={themeConfigKey}
-                activeEditorFeatures={activeEditorFeatures}
-                yjsProvider={yjsProvider}
-              />
-            )}
-            {isActiveFileText && !yjsProvider && (
+            {isActiveFileText ? (
               <CodeEditor
                 key={activeFile._id}
                 fileName={activeFile.name}
@@ -186,7 +170,7 @@ export const EditorPane = ({
                   }, DEBOUNCE_MS);
                 }}
               />
-            )}
+            ) : null}
             {isActiveFileBinary && (
               <div className="size-full flex items-center justify-center">
                 <div className="flex flex-col items-center gap-2.5 max-w-md text-center">

@@ -20,7 +20,6 @@ import type * as presence from "../presence.js";
 import type * as projects from "../projects.js";
 import type * as seedExtensions from "../seedExtensions.js";
 import type * as system from "../system.js";
-import type * as yjs from "../yjs.js";
 
 import type {
   ApiFromModules,
@@ -41,7 +40,6 @@ declare const fullApi: ApiFromModules<{
   projects: typeof projects;
   seedExtensions: typeof seedExtensions;
   system: typeof system;
-  yjs: typeof yjs;
 }>;
 
 /**

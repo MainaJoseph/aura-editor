@@ -228,6 +228,10 @@ export const declineEmailInvite = mutation({
     const invite = await ctx.db.get(args.inviteId);
     if (!invite) throw new Error("Invite not found");
 
+    if (invite.status !== "pending") {
+      throw new Error("This invite is no longer pending");
+    }
+
     // Verify the caller is the intended recipient
     const callerEmail =
       identity.email ?? (identity.emailAddresses as Array<{ emailAddress: string }> | undefined)?.[0]?.emailAddress;

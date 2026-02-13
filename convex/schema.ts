@@ -152,24 +152,6 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_email", ["email"]),
 
-  // Phase 2: Yjs Collaborative Editing
-  yjsUpdates: defineTable({
-    fileId: v.id("files"),
-    data: v.bytes(),
-    clientId: v.string(),
-    sequenceNum: v.number(),
-    createdAt: v.number(),
-  })
-    .index("by_file_seq", ["fileId", "sequenceNum"])
-    .index("by_file", ["fileId"]),
-
-  yjsSnapshots: defineTable({
-    fileId: v.id("files"),
-    data: v.bytes(),
-    sequenceNum: v.number(),
-    createdAt: v.number(),
-  }).index("by_file", ["fileId"]),
-
   // Phase 3: Presence
   presence: defineTable({
     projectId: v.id("projects"),

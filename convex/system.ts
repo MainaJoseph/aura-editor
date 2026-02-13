@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
 
 const validateInternalKey = (key: string) => {
   const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
@@ -203,26 +202,6 @@ export const updateFile = mutation({
       content: args.content,
       updatedAt: Date.now(),
     });
-
-    // Bridge into Yjs if active collaborative editing exists for this file
-    const hasYjsData = await ctx.db
-      .query("yjsUpdates")
-      .withIndex("by_file", (q) => q.eq("fileId", args.fileId))
-      .first();
-
-    const hasYjsSnapshot = hasYjsData
-      ? true
-      : !!(await ctx.db
-          .query("yjsSnapshots")
-          .withIndex("by_file", (q) => q.eq("fileId", args.fileId))
-          .first());
-
-    if (hasYjsData || hasYjsSnapshot) {
-      await ctx.scheduler.runAfter(0, internal.yjs.pushContentAsUpdate, {
-        fileId: args.fileId,
-        content: args.content,
-      });
-    }
 
     return args.fileId;
   },
