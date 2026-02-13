@@ -231,9 +231,7 @@ export class ConvexYjsProvider {
   }
 
   async destroy() {
-    this.destroyed = true;
-
-    // Flush any pending updates
+    // Flush any pending updates before marking as destroyed
     if (this.batchTimer) {
       clearTimeout(this.batchTimer);
       this.batchTimer = null;
@@ -242,6 +240,8 @@ export class ConvexYjsProvider {
 
     // Final sync to file content
     await this.syncToFileContent();
+
+    this.destroyed = true;
 
     // Remove presence
     if (this.presenceConfig) {

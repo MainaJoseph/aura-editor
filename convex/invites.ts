@@ -176,7 +176,7 @@ export const acceptEmailInvite = mutation({
 
     // Verify the caller's email matches the invite recipient
     const callerEmail =
-      identity.email ?? identity.emailAddresses?.[0]?.emailAddress;
+      identity.email ?? (identity.emailAddresses as Array<{ emailAddress: string }> | undefined)?.[0]?.emailAddress;
     if (
       !callerEmail ||
       callerEmail.toLowerCase() !== invite.email.toLowerCase()
@@ -230,7 +230,7 @@ export const declineEmailInvite = mutation({
 
     // Verify the caller is the intended recipient
     const callerEmail =
-      identity.email ?? identity.emailAddresses?.[0]?.emailAddress;
+      identity.email ?? (identity.emailAddresses as Array<{ emailAddress: string }> | undefined)?.[0]?.emailAddress;
     if (
       !callerEmail ||
       callerEmail.toLowerCase() !== invite.email.toLowerCase()
@@ -326,7 +326,7 @@ export const getPendingInvitesForUser = query({
 
     // Only allow users to query their own pending invites
     const callerEmail =
-      identity.email ?? identity.emailAddresses?.[0]?.emailAddress;
+      identity.email ?? (identity.emailAddresses as Array<{ emailAddress: string }> | undefined)?.[0]?.emailAddress;
     if (
       !callerEmail ||
       callerEmail.toLowerCase() !== args.email.toLowerCase()
