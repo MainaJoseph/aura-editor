@@ -4,6 +4,8 @@ import {
   gemini,
   createNetwork,
 } from "@inngest/agent-kit";
+import { generateText } from "ai";
+import { anthropic as anthropicAi } from "@ai-sdk/anthropic";
 
 import { inngest } from "@/inngest/client";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -202,54 +204,57 @@ export const processMessage = inngest.createFunction(
       },
     });
 
-    // Build the user input - if attachments exist, create vision content blocks
-    let userInput: string | Array<{ type: "image"; source: { type: "base64"; media_type: string; data: string } } | { type: "text"; text: string }> = message;
+    // If attachments exist, use Vercel AI SDK to analyze images with Claude Vision,
+    // then pass the description to the agent network (which doesn't support multi-part content)
+    let agentInput = message;
 
     if (attachments && attachments.length > 0) {
-      const imageBlocks = await step.run("fetch-attachment-images", async () => {
-        const blocks: Array<{ type: "image"; source: { type: "base64"; media_type: string; data: string } }> = [];
+      const visionDescription = await step.run("analyze-attachment-images", async () => {
+        const imageParts: Array<{ type: "image"; image: URL }> = [];
 
         for (const attachment of attachments) {
           try {
-            // Get the serving URL from Convex storage
             const url = await convex.query(api.system.getAttachmentUrlInternal, {
               internalKey,
               storageId: attachment.storageId as Id<"_storage">,
             });
 
-            if (!url) continue;
-
-            // Download the image and convert to base64
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            const base64 = Buffer.from(arrayBuffer).toString("base64");
-
-            blocks.push({
-              type: "image" as const,
-              source: {
-                type: "base64" as const,
-                media_type: attachment.mediaType,
-                data: base64,
-              },
-            });
+            if (url) {
+              imageParts.push({ type: "image" as const, image: new URL(url) });
+            }
           } catch (err) {
-            console.error("Failed to fetch attachment:", err);
+            console.error("Failed to fetch attachment URL:", err);
           }
         }
 
-        return blocks;
+        if (imageParts.length === 0) return null;
+
+        const { text } = await generateText({
+          model: anthropicAi("claude-opus-4-20250514"),
+          messages: [
+            {
+              role: "user",
+              content: [
+                ...imageParts,
+                {
+                  type: "text" as const,
+                  text: `The user has shared ${imageParts.length > 1 ? "these images" : "this image"} with the following message: "${message}"\n\nProvide a detailed description of what you see in the image(s), then respond to the user's message in context. Be thorough about visual details like layout, colors, text, UI elements, code, errors, or any other relevant information visible in the image(s).`,
+                },
+              ],
+            },
+          ],
+        });
+
+        return text;
       });
 
-      if (imageBlocks.length > 0) {
-        userInput = [
-          ...imageBlocks,
-          { type: "text" as const, text: message },
-        ];
+      if (visionDescription) {
+        agentInput = `[The user shared ${attachments.length > 1 ? "images" : "an image"} with this message: "${message}"]\n\n[Image Analysis]\n${visionDescription}\n\n[User's Request]\n${message}`;
       }
     }
 
     // Run the agent
-    const result = await network.run(userInput as string);
+    const result = await network.run(agentInput);
 
     // Extract the assistant's text response from the last agent result
     const lastResult = result.state.results.at(-1);

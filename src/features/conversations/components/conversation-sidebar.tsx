@@ -205,6 +205,10 @@ export const ConversationSidebar = ({
               body: blob,
             });
 
+            if (!result.ok) {
+              throw new Error(`Upload failed with status ${result.status}`);
+            }
+
             const { storageId } = await result.json();
 
             return {
@@ -237,13 +241,17 @@ export const ConversationSidebar = ({
   };
 
   const handleRetry = useCallback(
-    async (text: string) => {
+    async (
+      text: string,
+      messageAttachments?: { storageId: string; mediaType: string; filename?: string }[],
+    ) => {
       if (!activeConversationId || isProcessing) return;
       try {
         await ky.post("/api/messages", {
           json: {
             conversationId: activeConversationId,
             message: text,
+            attachments: messageAttachments,
           },
         });
       } catch {
@@ -353,7 +361,7 @@ export const ConversationSidebar = ({
               <Message key={message._id} from={message.role}>
                 <MessageContent>
                   {message.attachments && message.attachments.length > 0 && (
-                    <MessageAttachments attachments={message.attachments} />
+                    <MessageAttachments attachments={message.attachments} projectId={projectId} />
                   )}
                   {message.status === "processing" ? (
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -424,7 +432,7 @@ export const ConversationSidebar = ({
                         <TooltipTrigger asChild>
                           <MessageAction
                             label="Retry"
-                            onClick={() => handleRetry(message.content)}
+                            onClick={() => handleRetry(message.content, message.attachments)}
                           >
                             <RefreshCwIcon className="size-3" />
                           </MessageAction>

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
 import { verifyAuth } from "./auth";
+import { requireProjectAccess } from "./members";
 
 const validateInternalKey = (key: string) => {
   const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
@@ -665,9 +666,11 @@ export const generateClientUploadUrl = mutation({
 export const getAttachmentUrl = query({
   args: {
     storageId: v.id("_storage"),
+    projectId: v.id("projects"),
   },
   handler: async (ctx, args) => {
-    await verifyAuth(ctx);
+    const identity = await verifyAuth(ctx);
+    await requireProjectAccess(ctx, args.projectId, identity.subject, "viewer");
     return await ctx.storage.getUrl(args.storageId);
   },
 });

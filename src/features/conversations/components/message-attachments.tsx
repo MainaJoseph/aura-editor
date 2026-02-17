@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 
 import { api } from "../../../../convex/_generated/api";
@@ -13,11 +13,28 @@ interface Attachment {
   filename?: string;
 }
 
-function AttachmentImage({ attachment }: { attachment: Attachment }) {
+function AttachmentImage({
+  attachment,
+  projectId,
+}: {
+  attachment: Attachment;
+  projectId: Id<"projects">;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const url = useQuery(api.system.getAttachmentUrl, {
     storageId: attachment.storageId,
+    projectId,
   });
+
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpanded(false);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [expanded]);
 
   if (!url) return null;
 
@@ -36,6 +53,9 @@ function AttachmentImage({ attachment }: { attachment: Attachment }) {
       </button>
       {expanded && (
         <div
+          ref={overlayRef}
+          role="dialog"
+          aria-label="Image preview"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 cursor-pointer"
           onClick={() => setExpanded(false)}
         >
@@ -53,13 +73,18 @@ function AttachmentImage({ attachment }: { attachment: Attachment }) {
 
 interface MessageAttachmentsProps {
   attachments: Attachment[];
+  projectId: Id<"projects">;
 }
 
-export function MessageAttachments({ attachments }: MessageAttachmentsProps) {
+export function MessageAttachments({ attachments, projectId }: MessageAttachmentsProps) {
   return (
     <div className="flex flex-wrap gap-2 mb-2">
       {attachments.map((attachment, index) => (
-        <AttachmentImage key={`${attachment.storageId}-${index}`} attachment={attachment} />
+        <AttachmentImage
+          key={`${attachment.storageId}-${index}`}
+          attachment={attachment}
+          projectId={projectId}
+        />
       ))}
     </div>
   );
