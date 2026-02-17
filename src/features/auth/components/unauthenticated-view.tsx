@@ -6,6 +6,16 @@ import {
   MonitorIcon,
   GithubIcon,
   ArrowRightIcon,
+  MessageSquareIcon,
+  CodeIcon,
+  PlayIcon,
+  UsersIcon,
+  ZapIcon,
+  MousePointerClickIcon,
+  PanelLeftIcon,
+  SearchIcon,
+  TerminalIcon,
+  WandSparklesIcon,
 } from "lucide-react";
 import Image from "next/image";
 import { Poppins } from "next/font/google";
@@ -137,7 +147,7 @@ const CODE_LINES: React.ReactNode[] = [
 ];
 
 const CHAT_MESSAGES = [
-  { from: "user" as const, text: "Hello Aura Create a vite App" },
+  { from: "user" as const, text: "Hello Aura, create a modern To-Do App" },
   {
     from: "aura" as const,
     text: "I'll create a Vite + React app with a live clock, task list, and motivational quotes...",
@@ -147,6 +157,9 @@ const CHAT_MESSAGES = [
     text: "Created 6 files: App.tsx, App.css, index.css, main.tsx, index.html, vite.config.ts",
   },
 ];
+
+const MODAL_PROMPT =
+  "Hello Aura, please create a modern and clean To-Do App using Vite, React, and TypeScript. The app should have a responsive design that works well on both mobile and desktop, and it should allow users to add, edit, delete, and mark tasks as completed.";
 
 const TERMINAL_LINES = [
   "$ npm run dev",
@@ -194,26 +207,6 @@ const FADE_MS = 500;
 // ─── Mock Preview (rendered app) ────────────────────────────────────
 
 function MockPreview() {
-  const [time, setTime] = useState(new Date());
-  const [quoteIndex, setQuoteIndex] = useState(0);
-  const quotes = ["Stay consistent.", "Build every day.", "Small wins compound."];
-
-  useEffect(() => {
-    const id = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => setQuoteIndex((i) => (i + 1) % quotes.length), 4000);
-    return () => clearInterval(id);
-  }, [quotes.length]);
-
-  const formatted = time.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-
   return (
     <div className="flex flex-1 flex-col">
       {/* Browser chrome */}
@@ -229,56 +222,192 @@ function MockPreview() {
         <span className="text-[10px] text-white/20">↗</span>
       </div>
 
-      {/* App content */}
-      <div className="flex-1 overflow-hidden bg-gradient-to-br from-[#0d0d1a] via-[#111122] to-[#1a1030] p-6 sm:p-8">
-        {/* Clock */}
-        <div className="mb-6 text-center">
-          <div className="bg-gradient-to-r from-white/90 via-white/80 to-white/90 bg-clip-text font-mono text-3xl font-bold tracking-widest text-transparent sm:text-4xl md:text-5xl">
-            {formatted}
-          </div>
-          <div className="mt-1.5 text-[11px] font-medium uppercase tracking-widest text-white/25">
-            Live Clock
-          </div>
-        </div>
-
-        {/* Task list card */}
-        <div className="mx-auto max-w-[300px] rounded-xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-sm">
-          <h3 className="mb-3 text-[13px] font-semibold text-white/70">
-            My Tasks
-          </h3>
-          {/* Input row */}
-          <div className="mb-3 flex gap-2">
-            <div className="flex flex-1 items-center rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-white/25">
-              Add a new task...
+      {/* App content — light theme to-do app */}
+      <div className="flex-1 overflow-auto bg-gradient-to-b from-[#1a1d2e] to-[#141625] p-4 sm:p-6">
+        <div className="mx-auto max-w-[340px]">
+          {/* Header */}
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-[15px] font-bold text-white/90 sm:text-[17px]">My To-Do List</h2>
+            <div className="rounded-md bg-[#3b82f6] px-2.5 py-1 text-[10px] font-medium text-white">
+              + Add Task
             </div>
-            <div className="flex items-center rounded-lg bg-[#1F84EF] px-3 py-1.5 text-[11px] font-medium text-white shadow-lg shadow-[#1F84EF]/20">
+          </div>
+
+          {/* Input */}
+          <div className="mb-4 flex gap-2">
+            <div className="flex flex-1 items-center rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-white/30">
+              What needs to be done?
+            </div>
+            <div className="rounded-md bg-[#3b82f6] px-3 py-1.5 text-[11px] font-semibold text-white">
               Add
             </div>
           </div>
-          {/* Tasks */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2.5 rounded-lg bg-white/[0.04] px-3 py-2 text-[11px] text-white/45 transition-colors">
-              <span className="flex size-4 shrink-0 items-center justify-center rounded border border-[#06E07F]/60 bg-[#06E07F]/15 text-[9px] text-[#06E07F]">
-                ✓
-              </span>
-              <span className="line-through">Build a cool app</span>
-            </div>
-            <div className="flex items-center gap-2.5 rounded-lg bg-white/[0.04] px-3 py-2 text-[11px] text-white/60 transition-colors">
-              <span className="size-4 shrink-0 rounded border border-white/20" />
-              Learn React hooks
-            </div>
-            <div className="flex items-center gap-2.5 rounded-lg bg-white/[0.04] px-3 py-2 text-[11px] text-white/60 transition-colors">
-              <span className="size-4 shrink-0 rounded border border-white/20" />
-              Ship to production
+
+          {/* Pending Tasks */}
+          <div className="mb-1.5 text-[11px] font-semibold text-white/50">Pending Tasks</div>
+          <div className="mb-4 space-y-1.5">
+            {[
+              "Finish React project",
+              "Buy groceries",
+              "Call the dentist",
+            ].map((task) => (
+              <div
+                key={task}
+                className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#22c55e] text-[8px] text-white">
+                    ✓
+                  </span>
+                  <span className="text-[11px] text-white/70">{task}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-[#3b82f6]">✎</span>
+                  <span className="text-[10px] text-[#ef4444]">🗑</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Completed */}
+          <div className="mb-1.5 text-[11px] font-semibold italic text-white/35">Completed</div>
+          <div className="mb-3 space-y-1.5">
+            {["Read a book", "Walk the dog"].map((task) => (
+              <div
+                key={task}
+                className="flex items-center gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
+              >
+                <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#22c55e] text-[8px] text-white">
+                  ✓
+                </span>
+                <span className="text-[11px] text-white/30 line-through">{task}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Clear Completed */}
+          <div className="flex justify-end">
+            <div className="rounded-md bg-[#3b82f6] px-2.5 py-1 text-[10px] font-medium text-white">
+              Clear Completed
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Quote */}
-        <div className="mt-6 text-center">
-          <div className="text-[12px] italic text-white/20 transition-all duration-500">
-            &ldquo;{quotes[quoteIndex]}&rdquo;
+// ─── Mock Dashboard Content ─────────────────────────────────────────
+
+function MockDashboardContent({
+  showModal,
+  modalText,
+  showProject,
+  highlightProject,
+  highlightNew,
+}: {
+  showModal: boolean;
+  modalText: string;
+  showProject: boolean;
+  highlightProject: boolean;
+  highlightNew: boolean;
+}) {
+  return (
+    <div className="relative flex flex-1 items-start justify-center overflow-hidden p-6 sm:p-10">
+      <div className="w-full max-w-[400px]">
+        {/* Logo + title */}
+        <div className="mb-6 flex items-center gap-2.5">
+          <Image src="/logo.svg" alt="Aura" width={28} height={28} />
+          <span className={cn("text-2xl font-bold text-white", poppins.className)}>Aura</span>
+        </div>
+
+        {/* New / Import buttons */}
+        <div className="mb-5 grid grid-cols-2 gap-3">
+          <div
+            className={cn(
+              "rounded-lg border p-3 transition-all duration-300",
+              highlightNew
+                ? "border-[#1F84EF]/50 bg-[#1F84EF]/10"
+                : "border-white/10 bg-white/[0.03]",
+            )}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[13px] text-white/40">✦</span>
+              <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[9px] text-white/25">⌘J</span>
+            </div>
+            <span className="text-[13px] font-medium text-white/80">New</span>
           </div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[13px] text-white/40">⑂</span>
+              <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[9px] text-white/25">⌘I</span>
+            </div>
+            <span className="text-[13px] font-medium text-white/80">Import</span>
+          </div>
+        </div>
+
+        {/* Modal overlay */}
+        {showModal && (
+          <div className="mb-5 rounded-lg border border-white/10 bg-white/[0.06] p-4 shadow-xl shadow-black/20 backdrop-blur-sm">
+            <div className="min-h-[80px] text-[12px] leading-relaxed text-white/70">
+              {modalText}
+              <span className="typing-cursor" />
+            </div>
+            <div className="mt-3 flex items-center justify-end gap-3">
+              <span className="text-[11px] text-white/30">+ Blank project</span>
+              <div className="flex size-7 items-center justify-center rounded-md bg-white/10 text-[11px] text-white/40">
+                ↵
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Last updated */}
+        {showProject && (
+          <>
+            <div className="mb-2 text-[11px] text-white/30">Last updated</div>
+            <div
+              className={cn(
+                "mb-5 flex items-center justify-between rounded-lg border p-3 transition-all duration-500",
+                highlightProject
+                  ? "border-[#1F84EF]/50 bg-[#1F84EF]/10 shadow-lg shadow-[#1F84EF]/10"
+                  : "border-white/10 bg-white/[0.03]",
+              )}
+            >
+              <div>
+                <div className="flex items-center gap-2 text-[13px] font-medium text-white/80">
+                  <span className="text-[11px] text-white/30">🌐</span>
+                  To-do-app
+                </div>
+                <div className="mt-0.5 text-[11px] text-white/30">in less than a minute</div>
+              </div>
+              <span className={cn("text-[13px] transition-colors", highlightProject ? "text-[#1F84EF]" : "text-white/20")}>→</span>
+            </div>
+          </>
+        )}
+
+        {/* Recent projects */}
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[11px] text-white/30">Recent projects</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-white/25">View all</span>
+            <span className="rounded bg-white/10 px-1 py-0.5 font-mono text-[8px] text-white/20">⌘K</span>
+          </div>
+        </div>
+        <div className="space-y-0.5">
+          {[
+            { name: "smart-env", icon: "⑂", time: "4 days ago" },
+            { name: "weather-dashboard", icon: "🌐", time: "12 days ago" },
+            { name: "portfolio-site", icon: "🌐", time: "12 days ago" },
+          ].map((p) => (
+            <div key={p.name} className="flex items-center justify-between rounded-md px-1 py-1.5 text-[11px]">
+              <div className="flex items-center gap-2 text-white/50">
+                <span className="text-[10px] text-white/25">{p.icon}</span>
+                {p.name}
+              </div>
+              <span className="text-white/20">{p.time}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -287,11 +416,72 @@ function MockPreview() {
 
 // ─── Mock IDE ───────────────────────────────────────────────────────
 
+// Animation phases & timing
+type Phase =
+  | "dashboard"       // Show dashboard
+  | "highlight-new"   // Highlight "New" button
+  | "modal-typing"    // Modal appears, prompt types in
+  | "modal-submit"    // Brief flash before submitting
+  | "project-appear"  // To-do-app appears in "Last updated"
+  | "highlight-project" // Highlight the project row
+  | "transition"      // Fade to editor
+  | "editor";         // Full editor typing animation
+
+const PHASE_TIMING: Record<Exclude<Phase, "modal-typing" | "editor">, number> = {
+  "dashboard": 1500,
+  "highlight-new": 800,
+  "modal-submit": 600,
+  "project-appear": 1200,
+  "highlight-project": 1000,
+  "transition": 400,
+};
+
+const MODAL_CHAR_DELAY = 18; // ms per character for typing
+const TRANSITION_MS = 400;
+
 function MockIDE() {
+  const [phase, setPhase] = useState<Phase>("dashboard");
+  const [modalCharIndex, setModalCharIndex] = useState(0);
   const [step, setStep] = useState(0);
   const [fading, setFading] = useState(false);
 
-  // Distribute steps across panels
+  // Phase progression (non-typing, non-editor phases)
+  useEffect(() => {
+    if (phase === "modal-typing" || phase === "editor") return;
+
+    const nextPhase: Record<string, Phase> = {
+      "dashboard": "highlight-new",
+      "highlight-new": "modal-typing",
+      "modal-submit": "project-appear",
+      "project-appear": "highlight-project",
+      "highlight-project": "transition",
+      "transition": "editor",
+    };
+
+    const next = nextPhase[phase];
+    if (!next) return;
+
+    const delay = PHASE_TIMING[phase as keyof typeof PHASE_TIMING];
+    const timer = setTimeout(() => {
+      if (next === "editor") setStep(0);
+      if (next === "modal-typing") setModalCharIndex(0);
+      setPhase(next);
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [phase]);
+
+  // Modal typing animation
+  useEffect(() => {
+    if (phase !== "modal-typing") return;
+    if (modalCharIndex >= MODAL_PROMPT.length) {
+      const timer = setTimeout(() => setPhase("modal-submit"), 500);
+      return () => clearTimeout(timer);
+    }
+    const timer = setTimeout(() => setModalCharIndex((c) => c + 1), MODAL_CHAR_DELAY);
+    return () => clearTimeout(timer);
+  }, [phase, modalCharIndex]);
+
+  // Editor typing animation
   const fileCount = Math.min(step, FILE_TREE.length);
   const chatCount = Math.min(Math.max(step - 2, 0), CHAT_MESSAGES.length);
   const codeCount = Math.min(Math.max(step - 4, 0), CODE_LINES.length);
@@ -299,28 +489,30 @@ function MockIDE() {
     Math.max(step - 4 - CODE_LINES.length, 0),
     TERMINAL_LINES.length,
   );
-
-  const showPreview = step >= TOTAL_STEPS;
+  const showPreview = phase === "editor" && step >= TOTAL_STEPS;
 
   useEffect(() => {
-    if (fading) return;
+    if (phase !== "editor" || fading) return;
 
-    // Still stepping through typing + preview-wait
     if (step < TOTAL_STEPS) {
       const timer = setTimeout(() => setStep((s) => s + 1), LINE_DELAY);
       return () => clearTimeout(timer);
     }
 
-    // Show preview for HOLD_PAUSE, then fade & restart
+    // Hold preview, then fade & restart
     const timer = setTimeout(() => {
       setFading(true);
       setTimeout(() => {
+        setPhase("dashboard");
         setStep(0);
+        setModalCharIndex(0);
         setFading(false);
       }, FADE_MS);
     }, HOLD_PAUSE);
     return () => clearTimeout(timer);
-  }, [step, fading]);
+  }, [phase, step, fading]);
+
+  const isDashboardPhase = phase !== "editor";
 
   return (
     <div
@@ -339,217 +531,249 @@ function MockIDE() {
         </div>
         <Image src="/logo.svg" alt="Aura" width={16} height={16} className="ml-2" />
         <span className="text-xs font-medium text-white/50">Aura</span>
-        <span className="text-white/20">&gt;</span>
-        <span className="text-xs text-white/40">To-do-app</span>
-        <span className="text-[10px] text-white/20">↻</span>
+        {!isDashboardPhase && (
+          <>
+            <span className="text-white/20">&gt;</span>
+            <span className="text-xs text-white/40">To-do-app</span>
+            <span className="text-[10px] text-white/20">↻</span>
+          </>
+        )}
 
-        {/* Code / Preview tabs */}
-        <div className="ml-auto flex items-center gap-3">
-          <div className="flex gap-1 text-[10px] sm:text-xs">
-            <span
-              className={cn(
-                "rounded-md px-2 py-0.5 transition-colors",
-                !showPreview
-                  ? "bg-white/10 font-medium text-white/80"
-                  : "text-white/30",
-              )}
-            >
-              Code
-            </span>
-            <span
-              className={cn(
-                "rounded-md px-2 py-0.5 transition-colors",
-                showPreview
-                  ? "bg-white/10 font-medium text-white/80"
-                  : "text-white/30",
-              )}
-            >
-              Preview
-            </span>
+        {!isDashboardPhase && (
+          <div className="ml-auto flex items-center gap-3">
+            <div className="flex gap-1 text-[10px] sm:text-xs">
+              <span
+                className={cn(
+                  "rounded-md px-2 py-0.5 transition-colors",
+                  !showPreview
+                    ? "bg-white/10 font-medium text-white/80"
+                    : "text-white/30",
+                )}
+              >
+                Code
+              </span>
+              <span
+                className={cn(
+                  "rounded-md px-2 py-0.5 transition-colors",
+                  showPreview
+                    ? "bg-white/10 font-medium text-white/80"
+                    : "text-white/30",
+                )}
+              >
+                Preview
+              </span>
+            </div>
+            <span className="hidden text-[10px] text-white/30 sm:inline">Share</span>
           </div>
-          <span className="hidden text-[10px] text-white/30 sm:inline">Share</span>
-        </div>
+        )}
       </div>
 
       {/* ── Main body ─────────────────────────────────── */}
-      <div className="flex" style={{ minHeight: "420px" }}>
-        {/* ── Activity bar (icon strip) ──────────────── */}
-        <div className="hidden w-[36px] shrink-0 flex-col items-center gap-3 border-r border-white/10 py-3 md:flex">
-          <span className="text-[13px] text-white/30">📋</span>
-          <span className="text-[13px] text-white/30">🔍</span>
-          <span className="text-[13px] text-white/30">🧩</span>
-          <div className="mt-auto">
-            <span className="text-[13px] text-white/30">⚙</span>
-          </div>
-        </div>
-
-        {/* ── Chat panel ──────────────────────────────── */}
-        <div className="hidden w-[200px] shrink-0 flex-col border-r border-white/10 md:flex">
-          {/* Chat header */}
-          <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
-            <span className="text-[10px] font-medium text-white/40">New conversation</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-white/20">⟳</span>
-              <span className="text-[10px] text-white/20">+</span>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 space-y-2.5 overflow-hidden p-3 text-[11px] leading-relaxed">
-            {CHAT_MESSAGES.slice(0, chatCount).map((msg, i) => (
-              <div key={i}>
-                {msg.from === "user" ? (
-                  <div className="ml-2 rounded-lg rounded-br-none bg-white/10 px-2.5 py-1.5 text-white/70">
-                    {msg.text}
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-1.5">
-                    <span className="mt-0.5 text-[10px]">✦</span>
-                    <span className="text-white/50">{msg.text}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-            {/* Preview-phase message */}
-            {showPreview && (
-              <div className="flex items-start gap-1.5">
-                <span className="mt-0.5 text-[10px]">✦</span>
-                <span className="text-[#06E07F]/70">
-                  Your app is running at localhost:5173
-                </span>
-              </div>
+      <div className="flex" style={{ height: "480px" }}>
+        {isDashboardPhase ? (
+          <div
+            className={cn(
+              "flex flex-1 transition-opacity",
+              phase === "transition" ? "opacity-0" : "opacity-100",
             )}
-            {chatCount > 0 && chatCount < CHAT_MESSAGES.length && (
-              <span className="typing-cursor" />
-            )}
-          </div>
-
-          {/* Input */}
-          <div className="border-t border-white/10 px-3 py-2">
-            <div className="flex items-center rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5">
-              <span className="text-[10px] text-white/25">Ask Aura anything...</span>
-              <span className="ml-auto text-[10px] text-white/15">↵</span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── File tree ───────────────────────────────── */}
-        <div className="hidden w-[160px] shrink-0 flex-col border-r border-white/10 lg:flex">
-          {/* Open editors section */}
-          <div className="border-b border-white/10">
-            <div className="px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-white/30">
-              Open Editors
-            </div>
-            <div className="px-2 pb-1.5">
-              <div className="flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[11px] text-white/60">
-                <span className="text-[9px] leading-none">{"{}"}</span>
-                <span className="truncate">App.css</span>
-                <span className="ml-auto text-[9px] text-white/20">×</span>
-              </div>
-            </div>
-          </div>
-          {/* Project files */}
-          <div className="border-b border-white/10 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-white/30">
-            TO-DO-APP
-          </div>
-          <div className="flex-1 space-y-0.5 overflow-hidden p-2 text-[11px]">
-            {FILE_TREE.slice(0, fileCount).map((f, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "flex items-center gap-1.5 rounded px-1.5 py-0.5",
-                  f.active
-                    ? "bg-[#1F84EF]/15 text-white/80"
-                    : "text-white/40",
-                )}
-                style={{ paddingLeft: `${f.indent * 12 + 6}px` }}
-              >
-                <span className="text-[9px] leading-none">{f.icon}</span>
-                <span className="truncate">{f.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Editor + Terminal  OR  Preview ──────────── */}
-        {showPreview ? (
-          <MockPreview />
-        ) : (
-          <div className="flex flex-1 flex-col">
-            {/* Search bar */}
-            <div className="flex items-center gap-2 border-b border-white/10 px-3 py-1.5">
-              <div className="flex flex-1 items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2.5 py-1">
-                <span className="text-[10px] text-white/20">🔍</span>
-                <span className="text-[10px] text-white/25">Search files...</span>
-              </div>
-              <span className="hidden text-[10px] text-white/30 sm:inline">Export</span>
-            </div>
-
-            {/* Tab bar */}
-            <div className="flex items-center border-b border-white/10 px-3">
-              <div className="flex items-center gap-1.5 border-b-2 border-[#1F84EF] px-2 py-1.5 text-[11px] text-white/70">
-                <span className="text-[9px]">{"{}"}</span>
-                App.css
-                <span className="ml-1 text-white/20">×</span>
-              </div>
-            </div>
-
-            {/* Breadcrumb */}
-            <div className="border-b border-white/10 px-3 py-1 text-[10px] text-white/25">
-              src &gt; <span className="text-white/40">{"{}"} App.css</span>
-            </div>
-
-            {/* Code area */}
-            <div className="flex-1 overflow-hidden p-3 font-mono text-[11px] leading-[1.7] sm:text-[12px]">
-              {CODE_LINES.slice(0, codeCount).map((line, i) => (
-                <div key={i} className="flex">
-                  <span className="mr-3 inline-block w-5 text-right text-white/15 select-none">
-                    {i + 1}
-                  </span>
-                  <span className="text-white/50">{line}</span>
+            style={{ transitionDuration: `${TRANSITION_MS}ms` }}
+          >
+            <div className="hidden w-full flex-col md:flex">
+              <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  <Image src="/logo.svg" alt="Aura" width={18} height={18} />
+                  <span className={cn("text-sm font-semibold text-white/80", poppins.className)}>Aura</span>
                 </div>
-              ))}
-              {codeCount > 0 && codeCount < CODE_LINES.length && (
-                <span className="typing-cursor" />
-              )}
+                <div className="size-6 rounded-full bg-white/10" />
+              </div>
+              <MockDashboardContent
+                showModal={phase === "modal-typing" || phase === "modal-submit"}
+                modalText={MODAL_PROMPT.slice(0, modalCharIndex)}
+                showProject={phase === "project-appear" || phase === "highlight-project"}
+                highlightProject={phase === "highlight-project"}
+                highlightNew={phase === "highlight-new"}
+              />
+            </div>
+            <div className="flex flex-1 md:hidden">
+              <MockDashboardContent
+                showModal={phase === "modal-typing" || phase === "modal-submit"}
+                modalText={MODAL_PROMPT.slice(0, modalCharIndex)}
+                showProject={phase === "project-appear" || phase === "highlight-project"}
+                highlightProject={phase === "highlight-project"}
+                highlightNew={phase === "highlight-new"}
+              />
+            </div>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "flex flex-1 transition-opacity",
+              phase === "editor" ? "opacity-100" : "opacity-0",
+            )}
+            style={{ transitionDuration: `${TRANSITION_MS}ms` }}
+          >
+            {/* ── Activity bar ──────────────────────────── */}
+            <div className="hidden w-[36px] shrink-0 flex-col items-center gap-3 border-r border-white/10 py-3 md:flex">
+              <span className="text-[13px] text-white/30">📋</span>
+              <span className="text-[13px] text-white/30">🔍</span>
+              <span className="text-[13px] text-white/30">🧩</span>
+              <div className="mt-auto">
+                <span className="text-[13px] text-white/30">⚙</span>
+              </div>
             </div>
 
-            {/* Terminal */}
-            <div className="border-t border-white/10">
-              <div className="flex items-center gap-2 border-b border-white/10 px-3 py-1 text-[10px]">
-                <span className="text-white/40">Terminal</span>
-                <span className="ml-auto text-white/20">bash</span>
+            {/* ── Chat panel ────────────────────────────── */}
+            <div className="hidden w-[200px] shrink-0 flex-col border-r border-white/10 md:flex">
+              <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
+                <span className="text-[10px] font-medium text-white/40">New conversation</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-white/20">⟳</span>
+                  <span className="text-[10px] text-white/20">+</span>
+                </div>
               </div>
-              <div
-                className="overflow-hidden p-3 font-mono text-[10px] leading-relaxed text-white/40 sm:text-[11px]"
-                style={{ minHeight: "90px" }}
-              >
-                {TERMINAL_LINES.slice(0, termCount).map((line, i) => (
+              <div className="flex-1 space-y-2.5 overflow-hidden p-3 text-[11px] leading-relaxed">
+                {CHAT_MESSAGES.slice(0, chatCount).map((msg, i) => (
                   <div key={i}>
-                    {line === "" ? (
-                      <span>&nbsp;</span>
-                    ) : line.startsWith("  ➜") ? (
-                      <span>
-                        {"  "}
-                        <span className="text-[#06E07F]">➜</span>
-                        {line.slice(3)}
-                      </span>
-                    ) : line.startsWith("  VITE") ? (
-                      <span>
-                        {"  "}
-                        <span className="text-[#FFD200]">VITE</span>
-                        {line.slice(6)}
-                      </span>
+                    {msg.from === "user" ? (
+                      <div className="ml-2 rounded-lg rounded-br-none bg-white/10 px-2.5 py-1.5 text-white/70">
+                        {msg.text}
+                      </div>
                     ) : (
-                      line
+                      <div className="flex items-start gap-1.5">
+                        <span className="mt-0.5 text-[10px]">✦</span>
+                        <span className="text-white/50">{msg.text}</span>
+                      </div>
                     )}
                   </div>
                 ))}
-                {termCount > 0 && termCount < TERMINAL_LINES.length && (
+                {showPreview && (
+                  <div className="flex items-start gap-1.5">
+                    <span className="mt-0.5 text-[10px]">✦</span>
+                    <span className="text-[#06E07F]/70">
+                      Your app is running at localhost:5173
+                    </span>
+                  </div>
+                )}
+                {chatCount > 0 && chatCount < CHAT_MESSAGES.length && (
                   <span className="typing-cursor" />
                 )}
               </div>
+              <div className="border-t border-white/10 px-3 py-2">
+                <div className="flex items-center rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5">
+                  <span className="text-[10px] text-white/25">Ask Aura anything...</span>
+                  <span className="ml-auto text-[10px] text-white/15">↵</span>
+                </div>
+              </div>
             </div>
+
+            {/* ── File tree ─────────────────────────────── */}
+            <div className="hidden w-[160px] shrink-0 flex-col border-r border-white/10 lg:flex">
+              <div className="border-b border-white/10">
+                <div className="px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-white/30">
+                  Open Editors
+                </div>
+                <div className="px-2 pb-1.5">
+                  <div className="flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[11px] text-white/60">
+                    <span className="text-[9px] leading-none">{"{}"}</span>
+                    <span className="truncate">App.css</span>
+                    <span className="ml-auto text-[9px] text-white/20">×</span>
+                  </div>
+                </div>
+              </div>
+              <div className="border-b border-white/10 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-white/30">
+                TO-DO-APP
+              </div>
+              <div className="flex-1 space-y-0.5 overflow-hidden p-2 text-[11px]">
+                {FILE_TREE.slice(0, fileCount).map((f, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded px-1.5 py-0.5",
+                      f.active
+                        ? "bg-[#1F84EF]/15 text-white/80"
+                        : "text-white/40",
+                    )}
+                    style={{ paddingLeft: `${f.indent * 12 + 6}px` }}
+                  >
+                    <span className="text-[9px] leading-none">{f.icon}</span>
+                    <span className="truncate">{f.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Editor + Terminal OR Preview ──────────── */}
+            {showPreview ? (
+              <MockPreview />
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="flex items-center gap-2 border-b border-white/10 px-3 py-1.5">
+                  <div className="flex flex-1 items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2.5 py-1">
+                    <span className="text-[10px] text-white/20">🔍</span>
+                    <span className="text-[10px] text-white/25">Search files...</span>
+                  </div>
+                  <span className="hidden text-[10px] text-white/30 sm:inline">Export</span>
+                </div>
+                <div className="flex items-center border-b border-white/10 px-3">
+                  <div className="flex items-center gap-1.5 border-b-2 border-[#1F84EF] px-2 py-1.5 text-[11px] text-white/70">
+                    <span className="text-[9px]">{"{}"}</span>
+                    App.css
+                    <span className="ml-1 text-white/20">×</span>
+                  </div>
+                </div>
+                <div className="border-b border-white/10 px-3 py-1 text-[10px] text-white/25">
+                  src &gt; <span className="text-white/40">{"{}"} App.css</span>
+                </div>
+                <div className="flex-1 overflow-hidden p-3 font-mono text-[11px] leading-[1.7] sm:text-[12px]">
+                  {CODE_LINES.slice(0, codeCount).map((line, i) => (
+                    <div key={i} className="flex">
+                      <span className="mr-3 inline-block w-5 text-right text-white/15 select-none">
+                        {i + 1}
+                      </span>
+                      <span className="text-white/50">{line}</span>
+                    </div>
+                  ))}
+                  {codeCount > 0 && codeCount < CODE_LINES.length && (
+                    <span className="typing-cursor" />
+                  )}
+                </div>
+                <div className="border-t border-white/10">
+                  <div className="flex items-center gap-2 border-b border-white/10 px-3 py-1 text-[10px]">
+                    <span className="text-white/40">Terminal</span>
+                    <span className="ml-auto text-white/20">bash</span>
+                  </div>
+                  <div
+                    className="overflow-hidden p-3 font-mono text-[10px] leading-relaxed text-white/40 sm:text-[11px]"
+                    style={{ minHeight: "90px" }}
+                  >
+                    {TERMINAL_LINES.slice(0, termCount).map((line, i) => (
+                      <div key={i}>
+                        {line === "" ? (
+                          <span>&nbsp;</span>
+                        ) : line.startsWith("  ➜") ? (
+                          <span>
+                            {"  "}
+                            <span className="text-[#06E07F]">➜</span>
+                            {line.slice(3)}
+                          </span>
+                        ) : line.startsWith("  VITE") ? (
+                          <span>
+                            {"  "}
+                            <span className="text-[#FFD200]">VITE</span>
+                            {line.slice(6)}
+                          </span>
+                        ) : (
+                          line
+                        )}
+                      </div>
+                    ))}
+                    {termCount > 0 && termCount < TERMINAL_LINES.length && (
+                      <span className="typing-cursor" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -559,27 +783,81 @@ function MockIDE() {
 
 // ─── Features Section ────────────────────────────────────────────────
 
-const features = [
+const featuresHero = [
   {
     icon: SparklesIcon,
     title: "AI Code Assistant",
     description:
-      "Chat with Claude to write, edit, and debug your code. Get intelligent suggestions as you build.",
-    gradient: "from-purple-500 to-blue-500",
+      "Chat with AI to write, edit, and debug your code. Get intelligent suggestions, explanations, and refactoring — all through natural conversation.",
+    gradient: "from-purple-500 to-violet-600",
+    span: true,
   },
   {
     icon: MonitorIcon,
     title: "In-Browser Preview",
     description:
-      "See your app running live with WebContainer. No local setup or deployment needed.",
-    gradient: "from-blue-500 to-cyan-500",
+      "See your app running live with WebContainer. No local setup, no deployment — instant preview as you code.",
+    gradient: "from-[#1F84EF] to-cyan-500",
+    span: true,
+  },
+] as const;
+
+const featuresGrid = [
+  {
+    icon: WandSparklesIcon,
+    title: "Inline AI Autocomplete",
+    description:
+      "Ghost text completions as you type, powered by AI. Accept suggestions with a single keystroke.",
+    gradient: "from-purple-500 to-pink-500",
+  },
+  {
+    icon: MousePointerClickIcon,
+    title: "Multi-Cursor Editing",
+    description:
+      "Select and edit multiple locations simultaneously for fast, precise refactoring.",
+    gradient: "from-pink-500 to-rose-500",
+  },
+  {
+    icon: PanelLeftIcon,
+    title: "Split Pane Editor",
+    description:
+      "Open files side-by-side for comparison, reference, or working across components.",
+    gradient: "from-rose-500 to-orange-500",
+  },
+  {
+    icon: SearchIcon,
+    title: "Find & Replace Across Files",
+    description:
+      "Project-wide search with regex support. Rename symbols and refactor across your entire codebase.",
+    gradient: "from-orange-500 to-amber-500",
+  },
+  {
+    icon: TerminalIcon,
+    title: "Multiple Terminals",
+    description:
+      "Run several processes simultaneously with multiple terminal tabs and a dedicated console panel.",
+    gradient: "from-amber-500 to-yellow-500",
+  },
+  {
+    icon: UsersIcon,
+    title: "Real-Time Collaboration",
+    description:
+      "Multiple users can edit the same project simultaneously with live cursors and presence indicators.",
+    gradient: "from-[#1F84EF] to-blue-600",
   },
   {
     icon: GithubIcon,
-    title: "GitHub Integration",
+    title: "GitHub Import & Export",
     description:
-      "Import existing repos and export your projects back to GitHub in a single click.",
+      "Import existing repos directly into Aura or push your projects back to GitHub in a single click.",
     gradient: "from-cyan-500 to-emerald-500",
+  },
+  {
+    icon: ZapIcon,
+    title: "Multi-Model AI",
+    description:
+      "Choose from multiple AI models — Claude, GPT, Gemini, and more — to power your coding workflow.",
+    gradient: "from-emerald-500 to-green-500",
   },
 ] as const;
 
@@ -595,31 +873,65 @@ function FeaturesSection() {
         >
           Everything you need to code
         </h2>
-        <p className="mx-auto mt-3 max-w-lg text-white/50">
-          Aura combines AI assistance, a powerful editor, and live preview into
-          one seamless workflow.
+        <p className="mx-auto mt-3 max-w-xl text-white/50">
+          A full-featured code editor with AI assistance, live preview, and
+          real-time collaboration — all in your browser.
         </p>
       </div>
 
-      <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {features.map((feature, i) => (
+      {/* Hero features (2 large cards) */}
+      <div className="mt-14 grid gap-5 sm:grid-cols-2">
+        {featuresHero.map((feature, i) => (
           <div
             key={feature.title}
-            className="glass-card animate-fade-in-up p-6"
+            className="glass-card animate-fade-in-up relative overflow-hidden p-6 sm:p-8"
             style={{ animationDelay: `${0.5 + i * 0.1}s` }}
           >
+            {/* Background glow */}
             <div
               className={cn(
-                "inline-flex size-10 items-center justify-center rounded-lg bg-gradient-to-br",
+                "absolute -right-10 -top-10 size-32 rounded-full bg-gradient-to-br opacity-[0.07] blur-2xl",
+                feature.gradient,
+              )}
+            />
+            <div
+              className={cn(
+                "relative inline-flex size-11 items-center justify-center rounded-xl bg-gradient-to-br",
                 feature.gradient,
               )}
             >
               <feature.icon className="size-5 text-white" />
             </div>
-            <h3 className="mt-4 text-lg font-semibold text-white">
+            <h3 className="relative mt-4 text-lg font-semibold text-white">
               {feature.title}
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-white/50">
+            <p className="relative mt-2 text-sm leading-relaxed text-white/50">
+              {feature.description}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Feature grid (smaller cards) */}
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {featuresGrid.map((feature, i) => (
+          <div
+            key={feature.title}
+            className="animate-fade-in-up group rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 transition-colors hover:border-white/[0.1] hover:bg-white/[0.04]"
+            style={{ animationDelay: `${0.7 + i * 0.06}s` }}
+          >
+            <div
+              className={cn(
+                "inline-flex size-9 items-center justify-center rounded-lg bg-gradient-to-br",
+                feature.gradient,
+              )}
+            >
+              <feature.icon className="size-4 text-white" />
+            </div>
+            <h3 className="mt-3 text-sm font-semibold text-white/90">
+              {feature.title}
+            </h3>
+            <p className="mt-1.5 text-[12px] leading-relaxed text-white/40">
               {feature.description}
             </p>
           </div>
@@ -634,21 +946,75 @@ function FeaturesSection() {
 const steps = [
   {
     number: "1",
-    title: "Create or import a project",
+    icon: MessageSquareIcon,
+    title: "Describe what you want",
     description:
-      "Start from scratch or import an existing repository from GitHub.",
+      "Tell the AI what to build in plain English. Aura's agent powered by Claude understands your intent and writes production-ready code across multiple files.",
+    gradient: "from-purple-500 to-violet-600",
+    visual: (
+      <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-left">
+        <div className="mb-2 flex items-center gap-1.5">
+          <div className="size-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600" />
+          <span className="text-[10px] text-white/40">You</span>
+        </div>
+        <p className="text-[11px] leading-relaxed text-white/50">
+          &ldquo;Create a todo app with a live clock, dark theme, and motivational quotes&rdquo;
+        </p>
+        <div className="mt-2.5 flex items-center gap-1.5">
+          <span className="text-[10px] text-purple-400">✦</span>
+          <span className="text-[10px] text-white/30">Creating 6 files...</span>
+        </div>
+      </div>
+    ),
   },
   {
     number: "2",
-    title: "Chat with AI to write & edit code",
+    icon: CodeIcon,
+    title: "Edit with AI + full editor",
     description:
-      "Describe what you want. The AI assistant writes, edits, and refactors for you.",
+      "Use inline AI autocomplete, multi-cursor editing, quick edits, and code explanations. The full-featured CodeMirror editor gives you the power of a desktop IDE.",
+    gradient: "from-[#1F84EF] to-cyan-500",
+    visual: (
+      <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 font-mono text-[10px]">
+        <div className="flex gap-2">
+          <span className="text-white/15">1</span>
+          <span><span className="text-purple-400">const</span> [<span className="text-cyan-300">tasks</span>, <span className="text-cyan-300">setTasks</span>] = <span className="text-yellow-300">useState</span>([]);</span>
+        </div>
+        <div className="flex gap-2">
+          <span className="text-white/15">2</span>
+          <span className="text-white/20 italic">// AI: adding filter logic...</span>
+        </div>
+        <div className="mt-1.5 inline-block rounded bg-purple-500/10 px-1.5 py-0.5 text-[9px] text-purple-400">
+          ✦ AI Autocomplete
+        </div>
+      </div>
+    ),
   },
   {
     number: "3",
-    title: "Preview your app live",
+    icon: PlayIcon,
+    title: "Preview instantly in-browser",
     description:
-      "See your changes running instantly in the browser — no terminal needed.",
+      "Your app runs live inside the browser using WebContainer — no terminal, no local setup. See changes reflected in real-time as you code.",
+    gradient: "from-[#06E07F] to-emerald-600",
+    visual: (
+      <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-3 py-1.5">
+          <span className="size-1.5 rounded-full bg-[#E3073C]/50" />
+          <span className="size-1.5 rounded-full bg-[#FFD200]/50" />
+          <span className="size-1.5 rounded-full bg-[#06E07F]/50" />
+          <span className="ml-1 flex-1 text-center text-[9px] text-white/20">localhost:5173</span>
+        </div>
+        <div className="p-3 text-center">
+          <div className="font-mono text-sm font-bold tracking-wider text-white/60">12:34:56 PM</div>
+          <div className="mt-1 text-[9px] text-white/20">Live preview running</div>
+          <div className="mx-auto mt-2 flex max-w-[120px] items-center gap-1 rounded bg-white/5 px-2 py-1 text-[9px] text-white/30">
+            <span className="size-2 rounded-sm border border-[#06E07F]/60 bg-[#06E07F]/15 text-[6px] leading-[8px] text-center text-[#06E07F]">✓</span>
+            Build a cool app
+          </div>
+        </div>
+      </div>
+    ),
   },
 ] as const;
 
@@ -664,27 +1030,39 @@ function HowItWorksSection() {
         >
           How it works
         </h2>
-        <p className="mx-auto mt-3 max-w-lg text-white/50">
-          Go from idea to running app in three simple steps.
+        <p className="mx-auto mt-3 max-w-xl text-white/50">
+          Go from idea to running app in three steps — no setup, no configuration.
         </p>
       </div>
 
-      <div className="mt-14 grid gap-8 sm:grid-cols-3">
+      {/* Steps */}
+      <div className="mt-14 grid gap-6 sm:grid-cols-3">
         {steps.map((step, i) => (
           <div
             key={step.number}
-            className="animate-fade-in-up text-center"
+            className="glass-card animate-fade-in-up relative overflow-hidden p-6"
             style={{ animationDelay: `${0.7 + i * 0.1}s` }}
           >
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[#1F84EF] to-[#06E07F] text-lg font-bold text-white">
-              {step.number}
+            {/* Step number badge */}
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white",
+                  step.gradient,
+                )}
+              >
+                {step.number}
+              </div>
+              <step.icon className="size-4 text-white/30" />
             </div>
-            <h3 className="mt-4 text-lg font-semibold text-white">
+            <h3 className="mt-4 text-base font-semibold text-white">
               {step.title}
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-white/50">
+            <p className="mt-2 text-[13px] leading-relaxed text-white/45">
               {step.description}
             </p>
+            {/* Mini visual */}
+            {step.visual}
           </div>
         ))}
       </div>
