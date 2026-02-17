@@ -27,7 +27,7 @@ import { createDeleteFilesTool } from "./tools/delete-files";
 import { createScrapeUrlsTool } from "./tools/scrape-urls";
 
 interface AttachmentData {
-  storageId: string;
+  storageId: Id<"_storage">;
   mediaType: string;
   filename?: string;
 }
@@ -216,7 +216,7 @@ export const processMessage = inngest.createFunction(
           try {
             const url = await convex.query(api.system.getAttachmentUrlInternal, {
               internalKey,
-              storageId: attachment.storageId as Id<"_storage">,
+              storageId: attachment.storageId,
             });
 
             if (url) {
