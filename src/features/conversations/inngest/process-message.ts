@@ -4,6 +4,8 @@ import {
   gemini,
   createNetwork,
 } from "@inngest/agent-kit";
+import { generateText } from "ai";
+import { anthropic as anthropicAi } from "@ai-sdk/anthropic";
 
 import { inngest } from "@/inngest/client";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -24,11 +26,18 @@ import { createRenameFileTool } from "./tools/rename-file";
 import { createDeleteFilesTool } from "./tools/delete-files";
 import { createScrapeUrlsTool } from "./tools/scrape-urls";
 
+interface AttachmentData {
+  storageId: Id<"_storage">;
+  mediaType: string;
+  filename?: string;
+}
+
 interface MessageEvent {
   messageId: Id<"messages">;
   conversationId: Id<"conversations">;
   projectId: Id<"projects">;
   message: string;
+  attachments?: AttachmentData[];
 }
 
 export const processMessage = inngest.createFunction(
@@ -61,7 +70,7 @@ export const processMessage = inngest.createFunction(
     event: "message/sent",
   },
   async ({ event, step }) => {
-    const { messageId, conversationId, projectId, message } =
+    const { messageId, conversationId, projectId, message, attachments } =
       event.data as MessageEvent;
 
     const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
@@ -195,8 +204,57 @@ export const processMessage = inngest.createFunction(
       },
     });
 
+    // If attachments exist, use Vercel AI SDK to analyze images with Claude Vision,
+    // then pass the description to the agent network (which doesn't support multi-part content)
+    let agentInput = message;
+
+    if (attachments && attachments.length > 0) {
+      const visionDescription = await step.run("analyze-attachment-images", async () => {
+        const imageParts: Array<{ type: "image"; image: URL }> = [];
+
+        for (const attachment of attachments) {
+          try {
+            const url = await convex.query(api.system.getAttachmentUrlInternal, {
+              internalKey,
+              storageId: attachment.storageId,
+            });
+
+            if (url) {
+              imageParts.push({ type: "image" as const, image: new URL(url) });
+            }
+          } catch (err) {
+            console.error("Failed to fetch attachment URL:", err);
+          }
+        }
+
+        if (imageParts.length === 0) return null;
+
+        const { text } = await generateText({
+          model: anthropicAi("claude-opus-4-20250514"),
+          messages: [
+            {
+              role: "user",
+              content: [
+                ...imageParts,
+                {
+                  type: "text" as const,
+                  text: `The user has shared ${imageParts.length > 1 ? "these images" : "this image"} with the following message: "${message}"\n\nProvide a detailed description of what you see in the image(s), then respond to the user's message in context. Be thorough about visual details like layout, colors, text, UI elements, code, errors, or any other relevant information visible in the image(s).`,
+                },
+              ],
+            },
+          ],
+        });
+
+        return text;
+      });
+
+      if (visionDescription) {
+        agentInput = `[The user shared ${attachments.length > 1 ? "images" : "an image"} with this message: "${message}"]\n\n[Image Analysis]\n${visionDescription}\n\n[User's Request]\n${message}`;
+      }
+    }
+
     // Run the agent
-    const result = await network.run(message);
+    const result = await network.run(agentInput);
 
     // Extract the assistant's text response from the last agent result
     const lastResult = result.state.results.at(-1);

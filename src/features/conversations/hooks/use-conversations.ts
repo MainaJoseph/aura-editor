@@ -18,6 +18,10 @@ export const useConversations = (projectId: Id<"projects">) => {
   return useQuery(api.conversations.getByProject, { projectId });
 };
 
+export const useDeleteConversation = () => {
+  return useMutation(api.conversations.remove);
+};
+
 export const useCreateConversation = () => {
   return useMutation(api.conversations.create).withOptimisticUpdate(
     (localStore, args) => {
