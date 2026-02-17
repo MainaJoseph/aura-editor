@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
+import { verifyAuth } from "./auth";
 
 const validateInternalKey = (key: string) => {
   const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
@@ -33,6 +34,15 @@ export const createMessage = mutation({
     projectId: v.id("projects"),
     role: v.union(v.literal("user"), v.literal("assistant")),
     content: v.string(),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          storageId: v.id("_storage"),
+          mediaType: v.string(),
+          filename: v.optional(v.string()),
+        }),
+      ),
+    ),
     status: v.optional(
       v.union(
         v.literal("processing"),
@@ -49,6 +59,7 @@ export const createMessage = mutation({
       projectId: args.projectId,
       role: args.role,
       content: args.content,
+      attachments: args.attachments,
       status: args.status,
     });
 
@@ -638,5 +649,37 @@ export const createProjectWithConversation = mutation({
     });
 
     return { projectId, conversationId };
+  },
+});
+
+// Client-accessible upload URL (uses Clerk auth instead of internal key)
+export const generateClientUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await verifyAuth(ctx);
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Client-accessible query to get a serving URL for a storage item
+export const getAttachmentUrl = query({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    await verifyAuth(ctx);
+    return await ctx.storage.getUrl(args.storageId);
+  },
+});
+
+// Internal query to get attachment URL (used by Inngest agent)
+export const getAttachmentUrlInternal = query({
+  args: {
+    internalKey: v.string(),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    validateInternalKey(args.internalKey);
+    return await ctx.storage.getUrl(args.storageId);
   },
 });

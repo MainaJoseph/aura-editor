@@ -8,9 +8,16 @@ import { convex } from "@/lib/convex-client";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 
+const attachmentSchema = z.object({
+  storageId: z.string(),
+  mediaType: z.string(),
+  filename: z.string().optional(),
+});
+
 const requestSchema = z.object({
   conversationId: z.string(),
   message: z.string(),
+  attachments: z.array(attachmentSchema).optional(),
 });
 
 export async function POST(request: Request) {
@@ -36,9 +43,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  let conversationId: string, message: string;
+  let conversationId: string, message: string, attachments: z.infer<typeof attachmentSchema>[] | undefined;
   try {
-    ({ conversationId, message } = requestSchema.parse(body));
+    ({ conversationId, message, attachments } = requestSchema.parse(body));
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
@@ -94,6 +101,10 @@ export async function POST(request: Request) {
     projectId,
     role: "user",
     content: message,
+    attachments: attachments?.map((a) => ({
+      ...a,
+      storageId: a.storageId as Id<"_storage">,
+    })),
   });
 
   // Create assistant message placeholder with processing status
@@ -114,6 +125,7 @@ export async function POST(request: Request) {
       conversationId,
       projectId,
       message,
+      attachments,
     },
   });
 

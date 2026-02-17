@@ -24,11 +24,18 @@ import { createRenameFileTool } from "./tools/rename-file";
 import { createDeleteFilesTool } from "./tools/delete-files";
 import { createScrapeUrlsTool } from "./tools/scrape-urls";
 
+interface AttachmentData {
+  storageId: string;
+  mediaType: string;
+  filename?: string;
+}
+
 interface MessageEvent {
   messageId: Id<"messages">;
   conversationId: Id<"conversations">;
   projectId: Id<"projects">;
   message: string;
+  attachments?: AttachmentData[];
 }
 
 export const processMessage = inngest.createFunction(
@@ -61,7 +68,7 @@ export const processMessage = inngest.createFunction(
     event: "message/sent",
   },
   async ({ event, step }) => {
-    const { messageId, conversationId, projectId, message } =
+    const { messageId, conversationId, projectId, message, attachments } =
       event.data as MessageEvent;
 
     const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
@@ -195,8 +202,54 @@ export const processMessage = inngest.createFunction(
       },
     });
 
+    // Build the user input - if attachments exist, create vision content blocks
+    let userInput: string | Array<{ type: "image"; source: { type: "base64"; media_type: string; data: string } } | { type: "text"; text: string }> = message;
+
+    if (attachments && attachments.length > 0) {
+      const imageBlocks = await step.run("fetch-attachment-images", async () => {
+        const blocks: Array<{ type: "image"; source: { type: "base64"; media_type: string; data: string } }> = [];
+
+        for (const attachment of attachments) {
+          try {
+            // Get the serving URL from Convex storage
+            const url = await convex.query(api.system.getAttachmentUrlInternal, {
+              internalKey,
+              storageId: attachment.storageId as Id<"_storage">,
+            });
+
+            if (!url) continue;
+
+            // Download the image and convert to base64
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+            blocks.push({
+              type: "image" as const,
+              source: {
+                type: "base64" as const,
+                media_type: attachment.mediaType,
+                data: base64,
+              },
+            });
+          } catch (err) {
+            console.error("Failed to fetch attachment:", err);
+          }
+        }
+
+        return blocks;
+      });
+
+      if (imageBlocks.length > 0) {
+        userInput = [
+          ...imageBlocks,
+          { type: "text" as const, text: message },
+        ];
+      }
+    }
+
     // Run the agent
-    const result = await network.run(message);
+    const result = await network.run(userInput as string);
 
     // Extract the assistant's text response from the last agent result
     const lastResult = result.state.results.at(-1);

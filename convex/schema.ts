@@ -96,6 +96,15 @@ export default defineSchema({
     projectId: v.id("projects"),
     role: v.union(v.literal("user"), v.literal("assistant")),
     content: v.string(),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          storageId: v.id("_storage"),
+          mediaType: v.string(),
+          filename: v.optional(v.string()),
+        }),
+      ),
+    ),
     status: v.optional(
       v.union(
         v.literal("processing"),
