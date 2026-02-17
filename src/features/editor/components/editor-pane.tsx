@@ -273,8 +273,11 @@ export const EditorPane = ({
                         pendingContentRef.current = { fileId: activeFile._id, content };
                         timeoutRef.current = setTimeout(() => {
                           pendingContentRef.current = null;
-                          setHasPendingEdits(false);
-                          updateFile({ id: activeFile._id, content });
+                          updateFile({ id: activeFile._id, content }).then(() => {
+                            setHasPendingEdits(false);
+                          }).catch(() => {
+                            setHasPendingEdits(false);
+                          });
                         }, DEBOUNCE_MS);
                       }
                 }

@@ -49,6 +49,7 @@ export const CodeEditor = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isExternalUpdateRef = useRef(false);
 
   const languageExtension = useMemo(() => {
     return getLanguageExtension(fileName);
@@ -90,7 +91,7 @@ export const CodeEditor = ({
     if (!readOnly) {
       extensions.push(
         EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
+          if (update.docChanged && !isExternalUpdateRef.current) {
             stableOnChange(update.state.doc.toString());
           }
           if (update.selectionSet) {
@@ -139,6 +140,7 @@ export const CodeEditor = ({
     if (externalContent === currentDoc) return;
 
     const selection = view.state.selection.main;
+    isExternalUpdateRef.current = true;
     view.dispatch({
       changes: {
         from: 0,
@@ -150,6 +152,7 @@ export const CodeEditor = ({
         head: Math.min(selection.head, externalContent.length),
       },
     });
+    isExternalUpdateRef.current = false;
   }, [externalContent, hasPendingEdits]);
 
   // Remote cursors sync
