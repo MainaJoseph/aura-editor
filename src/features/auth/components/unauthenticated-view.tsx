@@ -201,12 +201,126 @@ const TYPING_STEPS =
   FILE_TREE.length;
 const PREVIEW_WAIT = 8; // extra steps before switching to preview
 const TOTAL_STEPS = TYPING_STEPS + PREVIEW_WAIT;
-const HOLD_PAUSE = 5000;
+const HOLD_PAUSE = 12000;
 const FADE_MS = 500;
 
 // ─── Mock Preview (rendered app) ────────────────────────────────────
 
-function MockPreview() {
+// Interactive to-do preview animation sequence
+const TODO_ACTIONS = [
+  { type: "idle", duration: 1500 },
+  { type: "typing", text: "Deploy to production", duration: 1800 },
+  { type: "add", duration: 800 },
+  { type: "idle", duration: 1200 },
+  { type: "complete", index: 1, duration: 800 },   // complete "Buy groceries"
+  { type: "idle", duration: 1000 },
+  { type: "delete", index: 2, duration: 600 },      // delete "Call the dentist"
+  { type: "idle", duration: 1500 },
+] as const;
+
+type TodoItem = { id: number; text: string; completed: boolean; deleting?: boolean };
+let nextTodoId = 100;
+
+function MockPreview({ onActionChange }: { onActionChange?: (type: string) => void }) {
+  const initialTasks: TodoItem[] = [
+    { id: 1, text: "Finish React project", completed: false },
+    { id: 2, text: "Buy groceries", completed: false },
+    { id: 3, text: "Call the dentist", completed: false },
+  ];
+  const initialCompleted: TodoItem[] = [
+    { id: 4, text: "Read a book", completed: true },
+    { id: 5, text: "Walk the dog", completed: true },
+  ];
+
+  const [pending, setPending] = useState<TodoItem[]>(initialTasks);
+  const [completed, setCompleted] = useState<TodoItem[]>(initialCompleted);
+  const [inputText, setInputText] = useState("");
+  const [inputHighlight, setInputHighlight] = useState(false);
+  const [actionIndex, setActionIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+
+  const action = TODO_ACTIONS[actionIndex % TODO_ACTIONS.length];
+
+  // Report action type to parent
+  useEffect(() => {
+    onActionChange?.(action.type);
+  }, [action.type, onActionChange]);
+
+  // Action sequencer
+  useEffect(() => {
+    if (action.type === "typing") {
+      if (charIndex < action.text.length) {
+        const timer = setTimeout(() => {
+          setInputText(action.text.slice(0, charIndex + 1));
+          setCharIndex((c) => c + 1);
+        }, action.duration / action.text.length);
+        return () => clearTimeout(timer);
+      }
+      // Done typing, move to next action
+      const timer = setTimeout(() => {
+        setCharIndex(0);
+        setActionIndex((i) => i + 1);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+
+    if (action.type === "add") {
+      // Flash the input, then add task
+      setInputHighlight(true);
+      const timer = setTimeout(() => {
+        setPending((prev) => [...prev, { id: nextTodoId++, text: inputText, completed: false }]);
+        setInputText("");
+        setInputHighlight(false);
+        setActionIndex((i) => i + 1);
+      }, action.duration);
+      return () => clearTimeout(timer);
+    }
+
+    if (action.type === "complete") {
+      const timer = setTimeout(() => {
+        setPending((prev) => {
+          const idx = Math.min(action.index, prev.length - 1);
+          if (idx < 0) return prev;
+          const task = prev[idx];
+          setCompleted((c) => [{ ...task, id: nextTodoId++, completed: true }, ...c]);
+          return prev.filter((_, i) => i !== idx);
+        });
+        setActionIndex((i) => i + 1);
+      }, action.duration);
+      return () => clearTimeout(timer);
+    }
+
+    if (action.type === "delete") {
+      // Mark as deleting first, then remove
+      setPending((prev) => {
+        const idx = Math.min(action.index, prev.length - 1);
+        if (idx < 0) return prev;
+        return prev.map((t, i) => (i === idx ? { ...t, deleting: true } : t));
+      });
+      const timer = setTimeout(() => {
+        setPending((prev) => prev.filter((t) => !t.deleting));
+        setActionIndex((i) => i + 1);
+      }, action.duration);
+      return () => clearTimeout(timer);
+    }
+
+    if (action.type === "idle") {
+      const timer = setTimeout(() => {
+        // If we've looped, reset state
+        if (actionIndex >= TODO_ACTIONS.length - 1) {
+          setPending(initialTasks);
+          setCompleted(initialCompleted);
+          setInputText("");
+          setActionIndex(0);
+        } else {
+          setActionIndex((i) => i + 1);
+        }
+      }, action.duration);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionIndex, charIndex]);
+
   return (
     <div className="flex flex-1 flex-col">
       {/* Browser chrome */}
@@ -222,7 +336,7 @@ function MockPreview() {
         <span className="text-[10px] text-white/20">↗</span>
       </div>
 
-      {/* App content — light theme to-do app */}
+      {/* App content */}
       <div className="flex-1 overflow-auto bg-gradient-to-b from-[#1a1d2e] to-[#141625] p-4 sm:p-6">
         <div className="mx-auto max-w-[340px]">
           {/* Header */}
@@ -235,10 +349,24 @@ function MockPreview() {
 
           {/* Input */}
           <div className="mb-4 flex gap-2">
-            <div className="flex flex-1 items-center rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-white/30">
-              What needs to be done?
+            <div
+              className={cn(
+                "flex flex-1 items-center rounded-md border px-3 py-1.5 text-[11px] transition-all duration-300",
+                inputHighlight
+                  ? "border-[#3b82f6]/50 bg-[#3b82f6]/10"
+                  : "border-white/10 bg-white/5",
+                inputText ? "text-white/70" : "text-white/30",
+              )}
+            >
+              {inputText || "What needs to be done?"}
+              {action.type === "typing" && <span className="typing-cursor ml-0" />}
             </div>
-            <div className="rounded-md bg-[#3b82f6] px-3 py-1.5 text-[11px] font-semibold text-white">
+            <div
+              className={cn(
+                "rounded-md px-3 py-1.5 text-[11px] font-semibold text-white transition-all duration-300",
+                inputHighlight ? "bg-[#3b82f6] shadow-lg shadow-[#3b82f6]/30" : "bg-[#3b82f6]",
+              )}
+            >
               Add
             </div>
           </div>
@@ -246,20 +374,17 @@ function MockPreview() {
           {/* Pending Tasks */}
           <div className="mb-1.5 text-[11px] font-semibold text-white/50">Pending Tasks</div>
           <div className="mb-4 space-y-1.5">
-            {[
-              "Finish React project",
-              "Buy groceries",
-              "Call the dentist",
-            ].map((task) => (
+            {pending.map((task) => (
               <div
-                key={task}
-                className="flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2"
+                key={`p-${task.id}`}
+                className={cn(
+                  "flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 transition-all duration-300",
+                  task.deleting && "scale-95 opacity-0 border-[#ef4444]/30 bg-[#ef4444]/10",
+                )}
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#22c55e] text-[8px] text-white">
-                    ✓
-                  </span>
-                  <span className="text-[11px] text-white/70">{task}</span>
+                  <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-white/20 text-[8px]" />
+                  <span className="text-[11px] text-white/70">{task.text}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-[#3b82f6]">✎</span>
@@ -272,15 +397,15 @@ function MockPreview() {
           {/* Completed */}
           <div className="mb-1.5 text-[11px] font-semibold italic text-white/35">Completed</div>
           <div className="mb-3 space-y-1.5">
-            {["Read a book", "Walk the dog"].map((task) => (
+            {completed.map((task) => (
               <div
-                key={task}
-                className="flex items-center gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
+                key={`c-${task.id}`}
+                className="flex items-center gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 transition-all duration-300"
               >
                 <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#22c55e] text-[8px] text-white">
                   ✓
                 </span>
-                <span className="text-[11px] text-white/30 line-through">{task}</span>
+                <span className="text-[11px] text-white/30 line-through">{task.text}</span>
               </div>
             ))}
           </div>
@@ -296,6 +421,60 @@ function MockPreview() {
     </div>
   );
 }
+
+// ─── Animated Cursor ────────────────────────────────────────────────
+
+function MockCursor({ x, y, clicking }: { x: number; y: number; clicking: boolean }) {
+  return (
+    <div
+      className="pointer-events-none absolute z-50 transition-all duration-500 ease-in-out"
+      style={{ left: `${x}%`, top: `${y}%` }}
+    >
+      {/* Cursor SVG */}
+      <svg
+        width="16"
+        height="20"
+        viewBox="0 0 16 20"
+        fill="none"
+        className={cn(
+          "drop-shadow-lg transition-transform duration-150",
+          clicking && "scale-90",
+        )}
+      >
+        <path
+          d="M0.5 0.5L0.5 16.5L4.5 12.5L8 19.5L10.5 18.5L7 11.5L12.5 11.5L0.5 0.5Z"
+          fill="#1F84EF"
+          stroke="white"
+          strokeWidth="1"
+        />
+      </svg>
+      {/* Click ripple */}
+      {clicking && (
+        <div className="absolute left-0 top-0 size-6 -translate-x-1/4 -translate-y-1/4 animate-ping rounded-full bg-white/20" />
+      )}
+    </div>
+  );
+}
+
+// Cursor positions for each dashboard phase (% based)
+const DASHBOARD_CURSOR: Record<string, { x: number; y: number; click?: boolean }> = {
+  "dashboard":         { x: 35, y: 45 },         // Resting on dashboard
+  "highlight-new":     { x: 22, y: 38 },         // On "New" button
+  "modal-typing":      { x: 45, y: 52 },         // In the modal textarea
+  "modal-submit":      { x: 62, y: 62 },         // On submit button
+  "project-appear":    { x: 45, y: 55 },         // Waiting for project
+  "highlight-project": { x: 50, y: 55, click: true }, // Clicking To-do-app
+  "transition":        { x: 50, y: 50 },
+};
+
+// Cursor positions for todo preview actions (% based within the preview area)
+const TODO_CURSOR: Record<string, { x: number; y: number; click?: boolean }> = {
+  "idle":     { x: 75, y: 40 },
+  "typing":   { x: 65, y: 33 },         // In the input field
+  "add":      { x: 82, y: 33, click: true },  // On "Add" button
+  "complete": { x: 55, y: 52, click: true },  // On a task checkbox
+  "delete":   { x: 83, y: 55, click: true },  // On delete icon
+};
 
 // ─── Mock Dashboard Content ─────────────────────────────────────────
 
@@ -443,6 +622,7 @@ function MockIDE() {
   const [phase, setPhase] = useState<Phase>("dashboard");
   const [modalCharIndex, setModalCharIndex] = useState(0);
   const [step, setStep] = useState(0);
+  const [todoActionType, setTodoActionType] = useState("idle");
   const [fading, setFading] = useState(false);
 
   // Phase progression (non-typing, non-editor phases)
@@ -514,6 +694,25 @@ function MockIDE() {
 
   const isDashboardPhase = phase !== "editor";
 
+  // Compute cursor position
+  const cursorPos = (() => {
+    if (isDashboardPhase) {
+      return DASHBOARD_CURSOR[phase] || { x: 50, y: 50 };
+    }
+    // Editor phase: show cursor only during preview
+    if (showPreview) {
+      return TODO_CURSOR[todoActionType] || { x: 75, y: 40 };
+    }
+    // During code typing, hide cursor (return off-screen)
+    return { x: -10, y: -10 };
+  })();
+
+  const isCursorClicking =
+    (isDashboardPhase && (phase === "highlight-new" || phase === "highlight-project" || phase === "modal-submit")) ||
+    (showPreview && (TODO_CURSOR[todoActionType]?.click ?? false));
+
+  const showCursor = !(cursorPos.x < 0) && !fading;
+
   return (
     <div
       className={cn(
@@ -569,7 +768,11 @@ function MockIDE() {
       </div>
 
       {/* ── Main body ─────────────────────────────────── */}
-      <div className="flex" style={{ height: "480px" }}>
+      <div className="relative flex overflow-hidden" style={{ height: "480px" }}>
+        {/* Animated cursor */}
+        {showCursor && (
+          <MockCursor x={cursorPos.x} y={cursorPos.y} clicking={isCursorClicking} />
+        )}
         {isDashboardPhase ? (
           <div
             className={cn(
@@ -704,7 +907,7 @@ function MockIDE() {
 
             {/* ── Editor + Terminal OR Preview ──────────── */}
             {showPreview ? (
-              <MockPreview />
+              <MockPreview onActionChange={setTodoActionType} />
             ) : (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 <div className="flex items-center gap-2 border-b border-white/10 px-3 py-1.5">
