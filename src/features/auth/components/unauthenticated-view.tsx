@@ -57,71 +57,87 @@ function Navbar() {
 
 const CODE_LINES: React.ReactNode[] = [
   <span key="c0">
-    <span className="text-purple-400">import</span>{" "}
-    <span className="text-cyan-300">{"{ useEffect, useState }"}</span>{" "}
-    <span className="text-purple-400">from</span>{" "}
-    <span className="text-emerald-400">&quot;react&quot;</span>;
+    <span className="text-orange-300">#root</span>{" "}
+    <span className="text-white/60">{"{"}</span>
   </span>,
   <span key="c1">
-    <span className="text-purple-400">import</span>{" "}
-    <span className="text-emerald-400">&quot;./App.css&quot;</span>;
+    {"  "}
+    <span className="text-cyan-300">max-width</span>
+    <span className="text-white/40">:</span>{" "}
+    <span className="text-[#CE9178]">1280px</span>;
   </span>,
-  <span key="c2">&nbsp;</span>,
+  <span key="c2">
+    {"  "}
+    <span className="text-cyan-300">margin</span>
+    <span className="text-white/40">:</span>{" "}
+    <span className="text-[#CE9178]">0 auto</span>;
+  </span>,
   <span key="c3">
-    <span className="text-purple-400">function</span>{" "}
-    <span className="text-yellow-300">App</span>
-    <span className="text-white/60">() {"{"}</span>
+    {"  "}
+    <span className="text-cyan-300">padding</span>
+    <span className="text-white/40">:</span>{" "}
+    <span className="text-[#CE9178]">2rem</span>;
   </span>,
   <span key="c4">
     {"  "}
-    <span className="text-purple-400">const</span> [
-    <span className="text-cyan-300">time</span>,{" "}
-    <span className="text-cyan-300">setTime</span>] ={" "}
-    <span className="text-yellow-300">useState</span>(
-    <span className="text-purple-400">new</span>{" "}
-    <span className="text-yellow-300">Date</span>());
+    <span className="text-cyan-300">text-align</span>
+    <span className="text-white/40">:</span>{" "}
+    <span className="text-[#CE9178]">center</span>;
   </span>,
   <span key="c5">
-    {"  "}
-    <span className="text-purple-400">const</span> [
-    <span className="text-cyan-300">task</span>,{" "}
-    <span className="text-cyan-300">setTask</span>] ={" "}
-    <span className="text-yellow-300">useState</span>(
-    <span className="text-emerald-400">&quot;&quot;</span>);
+    <span className="text-white/60">{"}"}</span>
   </span>,
-  <span key="c6">
-    {"  "}
-    <span className="text-purple-400">const</span> [
-    <span className="text-cyan-300">tasks</span>,{" "}
-    <span className="text-cyan-300">setTasks</span>] ={" "}
-    <span className="text-yellow-300">useState</span>
-    <span className="text-white/50">&lt;</span>
-    <span className="text-cyan-300">string</span>[]
-    <span className="text-white/50">&gt;</span>([]);
-  </span>,
+  <span key="c6">&nbsp;</span>,
   <span key="c7">
-    {"  "}
-    <span className="text-purple-400">const</span>{" "}
-    <span className="text-cyan-300">quotes</span> = [
+    <span className="text-orange-300">.logo</span>{" "}
+    <span className="text-white/60">{"{"}</span>
   </span>,
   <span key="c8">
-    {"    "}
-    <span className="text-emerald-400">&quot;Stay consistent.&quot;</span>,
+    {"  "}
+    <span className="text-cyan-300">height</span>
+    <span className="text-white/40">:</span>{" "}
+    <span className="text-[#CE9178]">6em</span>;
   </span>,
   <span key="c9">
-    {"    "}
-    <span className="text-emerald-400">&quot;Build every day.&quot;</span>,
+    {"  "}
+    <span className="text-cyan-300">padding</span>
+    <span className="text-white/40">:</span>{" "}
+    <span className="text-[#CE9178]">1.5em</span>;
   </span>,
   <span key="c10">
-    {"    "}
-    <span className="text-emerald-400">&quot;Small wins compound.&quot;</span>,
+    {"  "}
+    <span className="text-cyan-300">will-change</span>
+    <span className="text-white/40">:</span>{" "}
+    <span className="text-[#CE9178]">filter</span>;
   </span>,
-  <span key="c11">{"  "}];</span>,
+  <span key="c11">
+    {"  "}
+    <span className="text-cyan-300">transition</span>
+    <span className="text-white/40">:</span>{" "}
+    <span className="text-[#CE9178]">filter 300ms</span>;
+  </span>,
+  <span key="c12">
+    <span className="text-white/60">{"}"}</span>
+  </span>,
+  <span key="c13">&nbsp;</span>,
+  <span key="c14">
+    <span className="text-orange-300">.logo</span>
+    <span className="text-yellow-300">:hover</span>{" "}
+    <span className="text-white/60">{"{"}</span>
+  </span>,
+  <span key="c15">
+    {"  "}
+    <span className="text-cyan-300">filter</span>
+    <span className="text-white/40">:</span>{" "}
+    <span className="text-[#CE9178]">drop-shadow(0 0 2em #646cffaa)</span>;
+  </span>,
+  <span key="c16">
+    <span className="text-white/60">{"}"}</span>
+  </span>,
 ];
 
 const CHAT_MESSAGES = [
   { from: "user" as const, text: "Hello Aura Create a vite App" },
-  { from: "aura" as const, text: "Thinking..." },
   {
     from: "aura" as const,
     text: "I'll create a Vite + React app with a live clock, task list, and motivational quotes...",
@@ -146,15 +162,21 @@ const TERMINAL_LINES = [
 
 const FILE_TREE = [
   { name: "public", indent: 0, icon: "📁" },
-  { name: "src", indent: 0, icon: "📂" },
-  { name: "App.css", indent: 1, icon: "{}" },
-  { name: "App.tsx", indent: 1, icon: "⚛", active: true },
+  { name: "src", indent: 0, icon: "📂", open: true },
+  { name: "assets", indent: 1, icon: "📁" },
+  { name: "App.css", indent: 1, icon: "{}", active: true },
+  { name: "App.tsx", indent: 1, icon: "⚛" },
   { name: "index.css", indent: 1, icon: "{}" },
   { name: "main.tsx", indent: 1, icon: "⚛" },
   { name: ".gitignore", indent: 0, icon: "◆" },
+  { name: "eslint.config.js", indent: 0, icon: "⚙" },
   { name: "index.html", indent: 0, icon: "</>" },
+  { name: "package-lock.json", indent: 0, icon: "◉" },
   { name: "package.json", indent: 0, icon: "◉" },
+  { name: "README.md", indent: 0, icon: "M" },
+  { name: "tsconfig.app.json", indent: 0, icon: "T" },
   { name: "tsconfig.json", indent: 0, icon: "T" },
+  { name: "tsconfig.node.json", indent: 0, icon: "T" },
   { name: "vite.config.ts", indent: 0, icon: "⚡" },
 ];
 
@@ -173,11 +195,18 @@ const FADE_MS = 500;
 
 function MockPreview() {
   const [time, setTime] = useState(new Date());
+  const [quoteIndex, setQuoteIndex] = useState(0);
+  const quotes = ["Stay consistent.", "Build every day.", "Small wins compound."];
 
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setQuoteIndex((i) => (i + 1) % quotes.length), 4000);
+    return () => clearInterval(id);
+  }, [quotes.length]);
 
   const formatted = time.toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -189,58 +218,66 @@ function MockPreview() {
     <div className="flex flex-1 flex-col">
       {/* Browser chrome */}
       <div className="flex items-center gap-2 border-b border-white/10 px-3 py-1.5">
-        <div className="flex items-center gap-1 text-white/20">
+        <div className="flex items-center gap-2 text-white/25">
           <span className="text-[10px]">←</span>
           <span className="text-[10px]">→</span>
           <span className="text-[10px]">↻</span>
         </div>
-        <div className="flex-1 rounded-md bg-white/5 px-3 py-0.5 text-center font-mono text-[10px] text-white/30">
+        <div className="flex-1 rounded-full bg-white/5 px-3 py-0.5 text-center font-mono text-[10px] text-white/30">
           localhost:5173
         </div>
         <span className="text-[10px] text-white/20">↗</span>
       </div>
 
       {/* App content */}
-      <div className="flex-1 overflow-hidden bg-gradient-to-br from-[#0f0f1a] to-[#1a1025] p-5 sm:p-6">
+      <div className="flex-1 overflow-hidden bg-gradient-to-br from-[#0d0d1a] via-[#111122] to-[#1a1030] p-6 sm:p-8">
         {/* Clock */}
-        <div className="mb-5 text-center">
-          <div className="font-mono text-3xl font-bold tracking-wider text-white/90 sm:text-4xl">
+        <div className="mb-6 text-center">
+          <div className="bg-gradient-to-r from-white/90 via-white/80 to-white/90 bg-clip-text font-mono text-3xl font-bold tracking-widest text-transparent sm:text-4xl md:text-5xl">
             {formatted}
           </div>
-          <div className="mt-1 text-[11px] text-white/30">Live Clock</div>
+          <div className="mt-1.5 text-[11px] font-medium uppercase tracking-widest text-white/25">
+            Live Clock
+          </div>
         </div>
 
-        {/* Task list */}
-        <div className="mx-auto max-w-[280px]">
-          <h3 className="mb-2 text-[12px] font-semibold text-white/60">
+        {/* Task list card */}
+        <div className="mx-auto max-w-[300px] rounded-xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-sm">
+          <h3 className="mb-3 text-[13px] font-semibold text-white/70">
             My Tasks
           </h3>
-          <div className="mb-2 flex gap-1.5">
-            <div className="flex-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-white/25">
+          {/* Input row */}
+          <div className="mb-3 flex gap-2">
+            <div className="flex flex-1 items-center rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-white/25">
               Add a new task...
             </div>
-            <div className="rounded-md bg-[#1F84EF] px-2 py-1 text-[10px] font-medium text-white">
+            <div className="flex items-center rounded-lg bg-[#1F84EF] px-3 py-1.5 text-[11px] font-medium text-white shadow-lg shadow-[#1F84EF]/20">
               Add
             </div>
           </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 rounded-md bg-white/5 px-2 py-1.5 text-[11px] text-white/50">
-              <span className="size-3 rounded border border-[#06E07F] bg-[#06E07F]/20 text-center text-[8px] leading-3 text-[#06E07F]">
+          {/* Tasks */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2.5 rounded-lg bg-white/[0.04] px-3 py-2 text-[11px] text-white/45 transition-colors">
+              <span className="flex size-4 shrink-0 items-center justify-center rounded border border-[#06E07F]/60 bg-[#06E07F]/15 text-[9px] text-[#06E07F]">
                 ✓
               </span>
               <span className="line-through">Build a cool app</span>
             </div>
-            <div className="flex items-center gap-2 rounded-md bg-white/5 px-2 py-1.5 text-[11px] text-white/50">
-              <span className="size-3 rounded border border-white/20" />
+            <div className="flex items-center gap-2.5 rounded-lg bg-white/[0.04] px-3 py-2 text-[11px] text-white/60 transition-colors">
+              <span className="size-4 shrink-0 rounded border border-white/20" />
               Learn React hooks
+            </div>
+            <div className="flex items-center gap-2.5 rounded-lg bg-white/[0.04] px-3 py-2 text-[11px] text-white/60 transition-colors">
+              <span className="size-4 shrink-0 rounded border border-white/20" />
+              Ship to production
             </div>
           </div>
         </div>
 
         {/* Quote */}
-        <div className="mt-5 text-center">
-          <div className="text-[11px] italic text-white/25">
-            &ldquo;Stay consistent.&rdquo;
+        <div className="mt-6 text-center">
+          <div className="text-[12px] italic text-white/20 transition-all duration-500">
+            &ldquo;{quotes[quoteIndex]}&rdquo;
           </div>
         </div>
       </div>
@@ -303,40 +340,58 @@ function MockIDE() {
         <Image src="/logo.svg" alt="Aura" width={16} height={16} className="ml-2" />
         <span className="text-xs font-medium text-white/50">Aura</span>
         <span className="text-white/20">&gt;</span>
-        <span className="text-xs text-white/40">my-project</span>
+        <span className="text-xs text-white/40">To-do-app</span>
+        <span className="text-[10px] text-white/20">↻</span>
 
         {/* Code / Preview tabs */}
-        <div className="ml-auto flex gap-1 text-[10px] sm:text-xs">
-          <span
-            className={cn(
-              "rounded-md px-2 py-0.5 transition-colors",
-              !showPreview
-                ? "bg-white/10 font-medium text-white/80"
-                : "text-white/30",
-            )}
-          >
-            Code
-          </span>
-          <span
-            className={cn(
-              "rounded-md px-2 py-0.5 transition-colors",
-              showPreview
-                ? "bg-white/10 font-medium text-white/80"
-                : "text-white/30",
-            )}
-          >
-            Preview
-          </span>
+        <div className="ml-auto flex items-center gap-3">
+          <div className="flex gap-1 text-[10px] sm:text-xs">
+            <span
+              className={cn(
+                "rounded-md px-2 py-0.5 transition-colors",
+                !showPreview
+                  ? "bg-white/10 font-medium text-white/80"
+                  : "text-white/30",
+              )}
+            >
+              Code
+            </span>
+            <span
+              className={cn(
+                "rounded-md px-2 py-0.5 transition-colors",
+                showPreview
+                  ? "bg-white/10 font-medium text-white/80"
+                  : "text-white/30",
+              )}
+            >
+              Preview
+            </span>
+          </div>
+          <span className="hidden text-[10px] text-white/30 sm:inline">Share</span>
         </div>
       </div>
 
-      {/* ── Main body (3 columns on md+) ─────────────── */}
-      <div className="flex" style={{ minHeight: "380px" }}>
-        {/* ── Left: Chat panel ──────────────────────── */}
+      {/* ── Main body ─────────────────────────────────── */}
+      <div className="flex" style={{ minHeight: "420px" }}>
+        {/* ── Activity bar (icon strip) ──────────────── */}
+        <div className="hidden w-[36px] shrink-0 flex-col items-center gap-3 border-r border-white/10 py-3 md:flex">
+          <span className="text-[13px] text-white/30">📋</span>
+          <span className="text-[13px] text-white/30">🔍</span>
+          <span className="text-[13px] text-white/30">🧩</span>
+          <div className="mt-auto">
+            <span className="text-[13px] text-white/30">⚙</span>
+          </div>
+        </div>
+
+        {/* ── Chat panel ──────────────────────────────── */}
         <div className="hidden w-[200px] shrink-0 flex-col border-r border-white/10 md:flex">
           {/* Chat header */}
-          <div className="border-b border-white/10 px-3 py-2 text-[10px] font-medium text-white/40">
-            New conversation
+          <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
+            <span className="text-[10px] font-medium text-white/40">New conversation</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-white/20">⟳</span>
+              <span className="text-[10px] text-white/20">+</span>
+            </div>
           </div>
 
           {/* Messages */}
@@ -371,16 +426,31 @@ function MockIDE() {
 
           {/* Input */}
           <div className="border-t border-white/10 px-3 py-2">
-            <div className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] text-white/25">
-              Ask Aura anything...
+            <div className="flex items-center rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5">
+              <span className="text-[10px] text-white/25">Ask Aura anything...</span>
+              <span className="ml-auto text-[10px] text-white/15">↵</span>
             </div>
           </div>
         </div>
 
-        {/* ── Middle: File tree ─────────────────────── */}
-        <div className="hidden w-[150px] shrink-0 flex-col border-r border-white/10 lg:flex">
-          <div className="border-b border-white/10 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/30">
-            MY-PROJECT
+        {/* ── File tree ───────────────────────────────── */}
+        <div className="hidden w-[160px] shrink-0 flex-col border-r border-white/10 lg:flex">
+          {/* Open editors section */}
+          <div className="border-b border-white/10">
+            <div className="px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-white/30">
+              Open Editors
+            </div>
+            <div className="px-2 pb-1.5">
+              <div className="flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[11px] text-white/60">
+                <span className="text-[9px] leading-none">{"{}"}</span>
+                <span className="truncate">App.css</span>
+                <span className="ml-auto text-[9px] text-white/20">×</span>
+              </div>
+            </div>
+          </div>
+          {/* Project files */}
+          <div className="border-b border-white/10 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-white/30">
+            TO-DO-APP
           </div>
           <div className="flex-1 space-y-0.5 overflow-hidden p-2 text-[11px]">
             {FILE_TREE.slice(0, fileCount).map((f, i) => (
@@ -389,7 +459,7 @@ function MockIDE() {
                 className={cn(
                   "flex items-center gap-1.5 rounded px-1.5 py-0.5",
                   f.active
-                    ? "bg-white/10 text-white/80"
+                    ? "bg-[#1F84EF]/15 text-white/80"
                     : "text-white/40",
                 )}
                 style={{ paddingLeft: `${f.indent * 12 + 6}px` }}
@@ -401,23 +471,32 @@ function MockIDE() {
           </div>
         </div>
 
-        {/* ── Right: Editor + Terminal  OR  Preview ─── */}
+        {/* ── Editor + Terminal  OR  Preview ──────────── */}
         {showPreview ? (
           <MockPreview />
         ) : (
           <div className="flex flex-1 flex-col">
+            {/* Search bar */}
+            <div className="flex items-center gap-2 border-b border-white/10 px-3 py-1.5">
+              <div className="flex flex-1 items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2.5 py-1">
+                <span className="text-[10px] text-white/20">🔍</span>
+                <span className="text-[10px] text-white/25">Search files...</span>
+              </div>
+              <span className="hidden text-[10px] text-white/30 sm:inline">Export</span>
+            </div>
+
             {/* Tab bar */}
             <div className="flex items-center border-b border-white/10 px-3">
-              <div className="flex items-center gap-1.5 border-b border-[#1F84EF] px-2 py-1.5 text-[11px] text-white/70">
-                <span className="text-[9px]">⚛</span>
-                App.tsx
+              <div className="flex items-center gap-1.5 border-b-2 border-[#1F84EF] px-2 py-1.5 text-[11px] text-white/70">
+                <span className="text-[9px]">{"{}"}</span>
+                App.css
                 <span className="ml-1 text-white/20">×</span>
               </div>
             </div>
 
             {/* Breadcrumb */}
             <div className="border-b border-white/10 px-3 py-1 text-[10px] text-white/25">
-              src &gt; <span className="text-white/40">App.tsx</span>
+              src &gt; <span className="text-white/40">{"{}"} App.css</span>
             </div>
 
             {/* Code area */}
