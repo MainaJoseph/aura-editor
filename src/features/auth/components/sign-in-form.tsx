@@ -287,6 +287,11 @@ export function SignInForm() {
                         className={cn("pl-9 border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0", fieldErrors.email && "border-red-500/60")}
                         disabled={isLoading || !!oauthLoading}
                       />
+                      {lastAuth === "email" && (
+                        <span className="absolute -top-2.5 right-2 rounded-full border border-[#7c5aed]/50 bg-[#1e1b2e] px-1.5 py-0.5 text-[9px] text-[#a78bfa]">
+                          Last used
+                        </span>
+                      )}
                     </div>
                     {fieldErrors.email && <p className="text-xs text-red-400">{fieldErrors.email}</p>}
                   </div>
@@ -318,17 +323,10 @@ export function SignInForm() {
 
                   {error && <p className="text-sm text-destructive">{error}</p>}
 
-                  <div className="relative">
-                    <Button type="submit" className="w-full gap-2" disabled={isLoading || !!oauthLoading}>
-                      {isLoading ? <Spinner className="size-4" /> : <ArrowRightIcon className="size-4" />}
-                      Sign in
-                    </Button>
-                    {lastAuth === "email" && (
-                      <span className="absolute -top-2.5 right-3 rounded-full border border-[#7c5aed]/50 bg-[#1e1b2e] px-1.5 py-0.5 text-[9px] text-[#a78bfa]">
-                        Last used
-                      </span>
-                    )}
-                  </div>
+                  <Button type="submit" className="w-full gap-2" disabled={isLoading || !!oauthLoading}>
+                    {isLoading ? <Spinner className="size-4" /> : <ArrowRightIcon className="size-4" />}
+                    Sign in
+                  </Button>
                 </form>
 
                 <p className="mt-6 text-center text-sm text-white/40">
