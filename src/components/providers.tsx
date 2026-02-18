@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   Authenticated,
   Unauthenticated,
@@ -15,6 +16,20 @@ import { UnauthenticatedView } from "@/features/auth/components/unauthenticated-
 import { AuthLoadingView } from "@/features/auth/components/auth-loading-view";
 
 import { ThemeProvider } from "./theme-provider";
+
+// Runs on every page mount. After OAuth, the user lands on "/" with a
+// "aura:pending-auth" value in sessionStorage written before the redirect.
+// Promoting it here is reliable regardless of sso-callback redirect timing.
+function AuthPendingCommit() {
+  useEffect(() => {
+    const pending = sessionStorage.getItem("aura:pending-auth");
+    if (pending === "github" || pending === "google") {
+      localStorage.setItem("aura:last-auth", pending);
+      sessionStorage.removeItem("aura:pending-auth");
+    }
+  }, []);
+  return null;
+}
 
 function UnauthenticatedContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -57,6 +72,7 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
           enableSystem
           disableTransitionOnChange
         >
+          <AuthPendingCommit />
           <Authenticated>{children}</Authenticated>
           <Unauthenticated>
             <UnauthenticatedContent>{children}</UnauthenticatedContent>
