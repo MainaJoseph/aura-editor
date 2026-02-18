@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { AuthNavbar } from "./auth-navbar";
+import { Boxes } from "@/components/ui/background-boxes";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -23,6 +24,7 @@ const poppins = Poppins({
 });
 
 type Step = "credentials" | "otp-fallback" | "second-factor";
+type LastAuth = "github" | "google" | "email" | null;
 
 export function SignInForm() {
   const { isLoaded, signIn, setActive } = useSignIn();
@@ -36,6 +38,10 @@ export function SignInForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"github" | "google" | null>(null);
+  const [lastAuth] = useState<LastAuth>(() => {
+    if (typeof window === "undefined") return null;
+    return (localStorage.getItem("aura:last-auth") as LastAuth) ?? null;
+  });
 
   async function handleEmailSignIn(e: React.FormEvent) {
     e.preventDefault();
@@ -51,6 +57,7 @@ export function SignInForm() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+        localStorage.setItem("aura:last-auth", "email");
         router.push("/");
       } else if (result.status === "needs_second_factor") {
         // Client Trust is enabled — Clerk requires a second factor (OTP to email)
@@ -92,6 +99,7 @@ export function SignInForm() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+        localStorage.setItem("aura:last-auth", "email");
         router.push("/");
       } else {
         setError("Verification incomplete. Please try again.");
@@ -118,6 +126,7 @@ export function SignInForm() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+        localStorage.setItem("aura:last-auth", "email");
         router.push("/");
       } else {
         setError("Verification incomplete. Please try again.");
@@ -133,7 +142,9 @@ export function SignInForm() {
   async function handleOAuth(strategy: "oauth_github" | "oauth_google") {
     if (!isLoaded) return;
     setError("");
-    setOauthLoading(strategy === "oauth_github" ? "github" : "google");
+    const method = strategy === "oauth_github" ? "github" : "google";
+    setOauthLoading(method);
+    localStorage.setItem("aura:last-auth", method);
 
     try {
       await signIn.authenticateWithRedirect({
@@ -155,12 +166,15 @@ export function SignInForm() {
       <div className="flex flex-1 pt-14">
         {/* Left branding column */}
         <div className="landing-gradient relative hidden w-1/2 flex-col items-center justify-center overflow-hidden p-12 lg:flex">
+          <Boxes />
+          {/* Radial fade — transparent centre lets boxes show, opaque edges blend into bg */}
+          <div className="landing-gradient pointer-events-none absolute inset-0 z-20 [mask-image:radial-gradient(transparent,white)]" />
           <div className="glow-orb left-1/4 top-20 size-60 bg-purple-600" />
           <div
             className="glow-orb right-1/4 bottom-20 size-48 bg-[#1F84EF]"
             style={{ animationDelay: "2s" }}
           />
-          <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="relative z-30 flex flex-col items-center text-center">
             <div className="flex items-center gap-3 mb-6">
               <Image src="/logo.svg" alt="Aura" width={40} height={40} />
               <span className={cn("text-3xl font-bold text-white", poppins.className)}>
@@ -196,24 +210,38 @@ export function SignInForm() {
 
                 {/* OAuth buttons */}
                 <div className="space-y-3">
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2 border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] hover:text-white"
-                    onClick={() => handleOAuth("oauth_github")}
-                    disabled={!!oauthLoading || isLoading}
-                  >
-                    {oauthLoading === "github" ? <Spinner className="size-4" /> : <GithubIcon className="size-4" />}
-                    Continue with GitHub
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2 border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] hover:text-white"
-                    onClick={() => handleOAuth("oauth_google")}
-                    disabled={!!oauthLoading || isLoading}
-                  >
-                    {oauthLoading === "google" ? <Spinner className="size-4" /> : <FcGoogle className="size-4" />}
-                    Continue with Google
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] hover:text-white"
+                      onClick={() => handleOAuth("oauth_github")}
+                      disabled={!!oauthLoading || isLoading}
+                    >
+                      {oauthLoading === "github" ? <Spinner className="size-4" /> : <GithubIcon className="size-4" />}
+                      Continue with GitHub
+                    </Button>
+                    {lastAuth === "github" && (
+                      <span className="absolute -top-2.5 right-3 rounded-full border border-[#7c5aed]/50 bg-[#1e1b2e] px-1.5 py-0.5 text-[9px] text-[#a78bfa]">
+                        Last used
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] hover:text-white"
+                      onClick={() => handleOAuth("oauth_google")}
+                      disabled={!!oauthLoading || isLoading}
+                    >
+                      {oauthLoading === "google" ? <Spinner className="size-4" /> : <FcGoogle className="size-4" />}
+                      Continue with Google
+                    </Button>
+                    {lastAuth === "google" && (
+                      <span className="absolute -top-2.5 right-3 rounded-full border border-[#7c5aed]/50 bg-[#1e1b2e] px-1.5 py-0.5 text-[9px] text-[#a78bfa]">
+                        Last used
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="my-6 flex items-center gap-3">
@@ -267,10 +295,17 @@ export function SignInForm() {
 
                   {error && <p className="text-sm text-destructive">{error}</p>}
 
-                  <Button type="submit" className="w-full gap-2" disabled={isLoading || !!oauthLoading}>
-                    {isLoading ? <Spinner className="size-4" /> : <ArrowRightIcon className="size-4" />}
-                    Sign in
-                  </Button>
+                  <div className="relative">
+                    <Button type="submit" className="w-full gap-2" disabled={isLoading || !!oauthLoading}>
+                      {isLoading ? <Spinner className="size-4" /> : <ArrowRightIcon className="size-4" />}
+                      Sign in
+                    </Button>
+                    {lastAuth === "email" && (
+                      <span className="absolute -top-2.5 right-3 rounded-full border border-[#7c5aed]/50 bg-[#1e1b2e] px-1.5 py-0.5 text-[9px] text-[#a78bfa]">
+                        Last used
+                      </span>
+                    )}
+                  </div>
                 </form>
 
                 <p className="mt-6 text-center text-sm text-white/40">

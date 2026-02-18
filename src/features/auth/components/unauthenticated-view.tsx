@@ -40,14 +40,22 @@ function Navbar() {
         <div className="flex items-center gap-2.5">
           <Image src="/logo.svg" alt="Aura" width={24} height={24} />
           <span
-            className={cn("text-base font-semibold text-white", poppins.className)}
+            className={cn(
+              "text-base font-semibold text-white",
+              poppins.className,
+            )}
           >
             Aura
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="text-white/70 hover:text-white" asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-white/70 hover:text-white"
+            asChild
+          >
             <Link href="/sign-in">Sign in</Link>
           </Button>
           <Button size="sm" asChild>
@@ -208,16 +216,25 @@ const TODO_ACTIONS = [
   { type: "typing", text: "Deploy to production", duration: 1800 },
   { type: "add", duration: 800 },
   { type: "idle", duration: 1200 },
-  { type: "complete", index: 1, duration: 800 },   // complete "Buy groceries"
+  { type: "complete", index: 1, duration: 800 }, // complete "Buy groceries"
   { type: "idle", duration: 1000 },
-  { type: "delete", index: 2, duration: 600 },      // delete "Call the dentist"
+  { type: "delete", index: 2, duration: 600 }, // delete "Call the dentist"
   { type: "idle", duration: 1500 },
 ] as const;
 
-type TodoItem = { id: number; text: string; completed: boolean; deleting?: boolean };
+type TodoItem = {
+  id: number;
+  text: string;
+  completed: boolean;
+  deleting?: boolean;
+};
 let nextTodoId = 100;
 
-function MockPreview({ onActionChange }: { onActionChange?: (type: string) => void }) {
+function MockPreview({
+  onActionChange,
+}: {
+  onActionChange?: (type: string) => void;
+}) {
   const initialTasks: TodoItem[] = [
     { id: 1, text: "Finish React project", completed: false },
     { id: 2, text: "Buy groceries", completed: false },
@@ -264,7 +281,10 @@ function MockPreview({ onActionChange }: { onActionChange?: (type: string) => vo
       // Flash the input, then add task
       setInputHighlight(true);
       const timer = setTimeout(() => {
-        setPending((prev) => [...prev, { id: nextTodoId++, text: inputText, completed: false }]);
+        setPending((prev) => [
+          ...prev,
+          { id: nextTodoId++, text: inputText, completed: false },
+        ]);
         setInputText("");
         setInputHighlight(false);
         setActionIndex((i) => i + 1);
@@ -278,7 +298,10 @@ function MockPreview({ onActionChange }: { onActionChange?: (type: string) => vo
           const idx = Math.min(action.index, prev.length - 1);
           if (idx < 0) return prev;
           const task = prev[idx];
-          setCompleted((c) => [{ ...task, id: nextTodoId++, completed: true }, ...c]);
+          setCompleted((c) => [
+            { ...task, id: nextTodoId++, completed: true },
+            ...c,
+          ]);
           return prev.filter((_, i) => i !== idx);
         });
         setActionIndex((i) => i + 1);
@@ -314,7 +337,7 @@ function MockPreview({ onActionChange }: { onActionChange?: (type: string) => vo
       }, action.duration);
       return () => clearTimeout(timer);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionIndex, charIndex]);
 
   return (
@@ -337,7 +360,9 @@ function MockPreview({ onActionChange }: { onActionChange?: (type: string) => vo
         <div className="mx-auto max-w-[340px]">
           {/* Header */}
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-[15px] font-bold text-white/90 sm:text-[17px]">My To-Do List</h2>
+            <h2 className="text-[15px] font-bold text-white/90 sm:text-[17px]">
+              My To-Do List
+            </h2>
             <div className="rounded-md bg-[#3b82f6] px-2.5 py-1 text-[10px] font-medium text-white">
               + Add Task
             </div>
@@ -355,12 +380,16 @@ function MockPreview({ onActionChange }: { onActionChange?: (type: string) => vo
               )}
             >
               {inputText || "What needs to be done?"}
-              {action.type === "typing" && <span className="typing-cursor ml-0" />}
+              {action.type === "typing" && (
+                <span className="typing-cursor ml-0" />
+              )}
             </div>
             <div
               className={cn(
                 "rounded-md px-3 py-1.5 text-[11px] font-semibold text-white transition-all duration-300",
-                inputHighlight ? "bg-[#3b82f6] shadow-lg shadow-[#3b82f6]/30" : "bg-[#3b82f6]",
+                inputHighlight
+                  ? "bg-[#3b82f6] shadow-lg shadow-[#3b82f6]/30"
+                  : "bg-[#3b82f6]",
               )}
             >
               Add
@@ -368,14 +397,17 @@ function MockPreview({ onActionChange }: { onActionChange?: (type: string) => vo
           </div>
 
           {/* Pending Tasks */}
-          <div className="mb-1.5 text-[11px] font-semibold text-white/50">Pending Tasks</div>
+          <div className="mb-1.5 text-[11px] font-semibold text-white/50">
+            Pending Tasks
+          </div>
           <div className="mb-4 space-y-1.5">
             {pending.map((task) => (
               <div
                 key={`p-${task.id}`}
                 className={cn(
                   "flex items-center justify-between rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 transition-all duration-300",
-                  task.deleting && "scale-95 opacity-0 border-[#ef4444]/30 bg-[#ef4444]/10",
+                  task.deleting &&
+                    "scale-95 opacity-0 border-[#ef4444]/30 bg-[#ef4444]/10",
                 )}
               >
                 <div className="flex items-center gap-2.5">
@@ -391,7 +423,9 @@ function MockPreview({ onActionChange }: { onActionChange?: (type: string) => vo
           </div>
 
           {/* Completed */}
-          <div className="mb-1.5 text-[11px] font-semibold italic text-white/35">Completed</div>
+          <div className="mb-1.5 text-[11px] font-semibold italic text-white/35">
+            Completed
+          </div>
           <div className="mb-3 space-y-1.5">
             {completed.map((task) => (
               <div
@@ -401,7 +435,9 @@ function MockPreview({ onActionChange }: { onActionChange?: (type: string) => vo
                 <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#22c55e] text-[8px] text-white">
                   ✓
                 </span>
-                <span className="text-[11px] text-white/30 line-through">{task.text}</span>
+                <span className="text-[11px] text-white/30 line-through">
+                  {task.text}
+                </span>
               </div>
             ))}
           </div>
@@ -420,7 +456,15 @@ function MockPreview({ onActionChange }: { onActionChange?: (type: string) => vo
 
 // ─── Animated Cursor ────────────────────────────────────────────────
 
-function MockCursor({ x, y, clicking }: { x: number; y: number; clicking: boolean }) {
+function MockCursor({
+  x,
+  y,
+  clicking,
+}: {
+  x: number;
+  y: number;
+  clicking: boolean;
+}) {
   return (
     <div
       className="pointer-events-none absolute z-50 transition-all duration-500 ease-in-out"
@@ -453,23 +497,26 @@ function MockCursor({ x, y, clicking }: { x: number; y: number; clicking: boolea
 }
 
 // Cursor positions for each dashboard phase (% based)
-const DASHBOARD_CURSOR: Record<string, { x: number; y: number; click?: boolean }> = {
-  "dashboard":         { x: 35, y: 45 },         // Resting on dashboard
-  "highlight-new":     { x: 22, y: 38 },         // On "New" button
-  "modal-typing":      { x: 45, y: 52 },         // In the modal textarea
-  "modal-submit":      { x: 62, y: 62 },         // On submit button
-  "project-appear":    { x: 45, y: 55 },         // Waiting for project
+const DASHBOARD_CURSOR: Record<
+  string,
+  { x: number; y: number; click?: boolean }
+> = {
+  dashboard: { x: 35, y: 45 }, // Resting on dashboard
+  "highlight-new": { x: 22, y: 38 }, // On "New" button
+  "modal-typing": { x: 45, y: 52 }, // In the modal textarea
+  "modal-submit": { x: 62, y: 62 }, // On submit button
+  "project-appear": { x: 45, y: 55 }, // Waiting for project
   "highlight-project": { x: 50, y: 55, click: true }, // Clicking To-do-app
-  "transition":        { x: 50, y: 50 },
+  transition: { x: 50, y: 50 },
 };
 
 // Cursor positions for todo preview actions (% based within the preview area)
 const TODO_CURSOR: Record<string, { x: number; y: number; click?: boolean }> = {
-  "idle":     { x: 75, y: 40 },
-  "typing":   { x: 65, y: 33 },         // In the input field
-  "add":      { x: 82, y: 33, click: true },  // On "Add" button
-  "complete": { x: 55, y: 52, click: true },  // On a task checkbox
-  "delete":   { x: 83, y: 55, click: true },  // On delete icon
+  idle: { x: 75, y: 40 },
+  typing: { x: 65, y: 33 }, // In the input field
+  add: { x: 82, y: 33, click: true }, // On "Add" button
+  complete: { x: 55, y: 52, click: true }, // On a task checkbox
+  delete: { x: 83, y: 55, click: true }, // On delete icon
 };
 
 // ─── Mock Dashboard Content ─────────────────────────────────────────
@@ -493,7 +540,11 @@ function MockDashboardContent({
         {/* Logo + title */}
         <div className="mb-6 flex items-center gap-2.5">
           <Image src="/logo.svg" alt="Aura" width={28} height={28} />
-          <span className={cn("text-2xl font-bold text-white", poppins.className)}>Aura</span>
+          <span
+            className={cn("text-2xl font-bold text-white", poppins.className)}
+          >
+            Aura
+          </span>
         </div>
 
         {/* New / Import buttons */}
@@ -508,16 +559,22 @@ function MockDashboardContent({
           >
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[13px] text-white/40">✦</span>
-              <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[9px] text-white/25">⌘J</span>
+              <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[9px] text-white/25">
+                ⌘J
+              </span>
             </div>
             <span className="text-[13px] font-medium text-white/80">New</span>
           </div>
           <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[13px] text-white/40">⑂</span>
-              <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[9px] text-white/25">⌘I</span>
+              <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[9px] text-white/25">
+                ⌘I
+              </span>
             </div>
-            <span className="text-[13px] font-medium text-white/80">Import</span>
+            <span className="text-[13px] font-medium text-white/80">
+              Import
+            </span>
           </div>
         </div>
 
@@ -554,9 +611,18 @@ function MockDashboardContent({
                   <span className="text-[11px] text-white/30">🌐</span>
                   To-do-app
                 </div>
-                <div className="mt-0.5 text-[11px] text-white/30">in less than a minute</div>
+                <div className="mt-0.5 text-[11px] text-white/30">
+                  in less than a minute
+                </div>
               </div>
-              <span className={cn("text-[13px] transition-colors", highlightProject ? "text-[#1F84EF]" : "text-white/20")}>→</span>
+              <span
+                className={cn(
+                  "text-[13px] transition-colors",
+                  highlightProject ? "text-[#1F84EF]" : "text-white/20",
+                )}
+              >
+                →
+              </span>
             </div>
           </>
         )}
@@ -566,7 +632,9 @@ function MockDashboardContent({
           <span className="text-[11px] text-white/30">Recent projects</span>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-white/25">View all</span>
-            <span className="rounded bg-white/10 px-1 py-0.5 font-mono text-[8px] text-white/20">⌘K</span>
+            <span className="rounded bg-white/10 px-1 py-0.5 font-mono text-[8px] text-white/20">
+              ⌘K
+            </span>
           </div>
         </div>
         <div className="space-y-0.5">
@@ -575,7 +643,10 @@ function MockDashboardContent({
             { name: "weather-dashboard", icon: "🌐", time: "12 days ago" },
             { name: "portfolio-site", icon: "🌐", time: "12 days ago" },
           ].map((p) => (
-            <div key={p.name} className="flex items-center justify-between rounded-md px-1 py-1.5 text-[11px]">
+            <div
+              key={p.name}
+              className="flex items-center justify-between rounded-md px-1 py-1.5 text-[11px]"
+            >
               <div className="flex items-center gap-2 text-white/50">
                 <span className="text-[10px] text-white/25">{p.icon}</span>
                 {p.name}
@@ -593,22 +664,25 @@ function MockDashboardContent({
 
 // Animation phases & timing
 type Phase =
-  | "dashboard"       // Show dashboard
-  | "highlight-new"   // Highlight "New" button
-  | "modal-typing"    // Modal appears, prompt types in
-  | "modal-submit"    // Brief flash before submitting
-  | "project-appear"  // To-do-app appears in "Last updated"
+  | "dashboard" // Show dashboard
+  | "highlight-new" // Highlight "New" button
+  | "modal-typing" // Modal appears, prompt types in
+  | "modal-submit" // Brief flash before submitting
+  | "project-appear" // To-do-app appears in "Last updated"
   | "highlight-project" // Highlight the project row
-  | "transition"      // Fade to editor
-  | "editor";         // Full editor typing animation
+  | "transition" // Fade to editor
+  | "editor"; // Full editor typing animation
 
-const PHASE_TIMING: Record<Exclude<Phase, "modal-typing" | "editor">, number> = {
-  "dashboard": 1500,
+const PHASE_TIMING: Record<
+  Exclude<Phase, "modal-typing" | "editor">,
+  number
+> = {
+  dashboard: 1500,
   "highlight-new": 800,
   "modal-submit": 600,
   "project-appear": 1200,
   "highlight-project": 1000,
-  "transition": 400,
+  transition: 400,
 };
 
 const MODAL_CHAR_DELAY = 18; // ms per character for typing
@@ -626,12 +700,12 @@ function MockIDE() {
     if (phase === "modal-typing" || phase === "editor") return;
 
     const nextPhase: Record<string, Phase> = {
-      "dashboard": "highlight-new",
+      dashboard: "highlight-new",
       "highlight-new": "modal-typing",
       "modal-submit": "project-appear",
       "project-appear": "highlight-project",
       "highlight-project": "transition",
-      "transition": "editor",
+      transition: "editor",
     };
 
     const next = nextPhase[phase];
@@ -653,7 +727,10 @@ function MockIDE() {
       const timer = setTimeout(() => setPhase("modal-submit"), 500);
       return () => clearTimeout(timer);
     }
-    const timer = setTimeout(() => setModalCharIndex((c) => c + 1), MODAL_CHAR_DELAY);
+    const timer = setTimeout(
+      () => setModalCharIndex((c) => c + 1),
+      MODAL_CHAR_DELAY,
+    );
     return () => clearTimeout(timer);
   }, [phase, modalCharIndex]);
 
@@ -704,7 +781,10 @@ function MockIDE() {
   })();
 
   const isCursorClicking =
-    (isDashboardPhase && (phase === "highlight-new" || phase === "highlight-project" || phase === "modal-submit")) ||
+    (isDashboardPhase &&
+      (phase === "highlight-new" ||
+        phase === "highlight-project" ||
+        phase === "modal-submit")) ||
     (showPreview && (TODO_CURSOR[todoActionType]?.click ?? false));
 
   const showCursor = !(cursorPos.x < 0) && !fading;
@@ -724,7 +804,13 @@ function MockIDE() {
           <span className="size-2.5 rounded-full bg-[#FFD200]/70 sm:size-3" />
           <span className="size-2.5 rounded-full bg-[#06E07F]/70 sm:size-3" />
         </div>
-        <Image src="/logo.svg" alt="Aura" width={16} height={16} className="ml-2" />
+        <Image
+          src="/logo.svg"
+          alt="Aura"
+          width={16}
+          height={16}
+          className="ml-2"
+        />
         <span className="text-xs font-medium text-white/50">Aura</span>
         {!isDashboardPhase && (
           <>
@@ -758,16 +844,25 @@ function MockIDE() {
                 Preview
               </span>
             </div>
-            <span className="hidden text-[10px] text-white/30 sm:inline">Share</span>
+            <span className="hidden text-[10px] text-white/30 sm:inline">
+              Share
+            </span>
           </div>
         )}
       </div>
 
       {/* ── Main body ─────────────────────────────────── */}
-      <div className="relative flex overflow-hidden" style={{ height: "480px" }}>
+      <div
+        className="relative flex overflow-hidden"
+        style={{ height: "480px" }}
+      >
         {/* Animated cursor */}
         {showCursor && (
-          <MockCursor x={cursorPos.x} y={cursorPos.y} clicking={isCursorClicking} />
+          <MockCursor
+            x={cursorPos.x}
+            y={cursorPos.y}
+            clicking={isCursorClicking}
+          />
         )}
         {isDashboardPhase ? (
           <div
@@ -781,14 +876,23 @@ function MockIDE() {
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <Image src="/logo.svg" alt="Aura" width={18} height={18} />
-                  <span className={cn("text-sm font-semibold text-white/80", poppins.className)}>Aura</span>
+                  <span
+                    className={cn(
+                      "text-sm font-semibold text-white/80",
+                      poppins.className,
+                    )}
+                  >
+                    Aura
+                  </span>
                 </div>
                 <div className="size-6 rounded-full bg-white/10" />
               </div>
               <MockDashboardContent
                 showModal={phase === "modal-typing" || phase === "modal-submit"}
                 modalText={MODAL_PROMPT.slice(0, modalCharIndex)}
-                showProject={phase === "project-appear" || phase === "highlight-project"}
+                showProject={
+                  phase === "project-appear" || phase === "highlight-project"
+                }
                 highlightProject={phase === "highlight-project"}
                 highlightNew={phase === "highlight-new"}
               />
@@ -797,7 +901,9 @@ function MockIDE() {
               <MockDashboardContent
                 showModal={phase === "modal-typing" || phase === "modal-submit"}
                 modalText={MODAL_PROMPT.slice(0, modalCharIndex)}
-                showProject={phase === "project-appear" || phase === "highlight-project"}
+                showProject={
+                  phase === "project-appear" || phase === "highlight-project"
+                }
                 highlightProject={phase === "highlight-project"}
                 highlightNew={phase === "highlight-new"}
               />
@@ -824,7 +930,9 @@ function MockIDE() {
             {/* ── Chat panel ────────────────────────────── */}
             <div className="hidden w-[200px] shrink-0 flex-col border-r border-white/10 md:flex">
               <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
-                <span className="text-[10px] font-medium text-white/40">New conversation</span>
+                <span className="text-[10px] font-medium text-white/40">
+                  New conversation
+                </span>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-white/20">⟳</span>
                   <span className="text-[10px] text-white/20">+</span>
@@ -859,7 +967,9 @@ function MockIDE() {
               </div>
               <div className="border-t border-white/10 px-3 py-2">
                 <div className="flex items-center rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5">
-                  <span className="text-[10px] text-white/25">Ask Aura anything...</span>
+                  <span className="text-[10px] text-white/25">
+                    Ask Aura anything...
+                  </span>
                   <span className="ml-auto text-[10px] text-white/15">↵</span>
                 </div>
               </div>
@@ -909,9 +1019,13 @@ function MockIDE() {
                 <div className="flex items-center gap-2 border-b border-white/10 px-3 py-1.5">
                   <div className="flex flex-1 items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2.5 py-1">
                     <span className="text-[10px] text-white/20">🔍</span>
-                    <span className="text-[10px] text-white/25">Search files...</span>
+                    <span className="text-[10px] text-white/25">
+                      Search files...
+                    </span>
                   </div>
-                  <span className="hidden text-[10px] text-white/30 sm:inline">Export</span>
+                  <span className="hidden text-[10px] text-white/30 sm:inline">
+                    Export
+                  </span>
                 </div>
                 <div className="flex items-center border-b border-white/10 px-3">
                   <div className="flex items-center gap-1.5 border-b-2 border-[#1F84EF] px-2 py-1.5 text-[11px] text-white/70">
@@ -1062,8 +1176,14 @@ const featuresGrid = [
 
 function FeaturesSection() {
   return (
-    <section id="features" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
-      <div className="animate-fade-in-up text-center" style={{ animationDelay: "0.4s" }}>
+    <section
+      id="features"
+      className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28"
+    >
+      <div
+        className="animate-fade-in-up text-center"
+        style={{ animationDelay: "0.4s" }}
+      >
         <h2
           className={cn(
             "text-3xl font-semibold text-white sm:text-4xl",
@@ -1157,7 +1277,8 @@ const steps = [
           <span className="text-[10px] text-white/40">You</span>
         </div>
         <p className="text-[11px] leading-relaxed text-white/50">
-          &ldquo;Create a todo app with a live clock, dark theme, and motivational quotes&rdquo;
+          &ldquo;Create a todo app with a live clock, dark theme, and
+          motivational quotes&rdquo;
         </p>
         <div className="mt-2.5 flex items-center gap-1.5">
           <span className="text-[10px] text-purple-400">✦</span>
@@ -1171,17 +1292,24 @@ const steps = [
     icon: CodeIcon,
     title: "Edit with AI + full editor",
     description:
-      "Use inline AI autocomplete, multi-cursor editing, quick edits, and code explanations. The full-featured CodeMirror editor gives you the power of a desktop IDE.",
+      "Use inline AI autocomplete, multi-cursor editing, quick edits, and code explanations. The full-featured Aura editor gives you the power of a desktop IDE.",
     gradient: "from-[#1F84EF] to-cyan-500",
     visual: (
       <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 font-mono text-[10px]">
         <div className="flex gap-2">
           <span className="text-white/15">1</span>
-          <span><span className="text-purple-400">const</span> [<span className="text-cyan-300">tasks</span>, <span className="text-cyan-300">setTasks</span>] = <span className="text-yellow-300">useState</span>([]);</span>
+          <span>
+            <span className="text-purple-400">const</span> [
+            <span className="text-cyan-300">tasks</span>,{" "}
+            <span className="text-cyan-300">setTasks</span>] ={" "}
+            <span className="text-yellow-300">useState</span>([]);
+          </span>
         </div>
         <div className="flex gap-2">
           <span className="text-white/15">2</span>
-          <span className="text-white/20 italic">// AI: adding filter logic...</span>
+          <span className="text-white/20 italic">
+            {"// AI: adding filter logic..."}
+          </span>
         </div>
         <div className="mt-1.5 inline-block rounded bg-purple-500/10 px-1.5 py-0.5 text-[9px] text-purple-400">
           ✦ AI Autocomplete
@@ -1202,13 +1330,21 @@ const steps = [
           <span className="size-1.5 rounded-full bg-[#E3073C]/50" />
           <span className="size-1.5 rounded-full bg-[#FFD200]/50" />
           <span className="size-1.5 rounded-full bg-[#06E07F]/50" />
-          <span className="ml-1 flex-1 text-center text-[9px] text-white/20">localhost:5173</span>
+          <span className="ml-1 flex-1 text-center text-[9px] text-white/20">
+            localhost:5173
+          </span>
         </div>
         <div className="p-3 text-center">
-          <div className="font-mono text-sm font-bold tracking-wider text-white/60">12:34:56 PM</div>
-          <div className="mt-1 text-[9px] text-white/20">Live preview running</div>
+          <div className="font-mono text-sm font-bold tracking-wider text-white/60">
+            12:34:56 PM
+          </div>
+          <div className="mt-1 text-[9px] text-white/20">
+            Live preview running
+          </div>
           <div className="mx-auto mt-2 flex max-w-[120px] items-center gap-1 rounded bg-white/5 px-2 py-1 text-[9px] text-white/30">
-            <span className="size-2 rounded-sm border border-[#06E07F]/60 bg-[#06E07F]/15 text-[6px] leading-[8px] text-center text-[#06E07F]">✓</span>
+            <span className="size-2 rounded-sm border border-[#06E07F]/60 bg-[#06E07F]/15 text-[6px] leading-[8px] text-center text-[#06E07F]">
+              ✓
+            </span>
             Build a cool app
           </div>
         </div>
@@ -1220,7 +1356,10 @@ const steps = [
 function HowItWorksSection() {
   return (
     <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
-      <div className="animate-fade-in-up text-center" style={{ animationDelay: "0.6s" }}>
+      <div
+        className="animate-fade-in-up text-center"
+        style={{ animationDelay: "0.6s" }}
+      >
         <h2
           className={cn(
             "text-3xl font-semibold text-white sm:text-4xl",
@@ -1230,7 +1369,8 @@ function HowItWorksSection() {
           How it works
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-white/50">
-          Go from idea to running app in three steps — no setup, no configuration.
+          Go from idea to running app in three steps — no setup, no
+          configuration.
         </p>
       </div>
 
@@ -1313,9 +1453,7 @@ function Footer() {
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 sm:flex-row sm:justify-between sm:px-6">
         <div className="flex items-center gap-2">
           <Image src="/logo.svg" alt="Aura" width={16} height={16} />
-          <span className="text-sm text-white/40">
-            Built with Aura
-          </span>
+          <span className="text-sm text-white/40">Built with Aura</span>
         </div>
         <span className="text-sm text-white/30">
           &copy; {new Date().getFullYear()} Aura. All rights reserved.
@@ -1343,7 +1481,10 @@ export const UnauthenticatedView = () => {
 
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
           <div className="animate-fade-in-up text-center">
-            <Badge variant="secondary" className="mb-5 bg-white/10 text-white/80 hover:bg-white/10">
+            <Badge
+              variant="secondary"
+              className="mb-5 bg-white/10 text-white/80 hover:bg-white/10"
+            >
               AI-Powered Code Editor
             </Badge>
             <h1
