@@ -18,8 +18,8 @@ import {
   WandSparklesIcon,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { Poppins } from "next/font/google";
-import { SignInButton } from "@clerk/nextjs";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -47,16 +47,12 @@ function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <SignInButton>
-            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white">
-              Sign in
-            </Button>
-          </SignInButton>
-          <SignInButton>
-            <Button size="sm">
-              Get Started
-            </Button>
-          </SignInButton>
+          <Button variant="ghost" size="sm" className="text-white/70 hover:text-white" asChild>
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
+          <Button size="sm" asChild>
+            <Link href="/sign-up">Get Started</Link>
+          </Button>
         </div>
       </div>
     </nav>
@@ -1298,12 +1294,12 @@ function CTASection() {
           Start coding in seconds. No setup, no configuration — just ideas
           brought to life.
         </p>
-        <SignInButton>
-          <Button size="lg" className="relative mt-8">
+        <Button size="lg" className="relative mt-8" asChild>
+          <Link href="/sign-up">
             Get Started Free
             <ArrowRightIcon className="ml-2 size-4" />
-          </Button>
-        </SignInButton>
+          </Link>
+        </Button>
       </div>
     </section>
   );
@@ -1369,12 +1365,12 @@ export const UnauthenticatedView = () => {
             </p>
 
             <div className="mt-8 flex items-center justify-center gap-3">
-              <SignInButton>
-                <Button size="lg">
+              <Button size="lg" asChild>
+                <Link href="/sign-up">
                   Get Started
                   <ArrowRightIcon className="ml-2 size-4" />
-                </Button>
-              </SignInButton>
+                </Link>
+              </Button>
               <Button
                 variant="ghost"
                 size="lg"
