@@ -14,9 +14,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
+import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { AuthNavbar } from "./auth-navbar";
 import { Boxes } from "@/components/ui/background-boxes";
+
+const signInSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type FieldErrors = { email?: string; password?: string };
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -38,6 +46,7 @@ export function SignInForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"github" | "google" | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [lastAuth, setLastAuth] = useState<LastAuth>(null);
 
   useEffect(() => {
@@ -50,6 +59,14 @@ export function SignInForm() {
   async function handleEmailSignIn(e: React.FormEvent) {
     e.preventDefault();
     if (!isLoaded) return;
+
+    const result = signInSchema.safeParse({ email, password });
+    if (!result.success) {
+      const errs = result.error.flatten().fieldErrors;
+      setFieldErrors({ email: errs.email?.[0], password: errs.password?.[0] });
+      return;
+    }
+    setFieldErrors({});
     setError("");
     setIsLoading(true);
 
@@ -266,12 +283,12 @@ export function SignInForm() {
                         type="email"
                         placeholder="you@example.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-9 border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0"
-                        required
+                        onChange={(e) => { setEmail(e.target.value); setFieldErrors((f) => ({ ...f, email: undefined })); }}
+                        className={cn("pl-9 border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0", fieldErrors.email && "border-red-500/60")}
                         disabled={isLoading || !!oauthLoading}
                       />
                     </div>
+                    {fieldErrors.email && <p className="text-xs text-red-400">{fieldErrors.email}</p>}
                   </div>
 
                   <div className="space-y-1.5">
@@ -282,9 +299,8 @@ export function SignInForm() {
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="pr-9 border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0"
-                        required
+                        onChange={(e) => { setPassword(e.target.value); setFieldErrors((f) => ({ ...f, password: undefined })); }}
+                        className={cn("pr-9 border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0", fieldErrors.password && "border-red-500/60")}
                         disabled={isLoading || !!oauthLoading}
                       />
                       <button
@@ -297,6 +313,7 @@ export function SignInForm() {
                         {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
                       </button>
                     </div>
+                    {fieldErrors.password && <p className="text-xs text-red-400">{fieldErrors.password}</p>}
                   </div>
 
                   {error && <p className="text-sm text-destructive">{error}</p>}
