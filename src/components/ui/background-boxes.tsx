@@ -3,8 +3,12 @@ import React from "react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
-const ROW_COUNT = 150;
-const COL_COUNT = 100;
+// 35 × 25 = 875 cells — down from 150 × 100 = 15,000 (94% fewer DOM nodes).
+// The overflow-hidden container clips most of the original grid anyway;
+// slightly larger cells (h-10 w-20) maintain visual coverage with fewer rows/cols.
+const ROW_COUNT = 35;
+const COL_COUNT = 25;
+
 const COLORS = [
   "#7c5aed",
   "#1F84EF",
@@ -41,21 +45,17 @@ export const BoxesCore = ({ className, ...rest }: { className?: string }) => {
       {...rest}
     >
       {rows.map((_, i) => (
-        <motion.div
-          key={`row` + i}
-          className="relative h-8 w-16 border-l border-white/[0.06]"
-        >
+        // Plain div — row containers never animate
+        <div key={`row` + i} className="relative h-10 w-20 border-l border-white/[0.06]">
           {cols.map((_, j) => (
             <motion.div
+              key={`col` + j}
               whileHover={{
                 backgroundColor: HOVER_COLORS[i][j],
                 transition: { duration: 0 },
               }}
-              animate={{
-                transition: { duration: 2 },
-              }}
-              key={`col` + j}
-              className="relative h-8 w-16 border-r border-t border-white/[0.06]"
+              animate={{ transition: { duration: 2 } }}
+              className="relative h-10 w-20 border-r border-t border-white/[0.06]"
             >
               {j % 2 === 0 && i % 2 === 0 ? (
                 <svg
@@ -75,7 +75,7 @@ export const BoxesCore = ({ className, ...rest }: { className?: string }) => {
               ) : null}
             </motion.div>
           ))}
-        </motion.div>
+        </div>
       ))}
     </div>
   );

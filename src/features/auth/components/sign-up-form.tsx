@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -38,10 +38,14 @@ export function SignUpForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"github" | "google" | null>(null);
-  const [lastAuth] = useState<LastAuth>(() => {
-    if (typeof window === "undefined") return null;
-    return (localStorage.getItem("aura:last-auth") as LastAuth) ?? null;
-  });
+  const [lastAuth, setLastAuth] = useState<LastAuth>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("aura:last-auth");
+    if (stored === "github" || stored === "google" || stored === "email") {
+      setLastAuth(stored);
+    }
+  }, []);
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -89,7 +93,9 @@ export function SignUpForm() {
     setError("");
     const method = strategy === "oauth_github" ? "github" : "google";
     setOauthLoading(method);
-    localStorage.setItem("aura:last-auth", method);
+    // Write to sessionStorage only — promoted to localStorage in /sso-callback
+    // after Clerk confirms successful authentication (avoids false "Last used" on cancel)
+    sessionStorage.setItem("aura:pending-auth", method);
 
     try {
       await signUp.authenticateWithRedirect({
