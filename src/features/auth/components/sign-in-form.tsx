@@ -93,6 +93,8 @@ export function SignInForm() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.push("/");
+      } else {
+        setError("Verification incomplete. Please try again.");
       }
     } catch (err: unknown) {
       const clerkError = err as { errors?: Array<{ message: string }> };
@@ -117,6 +119,8 @@ export function SignInForm() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.push("/");
+      } else {
+        setError("Verification incomplete. Please try again.");
       }
     } catch (err: unknown) {
       const clerkError = err as { errors?: Array<{ message: string }> };
@@ -254,6 +258,7 @@ export function SignInForm() {
                         onClick={() => setShowPassword((v) => !v)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
                         tabIndex={-1}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
                       </button>
