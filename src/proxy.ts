@@ -1,6 +1,7 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default clerkMiddleware();
+// Named `proxy` export — required convention in Next.js 16 (proxy.ts replaces middleware.ts)
+export const proxy = clerkMiddleware();
 
 export const config = {
   matcher: [
