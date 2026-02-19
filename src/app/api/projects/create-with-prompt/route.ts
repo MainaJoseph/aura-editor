@@ -14,6 +14,7 @@ import { inngest } from "@/inngest/client";
 import { convex } from "@/lib/convex-client";
 
 import { api } from "../../../../../convex/_generated/api";
+import { Id } from "../../../../../convex/_generated/dataModel";
 
 const requestSchema = z.object({
   prompt: z.string().min(1),
@@ -85,7 +86,10 @@ export async function POST(request: Request) {
       projectId,
       role: "user",
       content: prompt,
-      attachments,
+      attachments: attachments?.map((a) => ({
+        ...a,
+        storageId: a.storageId as Id<"_storage">,
+      })),
     });
 
     // Create assistant message placeholder with processing status
