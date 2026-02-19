@@ -13,14 +13,38 @@ Built with Next.js 16, React 19, Convex, Clerk, and WebContainer API.
 ### Landing Page
 ![Landing Page](public/screenshots/landing-page.png)
 
+### Sign In
+![Sign In](public/screenshots/sign-in.png)
+
 ### Projects Dashboard
 ![Projects Dashboard](public/screenshots/projects-dashboard.png)
 
-### Code Editor — AI Chat & File Explorer
+### New Project — AI Prompt
+![New Project](public/screenshots/new-project.png)
+
+### Import from GitHub
+![GitHub Import](public/screenshots/github-import.png)
+
+### Code Editor — File Explorer & AI Chat
 ![Code Editor](public/screenshots/code-editor.png)
 
-### Live Preview — In-Browser Runtime & Terminal
+### Live Preview — In-Browser Runtime
 ![Live Preview](public/screenshots/live-preview.png)
+
+### Preview with Terminal
+![Preview Terminal](public/screenshots/preview-terminal.png)
+
+### Export to GitHub
+![GitHub Export](public/screenshots/github-export.png)
+
+### Editor Extensions Marketplace
+![Editor Extensions](public/screenshots/editor-extensions.png)
+
+### File Search / Quick Open
+![File Search](public/screenshots/file-search.png)
+
+### Share Project
+![Share Project](public/screenshots/share-project.png)
 
 ---
 
