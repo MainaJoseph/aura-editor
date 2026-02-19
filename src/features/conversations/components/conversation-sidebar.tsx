@@ -1,8 +1,9 @@
 import ky from "ky";
+import { UserButton } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { useCallback, useState } from "react";
 import { useMutation } from "convex/react";
-import { AlertCircleIcon, CameraIcon, ClipboardCopyIcon, CopyIcon, HistoryIcon, ImageIcon, LoaderIcon, PencilIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
+import { AlertCircleIcon, CameraIcon, ClipboardCopyIcon, CopyIcon, HistoryIcon, ImageIcon, LoaderIcon, PanelLeftClose, PanelLeftOpen, PencilIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
 
 import {
   Conversation,
@@ -116,10 +117,14 @@ const AttachMenu = () => {
 
 interface ConversationSidebarProps {
   projectId: Id<"projects">;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const ConversationSidebar = ({
   projectId,
+  isCollapsed,
+  onToggleCollapse,
 }: ConversationSidebarProps) => {
   const [input, setInput] = useState("");
   const [selectedConversationId, setSelectedConversationId] =
@@ -308,6 +313,24 @@ export const ConversationSidebar = ({
     });
   };
 
+  if (isCollapsed) {
+    return (
+      <div className="w-10 h-full flex flex-col items-center bg-sidebar border-r shrink-0">
+        <Button
+          size="icon-xs"
+          variant="highlight"
+          className="mt-2"
+          onClick={onToggleCollapse}
+        >
+          <PanelLeftOpen className="size-3.5" />
+        </Button>
+        <div className="mt-auto mb-3">
+          <UserButton />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <PastConversationsDialog
@@ -335,6 +358,13 @@ export const ConversationSidebar = ({
               onClick={handleCreateConversation}
             >
               <PlusIcon className="size-3.5" />
+            </Button>
+            <Button
+              size="icon-xs"
+              variant="highlight"
+              onClick={onToggleCollapse}
+            >
+              <PanelLeftClose className="size-3.5" />
             </Button>
           </div>
         </div>

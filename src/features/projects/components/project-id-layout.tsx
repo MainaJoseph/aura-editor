@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Allotment } from "allotment";
 
 import { ConversationSidebar } from "@/features/conversations/components/conversation-sidebar";
@@ -19,24 +20,41 @@ export const ProjectIdLayout = ({
   children: React.ReactNode;
   projectId: Id<"projects">;
 }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   return (
     <div className="w-full h-screen flex flex-col">
       <Navbar projectId={projectId} />
       <div className="flex-1 flex overflow-hidden">
-        <Allotment
-          className="flex-1"
-          defaultSizes={[DEFAULT_CONVERSATION_SIDEBAR_WIDTH, DEFAULT_MAIN_SIZE]}
-        >
-          <Allotment.Pane
-            snap
-            minSize={MIN_SIDEBAR_WIDTH}
-            maxSize={MAX_SIDEBAR_WIDTH}
-            preferredSize={DEFAULT_CONVERSATION_SIDEBAR_WIDTH}
+        {isCollapsed ? (
+          <div className="flex h-full w-full overflow-hidden">
+            <ConversationSidebar
+              projectId={projectId}
+              isCollapsed={true}
+              onToggleCollapse={() => setIsCollapsed(false)}
+            />
+            <div className="flex-1 min-w-0">{children}</div>
+          </div>
+        ) : (
+          <Allotment
+            className="flex-1"
+            defaultSizes={[DEFAULT_CONVERSATION_SIDEBAR_WIDTH, DEFAULT_MAIN_SIZE]}
           >
-            <ConversationSidebar projectId={projectId} />
-          </Allotment.Pane>
-          <Allotment.Pane>{children}</Allotment.Pane>
-        </Allotment>
+            <Allotment.Pane
+              snap
+              minSize={MIN_SIDEBAR_WIDTH}
+              maxSize={MAX_SIDEBAR_WIDTH}
+              preferredSize={DEFAULT_CONVERSATION_SIDEBAR_WIDTH}
+            >
+              <ConversationSidebar
+                projectId={projectId}
+                isCollapsed={false}
+                onToggleCollapse={() => setIsCollapsed(true)}
+              />
+            </Allotment.Pane>
+            <Allotment.Pane>{children}</Allotment.Pane>
+          </Allotment>
+        )}
       </div>
     </div>
   );

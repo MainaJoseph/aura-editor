@@ -81,6 +81,14 @@ export async function highlightCode(
     await highlighter.loadLanguage(language);
   }
 
+  const loadedThemes = highlighter.getLoadedThemes();
+  if (!loadedThemes.includes("one-light")) {
+    await highlighter.loadTheme("one-light");
+  }
+  if (!loadedThemes.includes("one-dark-pro")) {
+    await highlighter.loadTheme("one-dark-pro");
+  }
+
   return [
     highlighter.codeToHtml(code, {
       lang: language,
