@@ -14,6 +14,7 @@ import { IconStyleProvider } from "@/features/projects/components/file-explorer/
 import { useMaterialIcons } from "@/features/projects/hooks/use-material-icons";
 import { useEditorStore, ExtensionTabData } from "../store/use-editor-store";
 import { BlocksIcon, Columns2Icon, XIcon } from "lucide-react";
+import { VscTerminal } from "react-icons/vsc";
 
 const Tab = ({
   fileId,
@@ -233,6 +234,8 @@ export const TopNavigation = ({
   const materialIcons = useMaterialIcons(projectId);
   const projectState = useEditorStore((s) => s.getProjectState(projectId));
   const openExtensions = paneIndex === 0 ? projectState.openExtensions : [];
+  const showTerminalPanel = projectState.showTerminalPanel;
+  const toggleTerminalPanel = useEditorStore((s) => s.toggleTerminalPanel);
   const [isDragOver, setIsDragOver] = useState(false);
 
   return (
@@ -294,6 +297,21 @@ export const TopNavigation = ({
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
       <div className="flex items-center h-8.75 border-b bg-sidebar">
+        {paneIndex === 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTerminalPanel(projectId);
+            }}
+            className={cn(
+              "flex items-center justify-center size-8.75 text-muted-foreground hover:text-foreground hover:bg-accent/30",
+              showTerminalPanel && "text-foreground bg-accent/30"
+            )}
+            title="Toggle terminal panel (⌘+`)"
+          >
+            <VscTerminal className="size-3.5" />
+          </button>
+        )}
         {isSplit ? (
           <button
             onClick={(e) => {

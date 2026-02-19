@@ -27,7 +27,13 @@ import { useProject } from "../hooks/use-projects";
 
 import { Id } from "../../../../convex/_generated/dataModel";
 
-export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
+export const PreviewView = ({
+  projectId,
+  isActive,
+}: {
+  projectId: Id<"projects">;
+  isActive: boolean;
+}) => {
   const project = useProject(projectId);
   const [showTerminal, setShowTerminal] = useState(true);
   const [activePanel, setActivePanel] = useState<"terminal" | "console">(
@@ -72,6 +78,7 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (
+        isActive &&
         e.key === "`" &&
         (e.ctrlKey || e.metaKey) &&
         !e.shiftKey &&
@@ -83,7 +90,7 @@ export const PreviewView = ({ projectId }: { projectId: Id<"projects"> }) => {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [togglePanel]);
+  }, [isActive, togglePanel]);
 
   return (
     <div className="h-full flex flex-col bg-background">

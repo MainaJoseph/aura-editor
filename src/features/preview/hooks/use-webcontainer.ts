@@ -53,6 +53,10 @@ const getWebContainer = async (): Promise<WebContainer> => {
   return webcontainerInstance;
 };
 
+export function getContainerInstance(): WebContainer | null {
+  return webcontainerInstance;
+}
+
 const teardownWebContainer = () => {
   if (webcontainerInstance) {
     webcontainerInstance.teardown();
