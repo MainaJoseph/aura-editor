@@ -12,7 +12,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { type BundledLanguage, codeToHtml, type ShikiTransformer } from "shiki";
+import {
+  type BundledLanguage,
+  createHighlighter,
+  type ShikiTransformer,
+} from "shiki";
 
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   code: string;
@@ -49,6 +53,18 @@ const lineNumberTransformer: ShikiTransformer = {
   },
 };
 
+let highlighterPromise: ReturnType<typeof createHighlighter> | null = null;
+
+function getHighlighter() {
+  if (!highlighterPromise) {
+    highlighterPromise = createHighlighter({
+      themes: ["one-light", "one-dark-pro"],
+      langs: [],
+    });
+  }
+  return highlighterPromise;
+}
+
 export async function highlightCode(
   code: string,
   language: BundledLanguage,
@@ -58,18 +74,25 @@ export async function highlightCode(
     ? [lineNumberTransformer]
     : [];
 
-  return await Promise.all([
-    codeToHtml(code, {
+  const highlighter = await getHighlighter();
+
+  const loadedLangs = highlighter.getLoadedLanguages();
+  if (!loadedLangs.includes(language as string)) {
+    await highlighter.loadLanguage(language);
+  }
+
+  return [
+    highlighter.codeToHtml(code, {
       lang: language,
       theme: "one-light",
       transformers,
     }),
-    codeToHtml(code, {
+    highlighter.codeToHtml(code, {
       lang: language,
       theme: "one-dark-pro",
       transformers,
     }),
-  ]);
+  ];
 }
 
 export const CodeBlock = ({

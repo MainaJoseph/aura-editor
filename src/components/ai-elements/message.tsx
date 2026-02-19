@@ -306,6 +306,7 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
     <Streamdown
+      cdnUrl="https://streamdown.ai/cdn"
       shikiTheme={["one-dark-pro", "one-light"]}
       className={cn(
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&>div]:bg-accent [&>div]:rounded-md",
