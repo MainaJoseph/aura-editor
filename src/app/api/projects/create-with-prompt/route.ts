@@ -17,6 +17,15 @@ import { api } from "../../../../../convex/_generated/api";
 
 const requestSchema = z.object({
   prompt: z.string().min(1),
+  attachments: z.optional(
+    z.array(
+      z.object({
+        storageId: z.string(),
+        mediaType: z.string(),
+        filename: z.string().optional(),
+      }),
+    ),
+  ),
 });
 
 export async function POST(request: Request) {
@@ -43,8 +52,9 @@ export async function POST(request: Request) {
   }
 
   let prompt: string;
+  let attachments: { storageId: string; mediaType: string; filename?: string }[] | undefined;
   try {
-    ({ prompt } = requestSchema.parse(body));
+    ({ prompt, attachments } = requestSchema.parse(body));
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
@@ -75,6 +85,7 @@ export async function POST(request: Request) {
       projectId,
       role: "user",
       content: prompt,
+      attachments,
     });
 
     // Create assistant message placeholder with processing status
@@ -95,6 +106,7 @@ export async function POST(request: Request) {
         conversationId,
         projectId,
         message: prompt,
+        attachments,
       },
     });
   } catch (error) {
