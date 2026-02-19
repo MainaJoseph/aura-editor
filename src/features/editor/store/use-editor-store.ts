@@ -245,10 +245,9 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
   closeAllTabsAllPanes: (projectId) => {
     const tabs = new Map(get().tabs);
     tabs.set(projectId, {
+      ...defaultProjectState,
       panes: [{ ...defaultTabState }],
-      activePaneIndex: 0,
-      openExtensions: [],
-      activeExtensionId: null,
+      showTerminalPanel: false,
     });
     set({ tabs });
   },
