@@ -38,6 +38,7 @@ interface ProjectEditorState {
   activePaneIndex: number;
   openExtensions: ExtensionTabData[];
   activeExtensionId: Id<"extensions"> | null;
+  showTerminalPanel: boolean;
 }
 
 const defaultProjectState: ProjectEditorState = {
@@ -45,6 +46,7 @@ const defaultProjectState: ProjectEditorState = {
   activePaneIndex: 0,
   openExtensions: [],
   activeExtensionId: null,
+  showTerminalPanel: false,
 };
 
 interface EditorStore {
@@ -98,6 +100,7 @@ interface EditorStore {
     fromIndex: number,
     toIndex: number
   ) => void;
+  toggleTerminalPanel: (projectId: Id<"projects">) => void;
 }
 
 export const useEditorStore = create<EditorStore>()((set, get) => ({
@@ -242,10 +245,9 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
   closeAllTabsAllPanes: (projectId) => {
     const tabs = new Map(get().tabs);
     tabs.set(projectId, {
+      ...defaultProjectState,
       panes: [{ ...defaultTabState }],
-      activePaneIndex: 0,
-      openExtensions: [],
-      activeExtensionId: null,
+      showTerminalPanel: false,
     });
     set({ tabs });
   },
@@ -439,6 +441,13 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
     openExtensions.splice(toIndex, 0, moved);
 
     tabs.set(projectId, { ...project, openExtensions });
+    set({ tabs });
+  },
+
+  toggleTerminalPanel: (projectId) => {
+    const tabs = new Map(get().tabs);
+    const project = tabs.get(projectId) ?? { ...defaultProjectState };
+    tabs.set(projectId, { ...project, showTerminalPanel: !project.showTerminalPanel });
     set({ tabs });
   },
 }));

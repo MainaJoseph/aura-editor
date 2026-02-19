@@ -10,6 +10,7 @@ import { useMutation } from "convex/react";
 import { cn } from "@/lib/utils";
 import { SplitEditorView } from "@/features/editor/components/split-editor-view";
 import { useEditorStore, ExtensionTabData } from "@/features/editor/store/use-editor-store";
+import { EditorTerminalPanel } from "@/features/editor/components/editor-terminal-panel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,6 +70,10 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const [fileFinderOpen, setFileFinderOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const openExtensionTab = useEditorStore((s) => s.openExtensionTab);
+  const showTerminalPanel = useEditorStore(
+    (s) => s.getProjectState(projectId).showTerminalPanel
+  );
+  const toggleTerminalPanel = useEditorStore((s) => s.toggleTerminalPanel);
   const isDragging = useRef(false);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -104,11 +109,21 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
         e.preventDefault();
         setFileFinderOpen(true);
       }
+      if (
+        activeView === "editor" &&
+        e.key === "`" &&
+        (e.ctrlKey || e.metaKey) &&
+        !e.shiftKey &&
+        !e.altKey
+      ) {
+        e.preventDefault();
+        toggleTerminalPanel(projectId);
+      }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [activeView, projectId, toggleTerminalPanel]);
 
   const handlePanelToggle = (panel: string) => {
     if (panel === "explorer" || panel === "search" || panel === "extensions") {
@@ -264,10 +279,18 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
                 className="w-1 h-full shrink-0 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/50 transition-colors"
               />
             )}
-            <div className="flex-1 min-w-0">
-              <Allotment>
+            <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+              <Allotment vertical>
                 <Allotment.Pane>
                   <SplitEditorView projectId={projectId} />
+                </Allotment.Pane>
+                <Allotment.Pane
+                  visible={showTerminalPanel}
+                  minSize={100}
+                  maxSize={500}
+                  preferredSize={200}
+                >
+                  <EditorTerminalPanel projectId={projectId} />
                 </Allotment.Pane>
               </Allotment>
             </div>
@@ -279,7 +302,7 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
             activeView === "preview" ? "visible" : "invisible",
           )}
         >
-          <PreviewView projectId={projectId} />
+          <PreviewView projectId={projectId} isActive={activeView === "preview"} />
         </div>
       </div>
     </div>
