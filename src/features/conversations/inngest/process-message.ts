@@ -9,7 +9,7 @@ import { anthropic as anthropicAi } from "@ai-sdk/anthropic";
 
 import { inngest } from "@/inngest/client";
 import { Id } from "../../../../convex/_generated/dataModel";
-import { NonRetriableError } from "inngest";
+import { NonRetriableError, RetryAfterError } from "inngest";
 import { convex } from "@/lib/convex-client";
 import { api } from "../../../../convex/_generated/api";
 import {
@@ -25,6 +25,16 @@ import { createCreateFolderTool } from "./tools/create-folder";
 import { createRenameFileTool } from "./tools/rename-file";
 import { createDeleteFilesTool } from "./tools/delete-files";
 import { createScrapeUrlsTool } from "./tools/scrape-urls";
+
+function isRateLimitError(err: unknown): boolean {
+  if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    if (e["status"] === 429 || e["statusCode"] === 429) return true;
+    const inner = e["error"] as Record<string, unknown> | undefined;
+    if (inner?.["type"] === "rate_limit_error") return true;
+  }
+  return false;
+}
 
 interface AttachmentData {
   storageId: Id<"_storage">;
@@ -229,23 +239,30 @@ export const processMessage = inngest.createFunction(
 
         if (imageParts.length === 0) return null;
 
-        const { text } = await generateText({
-          model: anthropicAi("claude-sonnet-4-6"),
-          messages: [
-            {
-              role: "user",
-              content: [
-                ...imageParts,
-                {
-                  type: "text" as const,
-                  text: `The user has shared ${imageParts.length > 1 ? "these images" : "this image"} with the following message: "${message}"\n\nProvide a detailed description of what you see in the image(s), then respond to the user's message in context. Be thorough about visual details like layout, colors, text, UI elements, code, errors, or any other relevant information visible in the image(s).`,
-                },
-              ],
-            },
-          ],
-        });
+        try {
+          const { text } = await generateText({
+            model: anthropicAi("claude-sonnet-4-6"),
+            messages: [
+              {
+                role: "user",
+                content: [
+                  ...imageParts,
+                  {
+                    type: "text" as const,
+                    text: `The user has shared ${imageParts.length > 1 ? "these images" : "this image"} with the following message: "${message}"\n\nProvide a detailed description of what you see in the image(s), then respond to the user's message in context. Be thorough about visual details like layout, colors, text, UI elements, code, errors, or any other relevant information visible in the image(s).`,
+                  },
+                ],
+              },
+            ],
+          });
 
-        return text;
+          return text;
+        } catch (err) {
+          if (isRateLimitError(err)) {
+            throw new RetryAfterError("Anthropic rate limit reached", "60s");
+          }
+          throw err;
+        }
       });
 
       if (visionDescription) {
@@ -254,7 +271,15 @@ export const processMessage = inngest.createFunction(
     }
 
     // Run the agent
-    const result = await network.run(agentInput);
+    let result: Awaited<ReturnType<typeof network.run>>;
+    try {
+      result = await network.run(agentInput);
+    } catch (err) {
+      if (isRateLimitError(err)) {
+        throw new RetryAfterError("Anthropic rate limit reached", "60s");
+      }
+      throw err;
+    }
 
     // Extract the assistant's text response from the last agent result
     const lastResult = result.state.results.at(-1);
