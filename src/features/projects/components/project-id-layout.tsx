@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 import { ConversationSidebar } from "@/features/conversations/components/conversation-sidebar";
 
@@ -21,6 +21,13 @@ export const ProjectIdLayout = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_CONVERSATION_SIDEBAR_WIDTH);
   const isDragging = useRef(false);
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      cleanupRef.current?.();
+    };
+  }, []);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -41,12 +48,22 @@ export const ProjectIdLayout = ({
         document.removeEventListener("mouseup", handleMouseUp);
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
+        cleanupRef.current = null;
+      };
+
+      const cleanup = () => {
+        isDragging.current = false;
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
       };
 
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
+      cleanupRef.current = cleanup;
     },
     [sidebarWidth]
   );

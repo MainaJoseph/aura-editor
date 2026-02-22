@@ -76,6 +76,13 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   );
   const toggleTerminalPanel = useEditorStore((s) => s.toggleTerminalPanel);
   const isDragging = useRef(false);
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      cleanupRef.current?.();
+    };
+  }, []);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -96,12 +103,22 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
       document.removeEventListener("mouseup", handleMouseUp);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
+      cleanupRef.current = null;
+    };
+
+    const cleanup = () => {
+      isDragging.current = false;
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     };
 
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
+    cleanupRef.current = cleanup;
   }, [sidebarWidth]);
 
   useEffect(() => {
