@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Allotment } from "allotment";
-import { FaGithub } from "react-icons/fa";
 import { Trash2Icon, Loader2Icon, SearchIcon, UsersIcon } from "lucide-react";
 import { useMutation } from "convex/react";
 
@@ -25,8 +24,11 @@ import {
 
 import { FileExplorer } from "./file-explorer";
 import { ActivityBar } from "./activity-bar";
+import { GitPanel } from "@/features/git/components/git-panel";
+import { GitDiffView } from "@/features/git/components/git-diff-view";
 import { SearchPanel } from "./search-panel";
 import { ExtensionsPanel } from "@/features/extensions/components/extensions-panel";
+import { useGitStore } from "@/features/git/store/use-git-store";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { PreviewView } from "./preview-view";
@@ -63,7 +65,7 @@ const Tab = ({
 export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const router = useRouter();
   const [activeView, setActiveView] = useState<"editor" | "preview">("editor");
-  const [activePanel, setActivePanel] = useState<"explorer" | "search" | "extensions" | null>(
+  const [activePanel, setActivePanel] = useState<"explorer" | "search" | "extensions" | "git" | null>(
     "explorer"
   );
   const [isDeleting, setIsDeleting] = useState(false);
@@ -77,6 +79,11 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const toggleTerminalPanel = useEditorStore((s) => s.toggleTerminalPanel);
   const isDragging = useRef(false);
   const cleanupRef = useRef<(() => void) | null>(null);
+
+  // Git store
+  const gitChangeCount = useGitStore((s) => s.changeCount);
+  const diffPath = useGitStore((s) => s.diffPath);
+  const setDiffPath = useGitStore((s) => s.setDiffPath);
 
   useEffect(() => {
     return () => {
@@ -127,6 +134,9 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
         e.preventDefault();
         setFileFinderOpen(true);
       }
+      if (e.key === "Escape" && diffPath) {
+        setDiffPath(null);
+      }
       if (
         activeView === "editor" &&
         e.key === "`" &&
@@ -141,10 +151,10 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [activeView, projectId, toggleTerminalPanel]);
+  }, [activeView, projectId, toggleTerminalPanel, diffPath, setDiffPath]);
 
   const handlePanelToggle = (panel: string) => {
-    if (panel === "explorer" || panel === "search" || panel === "extensions") {
+    if (panel === "explorer" || panel === "search" || panel === "extensions" || panel === "git") {
       setActivePanel((current) => (current === panel ? null : panel));
     }
   };
@@ -255,6 +265,7 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
             activePanel={activePanel}
             onPanelToggle={handlePanelToggle}
             sidebarWidth={sidebarWidth}
+            gitChangeCount={gitChangeCount}
           />
           <div className="flex-1 flex overflow-hidden">
             {/* Keep panels mounted to avoid refetching on toggle */}
@@ -295,28 +306,45 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
                     }
                   />
                 </div>
+                <div
+                  className={cn(
+                    "h-full",
+                    activePanel !== "git" && "hidden"
+                  )}
+                >
+                  <GitPanel projectId={projectId} isActive={activePanel === "git"} />
+                </div>
               </div>
             </div>
             {activePanel && (
               <div
                 onMouseDown={handleResizeStart}
-                className="w-1 h-full shrink-0 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/50 transition-colors"
+                className="w-px h-full shrink-0 cursor-col-resize bg-border hover:bg-blue-500/50 active:bg-blue-500/50 transition-colors"
               />
             )}
             <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-              <Allotment vertical>
-                <Allotment.Pane>
-                  <SplitEditorView projectId={projectId} />
-                </Allotment.Pane>
-                <Allotment.Pane
-                  visible={showTerminalPanel}
-                  minSize={100}
-                  maxSize={500}
-                  preferredSize={200}
-                >
-                  <EditorTerminalPanel projectId={projectId} />
-                </Allotment.Pane>
-              </Allotment>
+              {/* Show diff view when a git file is selected, otherwise show normal editor */}
+              {diffPath && activePanel === "git" ? (
+                <GitDiffView
+                  projectId={projectId}
+                  path={diffPath}
+                  onClose={() => setDiffPath(null)}
+                />
+              ) : (
+                <Allotment vertical>
+                  <Allotment.Pane>
+                    <SplitEditorView projectId={projectId} />
+                  </Allotment.Pane>
+                  <Allotment.Pane
+                    visible={showTerminalPanel}
+                    minSize={100}
+                    maxSize={500}
+                    preferredSize={200}
+                  >
+                    <EditorTerminalPanel projectId={projectId} />
+                  </Allotment.Pane>
+                </Allotment>
+              )}
             </div>
           </div>
         </div>

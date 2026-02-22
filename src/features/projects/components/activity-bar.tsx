@@ -32,12 +32,13 @@ interface ActivityBarProps {
   activePanel: string | null;
   onPanelToggle: (panel: string) => void;
   sidebarWidth: number;
+  gitChangeCount?: number;
 }
 
 const topItems = [
   { id: "explorer", icon: FilesIcon, label: "Explorer" },
   { id: "search", icon: SearchIcon, label: "Search" },
-  { id: "source-control", icon: GitBranchIcon, label: "Source Control" },
+  { id: "git", icon: GitBranchIcon, label: "Source Control" },
   { id: "extensions", icon: BlocksIcon, label: "Extensions" },
 ];
 
@@ -52,7 +53,7 @@ const settingsMenuItems = [
   { id: "themes", icon: SunMoonIcon, label: "Themes" },
 ];
 
-export const ActivityBar = ({ activePanel, onPanelToggle, sidebarWidth }: ActivityBarProps) => {
+export const ActivityBar = ({ activePanel, onPanelToggle, sidebarWidth, gitChangeCount = 0 }: ActivityBarProps) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -60,21 +61,29 @@ export const ActivityBar = ({ activePanel, onPanelToggle, sidebarWidth }: Activi
       <div className="flex flex-col items-center">
         {topItems.map((item) => {
           const isActive = activePanel === item.id;
+          const showBadge = item.id === "git" && gitChangeCount > 0;
+
           return (
             <Tooltip key={item.id}>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => onPanelToggle(item.id)}
                   className={cn(
-                    "w-full flex items-center justify-center h-12 text-muted-foreground/60 hover:text-muted-foreground transition-colors",
+                    "relative w-full flex items-center justify-center h-12 text-muted-foreground/60 hover:text-muted-foreground transition-colors",
                     isActive && "text-foreground border-l-2 border-foreground"
                   )}
                 >
                   <item.icon className="size-5" />
+                  {showBadge && (
+                    <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold leading-none">
+                      {gitChangeCount > 99 ? "99+" : gitChangeCount}
+                    </span>
+                  )}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={4}>
                 {item.label}
+                {showBadge && ` (${gitChangeCount} change${gitChangeCount !== 1 ? "s" : ""})`}
               </TooltipContent>
             </Tooltip>
           );
