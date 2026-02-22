@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Allotment } from "allotment";
 import { FaGithub } from "react-icons/fa";
-import { Trash2Icon, Loader2Icon, SearchIcon } from "lucide-react";
+import { Trash2Icon, Loader2Icon, SearchIcon, UsersIcon } from "lucide-react";
 import { useMutation } from "convex/react";
 
 import { cn } from "@/lib/utils";
@@ -31,6 +31,7 @@ import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { PreviewView } from "./preview-view";
 import { ExportPopover } from "./export-popover";
+import { ShareDialog } from "./share-dialog";
 import { FileFinderDialog } from "./file-finder-dialog";
 
 const DEFAULT_SIDEBAR_WIDTH = 260;
@@ -177,6 +178,12 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
           )}
           {activeView === "preview" && <div className="flex-1" />}
           <div className="flex items-center h-full">
+            <ShareDialog projectId={projectId}>
+              <button className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30">
+                <UsersIcon className="size-3.5" />
+                <span className="text-sm">Share</span>
+              </button>
+            </ShareDialog>
             <ExportPopover projectId={projectId} />
           </div>
           <AlertDialog

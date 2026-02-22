@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Allotment } from "allotment";
+import { useState, useRef, useCallback } from "react";
 
 import { ConversationSidebar } from "@/features/conversations/components/conversation-sidebar";
 
@@ -11,7 +10,6 @@ import { Id } from "../../../../convex/_generated/dataModel";
 const MIN_SIDEBAR_WIDTH = 200;
 const MAX_SIDEBAR_WIDTH = 800;
 const DEFAULT_CONVERSATION_SIDEBAR_WIDTH = 400;
-const DEFAULT_MAIN_SIZE = 1000;
 
 export const ProjectIdLayout = ({
   children,
@@ -21,40 +19,64 @@ export const ProjectIdLayout = ({
   projectId: Id<"projects">;
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_CONVERSATION_SIDEBAR_WIDTH);
+  const isDragging = useRef(false);
+
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isDragging.current = true;
+      const startX = e.clientX;
+      const startWidth = sidebarWidth;
+
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!isDragging.current) return;
+        const newWidth = startWidth + (e.clientX - startX);
+        setSidebarWidth(Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, newWidth)));
+      };
+
+      const handleMouseUp = () => {
+        isDragging.current = false;
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      };
+
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [sidebarWidth]
+  );
 
   return (
     <div className="w-full h-screen flex flex-col">
       <Navbar projectId={projectId} />
       <div className="flex-1 flex overflow-hidden">
-        {isCollapsed ? (
-          <div className="flex h-full w-full overflow-hidden">
-            <ConversationSidebar
-              projectId={projectId}
-              isCollapsed={true}
-              onToggleCollapse={() => setIsCollapsed(false)}
-            />
-            <div className="flex-1 min-w-0">{children}</div>
-          </div>
-        ) : (
-          <Allotment
-            className="flex-1"
-            defaultSizes={[DEFAULT_CONVERSATION_SIDEBAR_WIDTH, DEFAULT_MAIN_SIZE]}
-          >
-            <Allotment.Pane
-              snap
-              minSize={MIN_SIDEBAR_WIDTH}
-              maxSize={MAX_SIDEBAR_WIDTH}
-              preferredSize={DEFAULT_CONVERSATION_SIDEBAR_WIDTH}
-            >
-              <ConversationSidebar
-                projectId={projectId}
-                isCollapsed={false}
-                onToggleCollapse={() => setIsCollapsed(true)}
-              />
-            </Allotment.Pane>
-            <Allotment.Pane>{children}</Allotment.Pane>
-          </Allotment>
+        {/* Sidebar — always mounted, never swaps tree position */}
+        <div
+          className="h-full shrink-0 overflow-hidden"
+          style={isCollapsed ? undefined : { width: sidebarWidth }}
+        >
+          <ConversationSidebar
+            projectId={projectId}
+            isCollapsed={isCollapsed}
+            onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+          />
+        </div>
+        {/* Drag-to-resize handle, only visible when expanded */}
+        {!isCollapsed && (
+          <div
+            onMouseDown={handleResizeStart}
+            className="w-1 h-full shrink-0 cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/50 transition-colors"
+          />
         )}
+        {/* Children always at the same tree position — never remounts */}
+        <div className="flex-1 min-w-0 overflow-hidden">
+          {children}
+        </div>
       </div>
     </div>
   );
