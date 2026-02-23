@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Poppins } from "next/font/google";
 import { SparkleIcon, PlayIcon } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { toast } from "sonner";
@@ -36,7 +36,8 @@ export const ProjectsView = () => {
   const isDemoQueryLoading = existingDemo === undefined;
   const { cloneDemo } = useCloneDemoProject();
 
-  const handleTryDemo = async () => {
+  const handleTryDemo = useCallback(async () => {
+    if (isDemoQueryLoading) return;
     if (existingDemo) {
       router.push(`/projects/${existingDemo._id}`);
       return;
@@ -54,7 +55,7 @@ export const ProjectsView = () => {
     } finally {
       setIsDemoLoading(false);
     }
-  };
+  }, [isDemoQueryLoading, existingDemo, router, cloneDemo]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -80,8 +81,7 @@ export const ProjectsView = () => {
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingDemo]);
+  }, [handleTryDemo]);
 
   return (
     <>
