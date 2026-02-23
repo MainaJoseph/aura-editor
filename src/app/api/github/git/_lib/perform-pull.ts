@@ -41,7 +41,7 @@ export async function performPull({
 
   type FetchedFile =
     | { path: string; name: string; parentPath: string; isBinary: false; content: string }
-    | { path: string; name: string; parentPath: string; isBinary: true; buffer: Uint8Array };
+    | { path: string; name: string; parentPath: string; isBinary: true; base64: string };
 
   try {
     // ── Phase 1: Fetch all GitHub data BEFORE touching the database ──────────
@@ -113,8 +113,8 @@ export async function performPull({
         const parentPath = pathParts.join("/");
 
         if (isBinary) {
-          // Cast to Uint8Array — Buffer extends Uint8Array, and Uint8Array satisfies BodyInit
-          fetchedFiles.push({ path: file.path, name, parentPath, isBinary: true, buffer: buffer as Uint8Array });
+          // Store raw base64 string — avoids Uint8Array<ArrayBufferLike> generic type issues
+          fetchedFiles.push({ path: file.path, name, parentPath, isBinary: true, base64: blob.content });
         } else {
           fetchedFiles.push({ path: file.path, name, parentPath, isBinary: false, content: buffer.toString("utf-8") });
         }
@@ -170,10 +170,11 @@ export async function performPull({
 
         if (fileData.isBinary) {
           const uploadUrl = await convex.mutation(api.system.generateUploadUrl, { internalKey });
+          const binaryBuffer = Buffer.from(fileData.base64, "base64");
           const { storageId } = await ky
             .post(uploadUrl, {
               headers: { "Content-Type": "application/octet-stream" },
-              body: fileData.buffer,
+              body: binaryBuffer as unknown as BodyInit,
             })
             .json<{ storageId: Id<"_storage"> }>();
 

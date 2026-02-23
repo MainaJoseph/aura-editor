@@ -15,11 +15,6 @@ interface GitPullEvent {
   userId: string;
 }
 
-// Serializable representation of a pre-fetched file (Buffer replaced with base64 string)
-type FetchedFile =
-  | { path: string; name: string; parentPath: string; isBinary: false; content: string }
-  | { path: string; name: string; parentPath: string; isBinary: true; base64: string };
-
 export const gitPull = inngest.createFunction(
   {
     id: "git-pull",
@@ -81,12 +76,14 @@ export const gitPull = inngest.createFunction(
     const [owner, repo] = repoParts;
     const octokit = new Octokit({ auth: githubToken });
 
-    // ── Phase 1: Fetch all GitHub data BEFORE touching the database ──────────
-    // Any failure here leaves existing project files completely intact.
+    // ── Phase 1: Confirm GitHub access with lightweight metadata fetches ─────
+    // get-head-sha and fetch-repo-tree together verify the token is valid and the
+    // full file tree is accessible. Cleanup only runs after both succeed, so a
+    // token expiry or network error leaves existing project files intact.
+    // Per-file blob fetch failures after cleanup are tracked and excluded from
+    // gitRemoteTree — they are far less likely than whole-operation failures.
 
-    // Get HEAD SHA first so the tree fetch is pinned to the same commit (TOCTOU fix).
-    // Using the branch name for both calls creates a window where a concurrent push
-    // causes headSha to differ from the tree that was actually pulled.
+    // Get HEAD SHA first to pin the tree to a specific commit (TOCTOU fix)
     const headSha = await step.run("get-head-sha", async () => {
       const { data: ref } = await octokit.rest.git.getRef({
         owner,
@@ -96,7 +93,8 @@ export const gitPull = inngest.createFunction(
       return ref.object.sha;
     });
 
-    // Fetch the repo tree pinned to headSha (not the mutable branch name)
+    // Fetch the repo tree pinned to headSha (not the mutable branch name).
+    // Returns only path/sha/type metadata — well within step output limits.
     const tree = await step.run("fetch-repo-tree", async () => {
       const { data } = await octokit.rest.git.getTree({
         owner,
@@ -130,50 +128,7 @@ export const gitPull = inngest.createFunction(
       }
     });
 
-    // Pre-fetch all file blobs before any database writes.
-    // Buffers are encoded as base64 strings to remain JSON-serializable across steps.
-    const { fetchedFiles, fetchFailedPaths } = await step.run("fetch-file-blobs", async () => {
-      const allFileItems = tree.tree.filter(
-        (item) => item.type === "blob" && item.path && item.sha,
-      );
-      const fetched: FetchedFile[] = [];
-      const failed: string[] = [];
-
-      for (const file of allFileItems) {
-        if (!file.path || !file.sha) continue;
-        try {
-          const { data: blob } = await octokit.rest.git.getBlob({
-            owner,
-            repo,
-            file_sha: file.sha,
-          });
-          const buffer = Buffer.from(blob.content, "base64");
-          const isBinary = await isBinaryFile(buffer);
-
-          const pathParts = file.path.split("/");
-          const name = pathParts.pop()!;
-          const parentPath = pathParts.join("/");
-
-          if (isBinary) {
-            // Keep the raw base64 string — avoids Buffer serialization issues
-            fetched.push({ path: file.path, name, parentPath, isBinary: true, base64: blob.content });
-          } else {
-            fetched.push({ path: file.path, name, parentPath, isBinary: false, content: buffer.toString("utf-8") });
-          }
-        } catch (error) {
-          console.error(`Failed to fetch blob: ${file.path}`, error);
-          failed.push(file.path);
-        }
-      }
-
-      return { fetchedFiles: fetched, fetchFailedPaths: failed };
-    });
-
     // ── Phase 2: Write to the database ───────────────────────────────────────
-    // All GitHub API calls succeeded. Now safe to replace existing files.
-    // Trade-off: a Convex failure between cleanup and writes would still leave
-    // the project empty, but Convex mutations are far more reliable than
-    // external API calls and cross-mutation transactions are not supported.
 
     await step.run("cleanup-project", async () => {
       await convex.mutation(api.system.cleanup, {
@@ -215,30 +170,49 @@ export const gitPull = inngest.createFunction(
       return map;
     });
 
-    // Write pre-fetched files and track any per-file write failures
-    const writeFailedPaths = await step.run("create-files", async () => {
+    // Fetch each blob and write it immediately — file content is never held in
+    // step output, avoiding Inngest's per-step size limit. Only failed paths are
+    // returned (small string array).
+    const allFiles = tree.tree.filter(
+      (item) => item.type === "blob" && item.path && item.sha,
+    );
+
+    const failedPaths = await step.run("create-files", async () => {
       const failed: string[] = [];
 
-      for (const fileData of fetchedFiles) {
-        try {
-          const parentId = fileData.parentPath ? folderIdMap[fileData.parentPath] : undefined;
+      for (const file of allFiles) {
+        if (!file.path || !file.sha) continue;
 
-          if (fileData.isBinary) {
-            const buffer = Buffer.from(fileData.base64, "base64");
+        try {
+          const { data: blob } = await octokit.rest.git.getBlob({
+            owner,
+            repo,
+            file_sha: file.sha,
+          });
+
+          const buffer = Buffer.from(blob.content, "base64");
+          const isBinary = await isBinaryFile(buffer);
+
+          const pathParts = file.path.split("/");
+          const name = pathParts.pop()!;
+          const parentPath = pathParts.join("/");
+          const parentId = parentPath ? folderIdMap[parentPath] : undefined;
+
+          if (isBinary) {
             const uploadUrl = await convex.mutation(api.system.generateUploadUrl, {
               internalKey,
             });
             const { storageId } = await ky
               .post(uploadUrl, {
                 headers: { "Content-Type": "application/octet-stream" },
-                body: buffer,
+                body: buffer as unknown as BodyInit,
               })
               .json<{ storageId: Id<"_storage"> }>();
 
             await convex.mutation(api.system.createBinaryFile, {
               internalKey,
               projectId,
-              name: fileData.name,
+              name,
               storageId,
               parentId,
             });
@@ -246,14 +220,14 @@ export const gitPull = inngest.createFunction(
             await convex.mutation(api.system.createFile, {
               internalKey,
               projectId,
-              name: fileData.name,
-              content: fileData.content,
+              name,
+              content: buffer.toString("utf-8"),
               parentId,
             });
           }
         } catch (error) {
-          console.error(`Failed to write file: ${fileData.path}`, error);
-          failed.push(fileData.path);
+          console.error(`Failed to fetch/write file: ${file.path}`, error);
+          failed.push(file.path);
         }
       }
 
@@ -261,10 +235,10 @@ export const gitPull = inngest.createFunction(
     });
 
     // Build remote tree cache — exclude files that failed to fetch or write
-    const allFailedPaths = new Set([...fetchFailedPaths, ...writeFailedPaths]);
+    const failedSet = new Set(failedPaths);
     const gitRemoteTree = JSON.stringify(
       tree.tree
-        .filter((e) => e.type === "blob" && e.path && e.sha && !allFailedPaths.has(e.path))
+        .filter((e) => e.type === "blob" && e.path && e.sha && !failedSet.has(e.path))
         .map((e) => ({ path: e.path!, sha: e.sha! })),
     );
 
@@ -279,6 +253,6 @@ export const gitPull = inngest.createFunction(
       });
     });
 
-    return { success: true, headSha, failedFiles: [...allFailedPaths] };
+    return { success: true, headSha, failedFiles: failedPaths };
   },
 );
