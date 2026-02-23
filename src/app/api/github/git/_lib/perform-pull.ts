@@ -41,7 +41,7 @@ export async function performPull({
 
   type FetchedFile =
     | { path: string; name: string; parentPath: string; isBinary: false; content: string }
-    | { path: string; name: string; parentPath: string; isBinary: true; buffer: Buffer };
+    | { path: string; name: string; parentPath: string; isBinary: true; buffer: Uint8Array };
 
   try {
     // ── Phase 1: Fetch all GitHub data BEFORE touching the database ──────────
@@ -113,7 +113,8 @@ export async function performPull({
         const parentPath = pathParts.join("/");
 
         if (isBinary) {
-          fetchedFiles.push({ path: file.path, name, parentPath, isBinary: true, buffer });
+          // Cast to Uint8Array — Buffer extends Uint8Array, and Uint8Array satisfies BodyInit
+          fetchedFiles.push({ path: file.path, name, parentPath, isBinary: true, buffer: buffer as Uint8Array });
         } else {
           fetchedFiles.push({ path: file.path, name, parentPath, isBinary: false, content: buffer.toString("utf-8") });
         }
