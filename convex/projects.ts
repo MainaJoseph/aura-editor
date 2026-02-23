@@ -404,14 +404,18 @@ export const cloneDemoProject = mutation({
       fileId: string,
       filesById: Map<string, (typeof templateFiles)[0]>,
       cache: Map<string, number>,
+      visiting = new Set<string>(),
     ): number => {
       if (cache.has(fileId)) return cache.get(fileId)!;
+      if (visiting.has(fileId)) return 0; // cycle detected, treat as root
       const file = filesById.get(fileId);
       if (!file || !file.parentId) {
         cache.set(fileId, 0);
         return 0;
       }
-      const depth = 1 + getDepth(file.parentId, filesById, cache);
+      visiting.add(fileId);
+      const depth = 1 + getDepth(file.parentId, filesById, cache, visiting);
+      visiting.delete(fileId);
       cache.set(fileId, depth);
       return depth;
     };

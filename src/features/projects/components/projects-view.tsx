@@ -33,6 +33,7 @@ export const ProjectsView = () => {
   const [isDemoLoading, setIsDemoLoading] = useState(false);
 
   const existingDemo = useUserDemoProject();
+  const isDemoQueryLoading = existingDemo === undefined;
   const { cloneDemo } = useCloneDemoProject();
 
   const handleTryDemo = async () => {
@@ -70,7 +71,7 @@ export const ProjectsView = () => {
           e.preventDefault();
           setNewProjectDialogOpen(true);
         }
-        if (e.key === "e") {
+        if (e.key === "d" && e.shiftKey) {
           e.preventDefault();
           handleTryDemo();
         }
@@ -162,12 +163,13 @@ export const ProjectsView = () => {
               <Button
                 variant="outline"
                 onClick={handleTryDemo}
-                disabled={isDemoLoading}
+                disabled={isDemoLoading || isDemoQueryLoading}
+                aria-busy={isDemoLoading}
                 className="h-full items-start justify-start p-4 bg-background border flex flex-col gap-6 rounded-none"
               >
                 <div className="flex items-center justify-between w-full">
                   <PlayIcon className="size-4" />
-                  <Kbd className="bg-accent border">⌘E</Kbd>
+                  <Kbd className="bg-accent border">⌘⇧D</Kbd>
                 </div>
                 <div>
                   <span className="text-sm">
