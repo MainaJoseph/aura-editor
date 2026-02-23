@@ -83,3 +83,12 @@ export const useUpdateProjectSettings = () => {
   // TODO: add optimistic mutation
   return useMutation(api.projects.updateSettings);
 };
+
+export const useUserDemoProject = () => {
+  return useQuery(api.projects.getUserDemoProject);
+};
+
+export const useCloneDemoProject = () => {
+  const cloneDemo = useMutation(api.projects.cloneDemoProject);
+  return { cloneDemo };
+};

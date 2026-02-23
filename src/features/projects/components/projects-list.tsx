@@ -59,7 +59,14 @@ const ContinueCard = ({ data }: { data: Doc<"projects"> }) => {
               {getProjectIcon(data)}
               <span className="font-medium truncate">{data.name}</span>
             </div>
-            <ArrowRightIcon className="size-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+            <div className="flex items-center gap-2">
+              {data.isDemo && (
+                <span className="text-[10px] bg-green-500/10 border border-green-500/30 rounded-sm px-1.5 py-0.5 text-green-600 dark:text-green-400">
+                  Demo Project
+                </span>
+              )}
+              <ArrowRightIcon className="size-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+            </div>
           </div>
           <span className="text-xs text-muted-foreground">
             {formatTimestamp(data.updatedAt)}
@@ -79,6 +86,11 @@ const ProjectItem = ({ data }: { data: Doc<"projects"> }) => {
       <div className="flex items-center gap-2">
         {getProjectIcon(data)}
         <span className="truncate">{data.name}</span>
+        {data.isDemo && (
+          <span className="text-[10px] bg-green-500/10 border border-green-500/30 rounded-sm px-1.5 py-0.5 text-green-600 dark:text-green-400">
+            Demo
+          </span>
+        )}
       </div>
       <span className="text-xs text-muted-foreground group-hover:text-foreground/60 transition-colors">
         {formatTimestamp(data.updatedAt)}

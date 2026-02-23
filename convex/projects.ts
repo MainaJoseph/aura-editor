@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 import { verifyAuth } from "./auth";
 import { requireProjectAccess } from "./members";
 
@@ -204,6 +205,10 @@ export const deleteProject = mutation({
 
     await requireProjectAccess(ctx, args.id, identity.subject, "owner");
 
+    if (project.isDemoTemplate) {
+      throw new Error("Cannot delete the demo template project");
+    }
+
     // Delete files in batches
     const files = await ctx.db
       .query("files")
@@ -321,6 +326,181 @@ export const deleteProject = mutation({
 
     // All related data deleted, now delete the project
     await ctx.db.delete(args.id);
+  },
+});
+
+export const markAsDemoTemplate = internalMutation({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) throw new Error("Project not found");
+    await ctx.db.patch(args.projectId, { isDemoTemplate: true });
+    return { success: true, name: project.name };
+  },
+});
+
+export const getUserDemoProject = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await verifyAuth(ctx);
+
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_owner", (q) => q.eq("ownerId", identity.subject))
+      .collect();
+
+    return projects.find((p) => p.isDemo === true) ?? null;
+  },
+});
+
+// Upper bounds for demo template — prevents hitting Convex's 8,192 doc read limit
+const DEMO_MAX_FILES = 500;
+const DEMO_MAX_CONVERSATIONS = 20;
+const DEMO_MAX_MESSAGES = 200;
+
+export const cloneDemoProject = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await verifyAuth(ctx);
+    const userId = identity.subject;
+
+    // Idempotency guard: use filter+first instead of collecting all owned projects
+    const existingDemo = await ctx.db
+      .query("projects")
+      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+      .filter((q) => q.eq(q.field("isDemo"), true))
+      .first();
+
+    if (existingDemo) {
+      return { projectId: existingDemo._id };
+    }
+
+    // Find the demo template via index (avoids full table scan)
+    const template = await ctx.db
+      .query("projects")
+      .withIndex("by_demo_template", (q) => q.eq("isDemoTemplate", true))
+      .first();
+
+    if (!template) {
+      return { error: "no_template" as const };
+    }
+
+    const now = Date.now();
+
+    // Create the new project (copy settings from template)
+    const newProjectId = await ctx.db.insert("projects", {
+      name: "Nexora",
+      ownerId: userId,
+      isDemo: true,
+      updatedAt: now,
+      ...(template.settings ? { settings: template.settings } : {}),
+    });
+
+    // Fetch template files within safe bounds
+    const templateFiles = await ctx.db
+      .query("files")
+      .withIndex("by_project", (q) => q.eq("projectId", template._id))
+      .take(DEMO_MAX_FILES);
+
+    // Calculate depth for each file (root = 0)
+    const getDepth = (
+      fileId: string,
+      filesById: Map<string, (typeof templateFiles)[0]>,
+      cache: Map<string, number>,
+      visiting = new Set<string>(),
+    ): number => {
+      if (cache.has(fileId)) return cache.get(fileId)!;
+      if (visiting.has(fileId)) return 0; // cycle detected, treat as root
+      const file = filesById.get(fileId);
+      if (!file || !file.parentId) {
+        cache.set(fileId, 0);
+        return 0;
+      }
+      visiting.add(fileId);
+      const depth = 1 + getDepth(file.parentId, filesById, cache, visiting);
+      visiting.delete(fileId);
+      cache.set(fileId, depth);
+      return depth;
+    };
+
+    const filesById = new Map(templateFiles.map((f) => [f._id, f]));
+    const depthCache = new Map<string, number>();
+    const sortedFiles = [...templateFiles].sort(
+      (a, b) =>
+        getDepth(a._id, filesById, depthCache) -
+        getDepth(b._id, filesById, depthCache),
+    );
+
+    const idMap = new Map<string, string>();
+
+    // Pass 1: create folders top-down
+    for (const file of sortedFiles) {
+      if (file.type !== "folder") continue;
+      const newParentId = file.parentId
+        ? (idMap.get(file.parentId) as Id<"files"> | undefined)
+        : undefined;
+      const newId = await ctx.db.insert("files", {
+        projectId: newProjectId,
+        name: file.name,
+        type: "folder",
+        parentId: newParentId,
+        updatedAt: now,
+      });
+      idMap.set(file._id, newId);
+    }
+
+    // Pass 2: create files (text and binary)
+    for (const file of sortedFiles) {
+      if (file.type !== "file") continue;
+      if (file.content == null && file.storageId == null) continue;
+      const newParentId = file.parentId
+        ? (idMap.get(file.parentId) as Id<"files"> | undefined)
+        : undefined;
+      await ctx.db.insert("files", {
+        projectId: newProjectId,
+        name: file.name,
+        type: "file",
+        parentId: newParentId,
+        updatedAt: now,
+        // Text file: copy content; binary file: share the immutable storageId blob
+        ...(file.content != null
+          ? { content: file.content }
+          : { storageId: file.storageId! }),
+      });
+    }
+
+    // Clone conversations and their messages within safe bounds
+    const templateConversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_project", (q) => q.eq("projectId", template._id))
+      .take(DEMO_MAX_CONVERSATIONS);
+
+    for (const convo of templateConversations) {
+      const newConvoId = await ctx.db.insert("conversations", {
+        projectId: newProjectId,
+        title: convo.title,
+        updatedAt: convo.updatedAt,
+      });
+
+      const templateMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) => q.eq("conversationId", convo._id))
+        .take(DEMO_MAX_MESSAGES);
+
+      for (const msg of templateMessages) {
+        await ctx.db.insert("messages", {
+          conversationId: newConvoId,
+          projectId: newProjectId,
+          role: msg.role,
+          content: msg.content,
+          ...(msg.status ? { status: msg.status } : {}),
+        });
+      }
+    }
+
+    return { projectId: newProjectId };
   },
 });
 

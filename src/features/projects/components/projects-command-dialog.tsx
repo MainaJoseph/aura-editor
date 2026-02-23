@@ -68,6 +68,11 @@ export const ProjectsCommandDialog = ({
             >
               {getProjectIcon(project)}
               <span>{project.name}</span>
+              {project.isDemo && (
+                <span className="text-[10px] bg-green-500/10 border border-green-500/30 rounded-sm px-1.5 py-0.5 text-green-600 dark:text-green-400">
+                  Demo
+                </span>
+              )}
             </CommandItem>
           ))}
         </CommandGroup>

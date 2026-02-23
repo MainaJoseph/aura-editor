@@ -22,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+import { useProject } from "../hooks/use-projects";
 import { FileExplorer } from "./file-explorer";
 import { ActivityBar } from "./activity-bar";
 import { GitPanel } from "@/features/git/components/git-panel";
@@ -64,6 +65,7 @@ const Tab = ({
 
 export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const router = useRouter();
+  const project = useProject(projectId);
   const [activeView, setActiveView] = useState<"editor" | "preview">("editor");
   const [activePanel, setActivePanel] = useState<"explorer" | "search" | "extensions" | "git" | null>(
     "explorer"
@@ -205,6 +207,11 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
           )}
           {activeView === "preview" && <div className="flex-1" />}
           <div className="flex items-center h-full">
+            {project?.isDemo && (
+              <span className="text-[10px] bg-green-500/10 border border-green-500/30 rounded-sm px-1.5 py-0.5 text-green-600 dark:text-green-400 mx-2">
+                Demo Project
+              </span>
+            )}
             <ShareDialog projectId={projectId}>
               <button className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30">
                 <UsersIcon className="size-3.5" />

@@ -3,15 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Poppins } from "next/font/google";
-import { SparkleIcon } from "lucide-react";
+import { SparkleIcon, PlayIcon } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 
+import { useUserDemoProject, useCloneDemoProject } from "../hooks/use-projects";
 import { ProjectsList } from "./projects-list";
 import { ProjectsCommandDialog } from "./projects-command-dialog";
 import { ImportGithubDialog } from "./import-github-dialog";
@@ -23,9 +26,35 @@ const font = Poppins({
 });
 
 export const ProjectsView = () => {
+  const router = useRouter();
   const [commandDialogOpen, setCommandDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [newProjectDialogOpen, setNewProjectDialogOpen] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
+
+  const existingDemo = useUserDemoProject();
+  const isDemoQueryLoading = existingDemo === undefined;
+  const { cloneDemo } = useCloneDemoProject();
+
+  const handleTryDemo = async () => {
+    if (existingDemo) {
+      router.push(`/projects/${existingDemo._id}`);
+      return;
+    }
+    setIsDemoLoading(true);
+    try {
+      const result = await cloneDemo({});
+      if ("error" in result) {
+        toast.error("Demo project is temporarily unavailable");
+      } else {
+        router.push(`/projects/${result.projectId}`);
+      }
+    } catch {
+      toast.error("Failed to load demo project");
+    } finally {
+      setIsDemoLoading(false);
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -42,12 +71,17 @@ export const ProjectsView = () => {
           e.preventDefault();
           setNewProjectDialogOpen(true);
         }
+        if (e.key === "D" && e.shiftKey) {
+          e.preventDefault();
+          handleTryDemo();
+        }
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingDemo]);
 
   return (
     <>
@@ -99,7 +133,7 @@ export const ProjectsView = () => {
           </div>
 
           <div className="flex flex-col gap-4 w-full">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Button
                 variant="outline"
                 onClick={() => setNewProjectDialogOpen(true)}
@@ -124,6 +158,23 @@ export const ProjectsView = () => {
                 </div>
                 <div>
                   <span className="text-sm">Import</span>
+                </div>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleTryDemo}
+                disabled={isDemoLoading || isDemoQueryLoading}
+                aria-busy={isDemoLoading}
+                className="h-full items-start justify-start p-4 bg-background border flex flex-col gap-6 rounded-none"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <PlayIcon className="size-4" />
+                  <Kbd className="bg-accent border">⌘⇧D</Kbd>
+                </div>
+                <div>
+                  <span className="text-sm">
+                    {isDemoLoading ? "Loading..." : "Try Demo"}
+                  </span>
                 </div>
               </Button>
             </div>
