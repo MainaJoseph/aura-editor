@@ -203,11 +203,11 @@ export const deleteProject = mutation({
     const project = await ctx.db.get(args.id);
     if (!project) throw new Error("Project not found");
 
+    await requireProjectAccess(ctx, args.id, identity.subject, "owner");
+
     if (project.isDemoTemplate) {
       throw new Error("Cannot delete the demo template project");
     }
-
-    await requireProjectAccess(ctx, args.id, identity.subject, "owner");
 
     // Delete files in batches
     const files = await ctx.db
@@ -372,9 +372,11 @@ export const cloneDemoProject = mutation({
       return { projectId: existingDemo._id };
     }
 
-    // Find the demo template
-    const allProjects = await ctx.db.query("projects").collect();
-    const template = allProjects.find((p) => p.isDemoTemplate === true);
+    // Find the demo template via index (avoids full table scan)
+    const template = await ctx.db
+      .query("projects")
+      .withIndex("by_demo_template", (q) => q.eq("isDemoTemplate", true))
+      .first();
 
     if (!template) {
       return { error: "no_template" as const };
@@ -440,9 +442,10 @@ export const cloneDemoProject = mutation({
       idMap.set(file._id, newId);
     }
 
-    // Pass 2: create text files
+    // Pass 2: create files (text and binary)
     for (const file of sortedFiles) {
-      if (file.type !== "file" || file.content == null) continue;
+      if (file.type !== "file") continue;
+      if (file.content == null && file.storageId == null) continue;
       const newParentId = file.parentId
         ? (idMap.get(file.parentId) as Id<"files"> | undefined)
         : undefined;
@@ -450,9 +453,12 @@ export const cloneDemoProject = mutation({
         projectId: newProjectId,
         name: file.name,
         type: "file",
-        content: file.content,
         parentId: newParentId,
         updatedAt: now,
+        // Text file: copy content; binary file: share the immutable storageId blob
+        ...(file.content != null
+          ? { content: file.content }
+          : { storageId: file.storageId! }),
       });
     }
 

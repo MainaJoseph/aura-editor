@@ -70,7 +70,7 @@ export const ProjectsView = () => {
           e.preventDefault();
           setNewProjectDialogOpen(true);
         }
-        if (e.key === "d") {
+        if (e.key === "e") {
           e.preventDefault();
           handleTryDemo();
         }
@@ -167,7 +167,7 @@ export const ProjectsView = () => {
               >
                 <div className="flex items-center justify-between w-full">
                   <PlayIcon className="size-4" />
-                  <Kbd className="bg-accent border">⌘D</Kbd>
+                  <Kbd className="bg-accent border">⌘E</Kbd>
                 </div>
                 <div>
                   <span className="text-sm">
