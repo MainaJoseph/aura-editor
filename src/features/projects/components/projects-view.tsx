@@ -71,7 +71,7 @@ export const ProjectsView = () => {
           e.preventDefault();
           setNewProjectDialogOpen(true);
         }
-        if (e.key === "d" && e.shiftKey) {
+        if (e.key === "D" && e.shiftKey) {
           e.preventDefault();
           handleTryDemo();
         }

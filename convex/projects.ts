@@ -355,19 +355,24 @@ export const getUserDemoProject = query({
   },
 });
 
+// Upper bounds for demo template — prevents hitting Convex's 8,192 doc read limit
+const DEMO_MAX_FILES = 500;
+const DEMO_MAX_CONVERSATIONS = 20;
+const DEMO_MAX_MESSAGES = 200;
+
 export const cloneDemoProject = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await verifyAuth(ctx);
     const userId = identity.subject;
 
-    // Idempotency guard: return existing demo project if user already has one
-    const existingProjects = await ctx.db
+    // Idempotency guard: use filter+first instead of collecting all owned projects
+    const existingDemo = await ctx.db
       .query("projects")
       .withIndex("by_owner", (q) => q.eq("ownerId", userId))
-      .collect();
+      .filter((q) => q.eq(q.field("isDemo"), true))
+      .first();
 
-    const existingDemo = existingProjects.find((p) => p.isDemo === true);
     if (existingDemo) {
       return { projectId: existingDemo._id };
     }
@@ -393,11 +398,11 @@ export const cloneDemoProject = mutation({
       ...(template.settings ? { settings: template.settings } : {}),
     });
 
-    // Fetch all template files
+    // Fetch template files within safe bounds
     const templateFiles = await ctx.db
       .query("files")
       .withIndex("by_project", (q) => q.eq("projectId", template._id))
-      .collect();
+      .take(DEMO_MAX_FILES);
 
     // Calculate depth for each file (root = 0)
     const getDepth = (
@@ -466,11 +471,11 @@ export const cloneDemoProject = mutation({
       });
     }
 
-    // Clone conversations and their messages
+    // Clone conversations and their messages within safe bounds
     const templateConversations = await ctx.db
       .query("conversations")
       .withIndex("by_project", (q) => q.eq("projectId", template._id))
-      .collect();
+      .take(DEMO_MAX_CONVERSATIONS);
 
     for (const convo of templateConversations) {
       const newConvoId = await ctx.db.insert("conversations", {
@@ -482,7 +487,7 @@ export const cloneDemoProject = mutation({
       const templateMessages = await ctx.db
         .query("messages")
         .withIndex("by_conversation", (q) => q.eq("conversationId", convo._id))
-        .collect();
+        .take(DEMO_MAX_MESSAGES);
 
       for (const msg of templateMessages) {
         await ctx.db.insert("messages", {
