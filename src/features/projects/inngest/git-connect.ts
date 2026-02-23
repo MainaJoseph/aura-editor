@@ -49,17 +49,13 @@ export const gitConnect = inngest.createFunction(
       throw new NonRetriableError("AURA_CONVEX_INTERNAL_KEY is not configured");
     }
 
-    const githubToken = await step.run("fetch-github-token", async () => {
-      const clerk = createClerkClient({
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
-      const tokens = await clerk.users.getUserOauthAccessToken(userId, "github");
-      const token = tokens.data[0]?.token;
-      if (!token) {
-        throw new NonRetriableError("GitHub OAuth token not found for user");
-      }
-      return token;
-    });
+    // Fetch token outside a step so Inngest does not persist credentials in step history
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const tokens = await clerk.users.getUserOauthAccessToken(userId, "github");
+    const githubToken = tokens.data[0]?.token;
+    if (!githubToken) {
+      throw new NonRetriableError("GitHub OAuth token not found for user");
+    }
 
     const octokit = new Octokit({ auth: githubToken });
 
@@ -159,9 +155,17 @@ export const gitConnect = inngest.createFunction(
 
       if (treeItems.length > 0) {
         const { data: tree } = await step.run("create-tree", async () => {
+          // Resolve the initial commit's tree SHA so auto_init files (e.g. README.md)
+          // are preserved as the base rather than being silently overwritten.
+          const { data: initialCommit } = await octokit.rest.git.getCommit({
+            owner: user.login,
+            repo: repoName,
+            commit_sha: initialCommitSha,
+          });
           return await octokit.rest.git.createTree({
             owner: user.login,
             repo: repoName,
+            base_tree: initialCommit.tree.sha,
             tree: treeItems,
           });
         });

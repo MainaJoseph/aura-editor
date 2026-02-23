@@ -60,9 +60,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Optimistically update branch before pull — if the pull fails, the error handler
-  // clears the sync status and the caller should surface the error so the user can retry.
-  // The branch name is reverted implicitly on the next successful pull or manual reconnect.
+  const previousBranch = project.gitBranch;
+
+  // Optimistically update branch before pull so performPull picks up the new branch name.
   await convex.mutation(api.system.updateGitStateInternal, {
     internalKey,
     projectId: projectId as Id<"projects">,
@@ -73,9 +73,12 @@ export async function POST(request: Request) {
     const { headSha } = await performPull({ projectId, githubToken, internalKey });
     return NextResponse.json({ success: true, branchName, headSha });
   } catch (err) {
+    // Restore the previous branch so downstream routes (diff, status, commit)
+    // don't read a branch whose content was never pulled.
     await convex.mutation(api.system.updateGitStateInternal, {
       internalKey,
       projectId: projectId as Id<"projects">,
+      ...(previousBranch ? { gitBranch: previousBranch } : {}),
       clearGitSyncStatus: true,
     }).catch(() => {});
 

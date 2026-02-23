@@ -66,17 +66,13 @@ export const gitCommit = inngest.createFunction(
       });
     });
 
-    const githubToken = await step.run("fetch-github-token", async () => {
-      const clerk = createClerkClient({
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
-      const tokens = await clerk.users.getUserOauthAccessToken(userId, "github");
-      const token = tokens.data[0]?.token;
-      if (!token) {
-        throw new NonRetriableError("GitHub OAuth token not found for user");
-      }
-      return token;
-    });
+    // Fetch token outside a step so Inngest does not persist credentials in step history
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const tokens = await clerk.users.getUserOauthAccessToken(userId, "github");
+    const githubToken = tokens.data[0]?.token;
+    if (!githubToken) {
+      throw new NonRetriableError("GitHub OAuth token not found for user");
+    }
 
     const project = await step.run("fetch-project", async () => {
       const p = await convex.query(api.system.getProjectById, {

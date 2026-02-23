@@ -1,14 +1,11 @@
-import ky from "ky";
 import { z } from "zod";
-import { Octokit } from "octokit";
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
+import { inngest } from "@/inngest/client";
 import { convex } from "@/lib/convex-client";
 import { api } from "../../../../../../convex/_generated/api";
-import { Doc, Id } from "../../../../../../convex/_generated/dataModel";
-
-type FileWithUrl = Doc<"files"> & { storageUrl: string | null };
+import { Id } from "../../../../../../convex/_generated/dataModel";
 
 const requestSchema = z.object({
   projectId: z.string(),
@@ -54,185 +51,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Project not connected to a git repository" }, { status: 400 });
   }
 
-  // Get GitHub OAuth token
+  // Validate repo format
+  const repoParts = project.gitRepo.split("/");
+  if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
+    return NextResponse.json({ error: "Invalid repository format" }, { status: 400 });
+  }
+
+  // Validate GitHub token before dispatching to give immediate feedback
   const client = await clerkClient();
   const tokens = await client.users.getUserOauthAccessToken(userId, "github");
-  const githubToken = tokens.data[0]?.token;
-  if (!githubToken) {
+  if (!tokens.data[0]?.token) {
     return NextResponse.json(
       { error: "GitHub not connected. Please reconnect your GitHub account." },
       { status: 400 },
     );
   }
 
-  // Validate repo format before splitting
-  const repoParts = project.gitRepo.split("/");
-  if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
-    return NextResponse.json({ error: "Invalid repository format" }, { status: 400 });
-  }
-  const [owner, repo] = repoParts;
-  const octokit = new Octokit({ auth: githubToken });
+  // Dispatch to Inngest — the gitCommit function handles the full commit flow
+  // with step-based retries and onFailure status cleanup, avoiding serverless timeouts.
+  const event = await inngest.send({
+    name: "github/git.commit",
+    data: { projectId, message, stagedPaths, userId },
+  });
 
-  try {
-    // Set committing status
-    await convex.mutation(api.system.updateGitStateInternal, {
-      internalKey,
-      projectId: projectId as Id<"projects">,
-      gitSyncStatus: "committing",
-    });
-
-    // Get parent commit tree SHA
-    const { data: parentCommit } = await octokit.rest.git.getCommit({
-      owner,
-      repo,
-      commit_sha: project.gitLastCommitSha,
-    });
-
-    // Fetch all project files with storage URLs
-    const allFiles = (await convex.query(api.system.getProjectFilesWithUrls, {
-      internalKey,
-      projectId: projectId as Id<"projects">,
-    })) as FileWithUrl[];
-
-    // Build full path map
-    const fileMap = new Map<Id<"files">, FileWithUrl>();
-    allFiles.forEach((f) => fileMap.set(f._id, f));
-
-    const getFullPath = (file: FileWithUrl): string => {
-      if (!file.parentId) return file.name;
-      const parent = fileMap.get(file.parentId);
-      if (!parent) return file.name;
-      return `${getFullPath(parent)}/${file.name}`;
-    };
-
-    const localPathToFile: Record<string, FileWithUrl> = {};
-    allFiles.forEach((f) => {
-      if (f.type === "file") localPathToFile[getFullPath(f)] = f;
-    });
-
-    // Create blobs for staged files
-    const stagedSet = new Set(stagedPaths);
-    const treeUpdates: { path: string; mode: "100644"; type: "blob"; sha: string | null }[] = [];
-
-    for (const path of stagedSet) {
-      const file = localPathToFile[path];
-
-      if (!file) {
-        treeUpdates.push({ path, mode: "100644", type: "blob", sha: null });
-        continue;
-      }
-
-      let content: string;
-      let encoding: "utf-8" | "base64" = "utf-8";
-
-      if (file.content !== undefined) {
-        content = file.content;
-      } else if (file.storageUrl) {
-        const response = await ky.get(file.storageUrl, { timeout: 30000 });
-        const buffer = Buffer.from(await response.arrayBuffer());
-        content = buffer.toString("base64");
-        encoding = "base64";
-      } else {
-        console.warn(`Staged file "${path}" has no content or storageUrl — skipping`);
-        continue;
-      }
-
-      const { data: blob } = await octokit.rest.git.createBlob({ owner, repo, content, encoding });
-      treeUpdates.push({ path, mode: "100644", type: "blob", sha: blob.sha });
-    }
-
-    // Create new tree
-    const { data: newTree } = await octokit.rest.git.createTree({
-      owner,
-      repo,
-      base_tree: parentCommit.tree.sha,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tree: treeUpdates as any,
-    });
-
-    // Create commit
-    const { data: newCommit } = await octokit.rest.git.createCommit({
-      owner,
-      repo,
-      message,
-      tree: newTree.sha,
-      parents: [project.gitLastCommitSha],
-    });
-
-    // Update branch ref (non-force — rejects if remote is ahead, protecting concurrent commits)
-    try {
-      await octokit.rest.git.updateRef({
-        owner,
-        repo,
-        ref: `heads/${project.gitBranch}`,
-        sha: newCommit.sha,
-        force: false,
-      });
-    } catch (refErr: unknown) {
-      const status = (refErr as { status?: number })?.status;
-      if (status === 422) {
-        throw new Error("Remote branch has new commits. Please pull the latest changes and try again.");
-      }
-      throw refErr;
-    }
-
-    // Prepend new commit to cached history (keep last 60)
-    let existingHistory: { sha: string; message: string; author: string; date: string; parents: string[] }[] = [];
-    try {
-      existingHistory = project.gitCommitHistory ? JSON.parse(project.gitCommitHistory) : [];
-    } catch {
-      existingHistory = [];
-    }
-    const gitCommitHistory = JSON.stringify([
-      {
-        sha: newCommit.sha,
-        message: (message.split("\n")[0] ?? "").trim(),
-        author: newCommit.author?.name ?? newCommit.committer?.name ?? "Unknown",
-        date: newCommit.author?.date ?? new Date().toISOString(),
-        parents: [project.gitLastCommitSha],
-      },
-      ...existingHistory.slice(0, 59),
-    ]);
-
-    // Merge treeUpdates into cached remote tree
-    let currentRemoteTree: { path: string; sha: string }[] = [];
-    try {
-      currentRemoteTree = project.gitRemoteTree ? JSON.parse(project.gitRemoteTree) : [];
-    } catch {
-      currentRemoteTree = [];
-    }
-    const treeMap = new Map(currentRemoteTree.map((e) => [e.path, e.sha]));
-    for (const update of treeUpdates) {
-      if (update.sha !== null) {
-        treeMap.set(update.path, update.sha);
-      } else {
-        treeMap.delete(update.path);
-      }
-    }
-    const gitRemoteTree = JSON.stringify(
-      Array.from(treeMap.entries()).map(([path, sha]) => ({ path, sha })),
-    );
-
-    // Save git state to Convex
-    await convex.mutation(api.system.updateGitStateInternal, {
-      internalKey,
-      projectId: projectId as Id<"projects">,
-      gitLastCommitSha: newCommit.sha,
-      gitRemoteTree,
-      gitCommitHistory,
-      clearGitSyncStatus: true,
-    });
-
-    return NextResponse.json({ success: true, commitSha: newCommit.sha });
-  } catch (err) {
-    // Clear syncing status on failure
-    await convex.mutation(api.system.updateGitStateInternal, {
-      internalKey,
-      projectId: projectId as Id<"projects">,
-      clearGitSyncStatus: true,
-    }).catch(() => {});
-
-    const errorMessage = err instanceof Error ? err.message : "Commit failed";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
-  }
+  return NextResponse.json({ success: true, eventId: event.ids[0] });
 }

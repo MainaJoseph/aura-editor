@@ -2,10 +2,10 @@ import { z } from "zod";
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
+import { inngest } from "@/inngest/client";
 import { convex } from "@/lib/convex-client";
 import { api } from "../../../../../../convex/_generated/api";
 import { Id } from "../../../../../../convex/_generated/dataModel";
-import { performPull } from "../_lib/perform-pull";
 
 const requestSchema = z.object({
   projectId: z.string(),
@@ -49,27 +49,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Project not connected to a git repository" }, { status: 400 });
   }
 
+  // Validate GitHub token before dispatching to give immediate feedback
   const client = await clerkClient();
   const tokens = await client.users.getUserOauthAccessToken(userId, "github");
-  const githubToken = tokens.data[0]?.token;
-  if (!githubToken) {
+  if (!tokens.data[0]?.token) {
     return NextResponse.json(
       { error: "GitHub not connected. Please reconnect your GitHub account." },
       { status: 400 },
     );
   }
 
-  try {
-    const { headSha } = await performPull({ projectId, githubToken, internalKey });
-    return NextResponse.json({ success: true, headSha });
-  } catch (err) {
-    await convex.mutation(api.system.updateGitStateInternal, {
-      internalKey,
-      projectId: projectId as Id<"projects">,
-      clearGitSyncStatus: true,
-    }).catch(() => {});
+  // Dispatch to Inngest — the gitPull function handles the full pull flow
+  // with step-based retries and onFailure status cleanup, avoiding serverless timeouts.
+  const event = await inngest.send({
+    name: "github/git.pull",
+    data: { projectId, userId },
+  });
 
-    const message = err instanceof Error ? err.message : "Pull failed";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  return NextResponse.json({ success: true, eventId: event.ids[0] });
 }

@@ -39,101 +39,33 @@ export async function performPull({
     gitSyncStatus: "pulling",
   });
 
+  type FetchedFile =
+    | { path: string; name: string; parentPath: string; isBinary: false; content: string }
+    | { path: string; name: string; parentPath: string; isBinary: true; buffer: Buffer };
+
   try {
-    // Cleanup existing files
-    await convex.mutation(api.system.cleanup, {
-      internalKey,
-      projectId: projectId as Id<"projects">,
-    });
+    // ── Phase 1: Fetch all GitHub data BEFORE touching the database ──────────
+    // This ensures that if the GitHub API fails (expired token, network error,
+    // etc.) the existing project files remain intact.
 
-    // Fetch the repo tree for the current branch
-    const { data: tree } = await octokit.rest.git.getTree({
-      owner,
-      repo,
-      tree_sha: project.gitBranch,
-      recursive: "1",
-    });
-
-    // Create folders in depth order
-    const folders = tree.tree
-      .filter((item) => item.type === "tree" && item.path)
-      .sort((a, b) => {
-        const aDepth = a.path ? a.path.split("/").length : 0;
-        const bDepth = b.path ? b.path.split("/").length : 0;
-        return aDepth - bDepth;
-      });
-
-    const folderIdMap: Record<string, Id<"files">> = {};
-    for (const folder of folders) {
-      if (!folder.path) continue;
-      const pathParts = folder.path.split("/");
-      const name = pathParts.pop()!;
-      const parentPath = pathParts.join("/");
-      const parentId = parentPath ? folderIdMap[parentPath] : undefined;
-
-      const folderId = await convex.mutation(api.system.createFolder, {
-        internalKey,
-        projectId: projectId as Id<"projects">,
-        name,
-        parentId,
-      });
-      folderIdMap[folder.path] = folderId;
-    }
-
-    // Create files — track failures so the caller knows if the pull was partial
-    const allFiles = tree.tree.filter((item) => item.type === "blob" && item.path && item.sha);
-    const failedFiles: string[] = [];
-
-    for (const file of allFiles) {
-      if (!file.path || !file.sha) continue;
-      try {
-        const { data: blob } = await octokit.rest.git.getBlob({ owner, repo, file_sha: file.sha });
-        const buffer = Buffer.from(blob.content, "base64");
-        const isBinary = await isBinaryFile(buffer);
-
-        const pathParts = file.path.split("/");
-        const name = pathParts.pop()!;
-        const parentPath = pathParts.join("/");
-        const parentId = parentPath ? folderIdMap[parentPath] : undefined;
-
-        if (isBinary) {
-          const uploadUrl = await convex.mutation(api.system.generateUploadUrl, { internalKey });
-          const { storageId } = await ky
-            .post(uploadUrl, {
-              headers: { "Content-Type": "application/octet-stream" },
-              body: buffer,
-            })
-            .json<{ storageId: Id<"_storage"> }>();
-
-          await convex.mutation(api.system.createBinaryFile, {
-            internalKey,
-            projectId: projectId as Id<"projects">,
-            name,
-            storageId,
-            parentId,
-          });
-        } else {
-          await convex.mutation(api.system.createFile, {
-            internalKey,
-            projectId: projectId as Id<"projects">,
-            name,
-            content: buffer.toString("utf-8"),
-            parentId,
-          });
-        }
-      } catch (error) {
-        console.error(`Failed to pull file: ${file.path}`, error);
-        failedFiles.push(file.path);
-      }
-    }
-
-    // Get HEAD SHA
+    // Fetch HEAD SHA first so the tree is pinned to the same commit.
+    // Using the branch name for both calls would create a TOCTOU window where
+    // a push landing between the two fetches causes headSha to differ from
+    // the tree that was actually pulled.
     const { data: ref } = await octokit.rest.git.getRef({
       owner,
       repo,
       ref: `heads/${project.gitBranch}`,
     });
     const headSha = ref.object.sha;
+
+    // Fetch the repo tree pinned to headSha (not the branch name)
+    const { data: tree } = await octokit.rest.git.getTree({
+      owner,
+      repo,
+      tree_sha: headSha,
+      recursive: "1",
+    });
 
     // Build remote tree cache
     const gitRemoteTree = JSON.stringify(
@@ -162,6 +94,108 @@ export async function performPull({
       );
     } catch (error) {
       console.warn("Failed to fetch commit history (non-fatal):", error);
+    }
+
+    // Pre-fetch all file blobs so any GitHub API failure happens before cleanup
+    const allFileItems = tree.tree.filter((item) => item.type === "blob" && item.path && item.sha);
+    const fetchedFiles: FetchedFile[] = [];
+    const failedFiles: string[] = [];
+
+    for (const file of allFileItems) {
+      if (!file.path || !file.sha) continue;
+      try {
+        const { data: blob } = await octokit.rest.git.getBlob({ owner, repo, file_sha: file.sha });
+        const buffer = Buffer.from(blob.content, "base64");
+        const isBinary = await isBinaryFile(buffer);
+
+        const pathParts = file.path.split("/");
+        const name = pathParts.pop()!;
+        const parentPath = pathParts.join("/");
+
+        if (isBinary) {
+          fetchedFiles.push({ path: file.path, name, parentPath, isBinary: true, buffer });
+        } else {
+          fetchedFiles.push({ path: file.path, name, parentPath, isBinary: false, content: buffer.toString("utf-8") });
+        }
+      } catch (error) {
+        console.error(`Failed to fetch file blob: ${file.path}`, error);
+        failedFiles.push(file.path);
+      }
+    }
+
+    // ── Phase 2: Write to the database ───────────────────────────────────────
+    // All GitHub API calls succeeded. Now safe to replace existing files.
+    // Trade-off: a Convex failure between cleanup and writes would still leave
+    // the project empty, but Convex mutations are significantly more reliable
+    // than external API calls and a full cross-mutation transaction is not
+    // currently supported.
+
+    // Cleanup existing files
+    await convex.mutation(api.system.cleanup, {
+      internalKey,
+      projectId: projectId as Id<"projects">,
+    });
+
+    // Create folders in depth order
+    const folders = tree.tree
+      .filter((item) => item.type === "tree" && item.path)
+      .sort((a, b) => {
+        const aDepth = a.path ? a.path.split("/").length : 0;
+        const bDepth = b.path ? b.path.split("/").length : 0;
+        return aDepth - bDepth;
+      });
+
+    const folderIdMap: Record<string, Id<"files">> = {};
+    for (const folder of folders) {
+      if (!folder.path) continue;
+      const pathParts = folder.path.split("/");
+      const name = pathParts.pop()!;
+      const parentPath = pathParts.join("/");
+      const parentId = parentPath ? folderIdMap[parentPath] : undefined;
+
+      const folderId = await convex.mutation(api.system.createFolder, {
+        internalKey,
+        projectId: projectId as Id<"projects">,
+        name,
+        parentId,
+      });
+      folderIdMap[folder.path] = folderId;
+    }
+
+    // Write pre-fetched files to Convex
+    for (const fileData of fetchedFiles) {
+      try {
+        const parentId = fileData.parentPath ? folderIdMap[fileData.parentPath] : undefined;
+
+        if (fileData.isBinary) {
+          const uploadUrl = await convex.mutation(api.system.generateUploadUrl, { internalKey });
+          const { storageId } = await ky
+            .post(uploadUrl, {
+              headers: { "Content-Type": "application/octet-stream" },
+              body: fileData.buffer,
+            })
+            .json<{ storageId: Id<"_storage"> }>();
+
+          await convex.mutation(api.system.createBinaryFile, {
+            internalKey,
+            projectId: projectId as Id<"projects">,
+            name: fileData.name,
+            storageId,
+            parentId,
+          });
+        } else {
+          await convex.mutation(api.system.createFile, {
+            internalKey,
+            projectId: projectId as Id<"projects">,
+            name: fileData.name,
+            content: fileData.content,
+            parentId,
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to write file: ${fileData.path}`, error);
+        failedFiles.push(fileData.path);
+      }
     }
 
     // Save state
