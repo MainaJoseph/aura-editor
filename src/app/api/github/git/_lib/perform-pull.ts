@@ -67,12 +67,14 @@ export async function performPull({
       recursive: "1",
     });
 
-    // Build remote tree cache
-    const gitRemoteTree = JSON.stringify(
-      tree.tree
-        .filter((e) => e.type === "blob" && e.path && e.sha)
-        .map((e) => ({ path: e.path!, sha: e.sha! })),
-    );
+    // Abort if the tree is truncated — GitHub caps recursive trees at 100,000
+    // entries / 7 MB. Proceeding on a partial tree would delete existing files
+    // and only restore a subset of them.
+    if (tree.truncated) {
+      throw new Error(
+        "Repository tree is too large for the GitHub API recursive endpoint (>100,000 entries or >7 MB). Pull aborted to avoid data loss.",
+      );
+    }
 
     // Fetch commit history (non-fatal)
     let gitCommitHistory: string | undefined;
@@ -199,6 +201,15 @@ export async function performPull({
         failedFiles.push(fileData.path);
       }
     }
+
+    // Build remote tree cache after all writes — exclude files that failed
+    // in either Phase 1 (blob fetch) or Phase 2 (Convex write).
+    const failedSet = new Set(failedFiles);
+    const gitRemoteTree = JSON.stringify(
+      tree.tree
+        .filter((e) => e.type === "blob" && e.path && e.sha && !failedSet.has(e.path))
+        .map((e) => ({ path: e.path!, sha: e.sha! })),
+    );
 
     // Save state
     await convex.mutation(api.system.updateGitStateInternal, {

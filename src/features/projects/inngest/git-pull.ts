@@ -102,6 +102,16 @@ export const gitPull = inngest.createFunction(
         tree_sha: headSha,
         recursive: "1",
       });
+
+      // Abort if the tree is truncated — GitHub caps recursive trees at 100,000
+      // entries / 7 MB. Proceeding on a partial tree would delete existing files
+      // and only restore a subset of them.
+      if (data.truncated) {
+        throw new NonRetriableError(
+          "Repository tree is too large for the GitHub API recursive endpoint (>100,000 entries or >7 MB). Pull aborted to avoid data loss.",
+        );
+      }
+
       return data;
     });
 
