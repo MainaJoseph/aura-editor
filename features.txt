@@ -39,8 +39,8 @@ Editor Experience
   Collaboration
 
   - Real-time multiplayer editing — Multiple users editing the same project simultaneously (Convex's real-time subscriptions make this      
-  feasible)
-  - Share project links — Read-only or editable access via link
+  feasible) ✅
+  - Share project links — Read-only or editable access via link ✅
   - Comments on code — Leave comments on specific lines for async collaboration
   - Fork/remix — Let users fork public projects as starting points
 
@@ -51,8 +51,8 @@ Editor Experience
   - Settings UI — Font size, tab size, word wrap, autosave preferences
   - Notification system — Toast notifications for AI completion, errors, deploy status
   - Undo/redo for AI changes — Checkpoint-based rollback of AI-applied edits
-  - Drag-and-drop file uploads — Drop images/assets into the file explorer
-  - Tab pinning — Permanently pin important tabs that can't be accidentally closed
+  - Drag-and-drop file uploads — Drop images/assets into the file explorer ✅
+  - Tab pinning — Permanently pin important tabs that can't be accidentally closed  ✅
 
   Deployment
 

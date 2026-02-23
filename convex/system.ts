@@ -521,6 +521,40 @@ export const createBinaryFile = mutation({
   },
 });
 
+export const updateGitStateInternal = mutation({
+  args: {
+    internalKey: v.string(),
+    projectId: v.id("projects"),
+    gitRepo: v.optional(v.string()),
+    gitBranch: v.optional(v.string()),
+    gitLastCommitSha: v.optional(v.string()),
+    gitSyncStatus: v.optional(
+      v.union(
+        v.literal("committing"),
+        v.literal("pulling"),
+        v.literal("connecting"),
+      ),
+    ),
+    clearGitSyncStatus: v.optional(v.boolean()),
+    gitRemoteTree: v.optional(v.string()),
+    gitCommitHistory: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    validateInternalKey(args.internalKey);
+
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    if (args.gitRepo !== undefined) patch.gitRepo = args.gitRepo;
+    if (args.gitBranch !== undefined) patch.gitBranch = args.gitBranch;
+    if (args.gitLastCommitSha !== undefined) patch.gitLastCommitSha = args.gitLastCommitSha;
+    if (args.gitSyncStatus !== undefined) patch.gitSyncStatus = args.gitSyncStatus;
+    if (args.clearGitSyncStatus) patch.gitSyncStatus = undefined;
+    if (args.gitRemoteTree !== undefined) patch.gitRemoteTree = args.gitRemoteTree;
+    if (args.gitCommitHistory !== undefined) patch.gitCommitHistory = args.gitCommitHistory;
+
+    await ctx.db.patch(args.projectId, patch);
+  },
+});
+
 export const updateImportStatus = mutation({
   args: {
     internalKey: v.string(),

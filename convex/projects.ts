@@ -5,6 +5,38 @@ import { internal } from "./_generated/api";
 import { verifyAuth } from "./auth";
 import { requireProjectAccess } from "./members";
 
+export const updateGitState = mutation({
+  args: {
+    id: v.id("projects"),
+    gitRepo: v.optional(v.string()),
+    gitBranch: v.optional(v.string()),
+    gitLastCommitSha: v.optional(v.string()),
+    gitSyncStatus: v.optional(
+      v.union(
+        v.literal("committing"),
+        v.literal("pulling"),
+        v.literal("connecting"),
+      ),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const identity = await verifyAuth(ctx);
+
+    const project = await ctx.db.get(args.id);
+    if (!project) throw new Error("Project not found");
+
+    await requireProjectAccess(ctx, args.id, identity.subject, "editor");
+
+    const patch: Record<string, unknown> = { updatedAt: Date.now() };
+    if (args.gitRepo !== undefined) patch.gitRepo = args.gitRepo;
+    if (args.gitBranch !== undefined) patch.gitBranch = args.gitBranch;
+    if (args.gitLastCommitSha !== undefined) patch.gitLastCommitSha = args.gitLastCommitSha;
+    if (args.gitSyncStatus !== undefined) patch.gitSyncStatus = args.gitSyncStatus;
+
+    await ctx.db.patch(args.id, patch);
+  },
+});
+
 export const updateSettings = mutation({
   args: {
     id: v.id("projects"),

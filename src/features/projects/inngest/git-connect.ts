@@ -1,0 +1,233 @@
+import ky from "ky";
+import { Octokit } from "octokit";
+import { NonRetriableError } from "inngest";
+import { createClerkClient } from "@clerk/backend";
+
+import { convex } from "@/lib/convex-client";
+import { inngest } from "@/inngest/client";
+
+import { api } from "../../../../convex/_generated/api";
+import { Doc, Id } from "../../../../convex/_generated/dataModel";
+
+interface GitConnectEvent {
+  projectId: Id<"projects">;
+  repoName: string;
+  visibility: "public" | "private";
+  description?: string;
+  userId: string;
+}
+
+type FileWithUrl = Doc<"files"> & {
+  storageUrl: string | null;
+};
+
+export const gitConnect = inngest.createFunction(
+  {
+    id: "git-connect",
+    onFailure: async ({ event, step }) => {
+      const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+      if (!internalKey) return;
+
+      const { projectId } = event.data.event.data as GitConnectEvent;
+
+      await step.run("clear-sync-status", async () => {
+        await convex.mutation(api.system.updateGitStateInternal, {
+          internalKey,
+          projectId,
+          clearGitSyncStatus: true,
+        });
+      });
+    },
+  },
+  { event: "github/git.connect" },
+  async ({ event, step }) => {
+    const { projectId, repoName, visibility, description, userId } =
+      event.data as GitConnectEvent;
+
+    const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+    if (!internalKey) {
+      throw new NonRetriableError("AURA_CONVEX_INTERNAL_KEY is not configured");
+    }
+
+    // Fetch token outside a step so Inngest does not persist credentials in step history
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const tokens = await clerk.users.getUserOauthAccessToken(userId, "github");
+    const githubToken = tokens.data[0]?.token;
+    if (!githubToken) {
+      throw new NonRetriableError("GitHub OAuth token not found for user");
+    }
+
+    const octokit = new Octokit({ auth: githubToken });
+
+    const { data: user } = await step.run("get-github-user", async () => {
+      return await octokit.rest.users.getAuthenticated();
+    });
+
+    const { data: repo } = await step.run("create-repo", async () => {
+      return await octokit.rest.repos.createForAuthenticatedUser({
+        name: repoName,
+        description: description || `Connected from Aura`,
+        private: visibility === "private",
+        auto_init: true,
+      });
+    });
+
+    await step.sleep("wait-for-repo-init", "3s");
+
+    const initialCommitSha = await step.run("get-initial-commit", async () => {
+      const { data: ref } = await octokit.rest.git.getRef({
+        owner: user.login,
+        repo: repoName,
+        ref: `heads/${repo.default_branch}`,
+      });
+      return ref.object.sha;
+    });
+
+    const files = await step.run("fetch-project-files", async () => {
+      return (await convex.query(api.system.getProjectFilesWithUrls, {
+        internalKey,
+        projectId,
+      })) as FileWithUrl[];
+    });
+
+    const buildFilePaths = (files: FileWithUrl[]) => {
+      const fileMap = new Map<Id<"files">, FileWithUrl>();
+      files.forEach((f) => fileMap.set(f._id, f));
+
+      const getFullPath = (file: FileWithUrl): string => {
+        if (!file.parentId) return file.name;
+        const parent = fileMap.get(file.parentId);
+        if (!parent) return file.name;
+        return `${getFullPath(parent)}/${file.name}`;
+      };
+
+      const paths: Record<string, FileWithUrl> = {};
+      files.forEach((file) => {
+        paths[getFullPath(file)] = file;
+      });
+      return paths;
+    };
+
+    const filePaths = buildFilePaths(files);
+    const fileEntries = Object.entries(filePaths).filter(
+      ([, file]) => file.type === "file",
+    );
+
+    let newCommitSha = initialCommitSha;
+    let createdBlobItems: { path: string; sha: string }[] = [];
+
+    if (fileEntries.length > 0) {
+      const treeItems = await step.run("create-blobs", async () => {
+        const items: {
+          path: string;
+          mode: "100644";
+          type: "blob";
+          sha: string;
+        }[] = [];
+
+        for (const [path, file] of fileEntries) {
+          let content: string;
+          let encoding: "utf-8" | "base64" = "utf-8";
+
+          if (file.content !== undefined) {
+            content = file.content;
+          } else if (file.storageUrl) {
+            const response = await ky.get(file.storageUrl, { timeout: 30000 });
+            const buffer = Buffer.from(await response.arrayBuffer());
+            content = buffer.toString("base64");
+            encoding = "base64";
+          } else {
+            continue;
+          }
+
+          const { data: blob } = await octokit.rest.git.createBlob({
+            owner: user.login,
+            repo: repoName,
+            content,
+            encoding,
+          });
+
+          items.push({ path, mode: "100644", type: "blob", sha: blob.sha });
+        }
+
+        return items;
+      });
+
+      if (treeItems.length > 0) {
+        const { data: tree } = await step.run("create-tree", async () => {
+          // Resolve the initial commit's tree SHA so auto_init files (e.g. README.md)
+          // are preserved as the base rather than being silently overwritten.
+          const { data: initialCommit } = await octokit.rest.git.getCommit({
+            owner: user.login,
+            repo: repoName,
+            commit_sha: initialCommitSha,
+          });
+          return await octokit.rest.git.createTree({
+            owner: user.login,
+            repo: repoName,
+            base_tree: initialCommit.tree.sha,
+            tree: treeItems,
+          });
+        });
+
+        const { data: commit } = await step.run("create-commit", async () => {
+          return await octokit.rest.git.createCommit({
+            owner: user.login,
+            repo: repoName,
+            message: "Initial commit from Aura",
+            tree: tree.sha,
+            parents: [initialCommitSha],
+          });
+        });
+
+        await step.run("update-branch-ref", async () => {
+          return await octokit.rest.git.updateRef({
+            owner: user.login,
+            repo: repoName,
+            ref: `heads/${repo.default_branch}`,
+            sha: commit.sha,
+            force: true,
+          });
+        });
+
+        newCommitSha = commit.sha;
+        createdBlobItems = treeItems.map((item) => ({ path: item.path, sha: item.sha }));
+      }
+    }
+
+    // Build remote tree cache from the blobs we created
+    const gitRemoteTree = JSON.stringify(createdBlobItems);
+
+    // Build initial commit history entry
+    const gitCommitHistory = JSON.stringify([
+      {
+        sha: newCommitSha,
+        message: "Initial commit from Aura",
+        author: user.login,
+        date: new Date().toISOString(),
+        parents: fileEntries.length > 0 ? [initialCommitSha] : [],
+      },
+    ]);
+
+    await step.run("save-git-state", async () => {
+      await convex.mutation(api.system.updateGitStateInternal, {
+        internalKey,
+        projectId,
+        gitRepo: `${user.login}/${repoName}`,
+        gitBranch: repo.default_branch,
+        gitLastCommitSha: newCommitSha,
+        gitRemoteTree,
+        gitCommitHistory,
+        clearGitSyncStatus: true,
+      });
+    });
+
+    return {
+      success: true,
+      repoUrl: repo.html_url,
+      gitRepo: `${user.login}/${repoName}`,
+      gitBranch: repo.default_branch,
+      gitLastCommitSha: newCommitSha,
+    };
+  },
+);

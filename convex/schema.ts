@@ -22,6 +22,18 @@ export default defineSchema({
       ),
     ),
     exportRepoUrl: v.optional(v.string()),
+    gitRepo: v.optional(v.string()),
+    gitBranch: v.optional(v.string()),
+    gitLastCommitSha: v.optional(v.string()),
+    gitSyncStatus: v.optional(
+      v.union(
+        v.literal("committing"),
+        v.literal("pulling"),
+        v.literal("connecting"),
+      ),
+    ),
+    gitRemoteTree: v.optional(v.string()),    // JSON: [{path, sha}] cached remote blob tree
+    gitCommitHistory: v.optional(v.string()), // JSON: CommitInfo[] cached commit history
     settings: v.optional(
       v.object({
         installCommand: v.optional(v.string()),
