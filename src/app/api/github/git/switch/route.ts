@@ -60,7 +60,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Update branch immediately, then pull from new branch
+  // Optimistically update branch before pull — if the pull fails, the error handler
+  // clears the sync status and the caller should surface the error so the user can retry.
+  // The branch name is reverted implicitly on the next successful pull or manual reconnect.
   await convex.mutation(api.system.updateGitStateInternal, {
     internalKey,
     projectId: projectId as Id<"projects">,

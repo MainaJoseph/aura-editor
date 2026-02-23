@@ -9,6 +9,16 @@ import { inngest } from "@/inngest/client";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
 
+function safeJsonParse<T>(json: string | undefined, fallback: T): T {
+  if (!json) return fallback;
+  try {
+    return JSON.parse(json);
+  } catch {
+    console.warn("Failed to parse cached JSON, resetting to default");
+    return fallback;
+  }
+}
+
 interface GitCommitEvent {
   projectId: Id<"projects">;
   message: string;
@@ -79,7 +89,11 @@ export const gitCommit = inngest.createFunction(
       return p;
     });
 
-    const [owner, repo] = project.gitRepo!.split("/");
+    const repoParts = project.gitRepo!.split("/");
+    if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
+      throw new NonRetriableError(`Invalid repository format: ${project.gitRepo}`);
+    }
+    const [owner, repo] = repoParts;
     const octokit = new Octokit({ auth: githubToken });
 
     // Get current HEAD commit to find base tree SHA
@@ -142,11 +156,12 @@ export const gitCommit = inngest.createFunction(
         if (file.content !== undefined) {
           content = file.content;
         } else if (file.storageUrl) {
-          const response = await ky.get(file.storageUrl);
+          const response = await ky.get(file.storageUrl, { timeout: 30000 });
           const buffer = Buffer.from(await response.arrayBuffer());
           content = buffer.toString("base64");
           encoding = "base64";
         } else {
+          console.warn(`Skipping staged file "${path}" with no content or storageUrl`);
           continue;
         }
 
@@ -195,20 +210,30 @@ export const gitCommit = inngest.createFunction(
       });
     });
 
-    // Update branch ref
+    // Update branch ref (non-force — rejects if remote is ahead, protecting concurrent commits)
     await step.run("update-branch-ref", async () => {
-      return await octokit.rest.git.updateRef({
-        owner,
-        repo,
-        ref: `heads/${project.gitBranch}`,
-        sha: newCommit.sha,
-        force: true,
-      });
+      try {
+        return await octokit.rest.git.updateRef({
+          owner,
+          repo,
+          ref: `heads/${project.gitBranch}`,
+          sha: newCommit.sha,
+          force: false,
+        });
+      } catch (refErr: unknown) {
+        const status = (refErr as { status?: number })?.status;
+        if (status === 422) {
+          throw new NonRetriableError(
+            "Remote branch has new commits. Please pull the latest changes and try again.",
+          );
+        }
+        throw refErr;
+      }
     });
 
     // Prepend new commit to cached history (keep last 60)
     const existingHistory: { sha: string; message: string; author: string; date: string; parents: string[] }[] =
-      project.gitCommitHistory ? JSON.parse(project.gitCommitHistory) : [];
+      safeJsonParse(project.gitCommitHistory, []);
     const gitCommitHistory = JSON.stringify([
       {
         sha: newCommit.sha,
@@ -221,9 +246,8 @@ export const gitCommit = inngest.createFunction(
     ]);
 
     // Merge treeUpdates into the cached remote tree
-    const currentRemoteTree: { path: string; sha: string }[] = project.gitRemoteTree
-      ? JSON.parse(project.gitRemoteTree)
-      : [];
+    const currentRemoteTree: { path: string; sha: string }[] =
+      safeJsonParse(project.gitRemoteTree, []);
     const treeMap = new Map(currentRemoteTree.map((e) => [e.path, e.sha]));
     for (const update of treeUpdates) {
       if (update.sha !== null) {

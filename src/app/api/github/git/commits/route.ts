@@ -32,7 +32,8 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get("projectId");
-  const limit = Math.min(parseInt(searchParams.get("limit") ?? "60", 10), 100);
+  const parsedLimit = parseInt(searchParams.get("limit") ?? "60", 10);
+  const limit = Number.isNaN(parsedLimit) || parsedLimit < 1 ? 60 : Math.min(parsedLimit, 100);
 
   if (!projectId) return NextResponse.json({ error: "projectId is required" }, { status: 400 });
 
@@ -60,7 +61,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "GitHub not connected." }, { status: 400 });
   }
 
-  const [owner, repo] = project.gitRepo.split("/");
+  const repoParts = project.gitRepo.split("/");
+  if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
+    return NextResponse.json({ error: "Invalid git repository format" }, { status: 400 });
+  }
+  const [owner, repo] = repoParts;
   const octokit = new Octokit({ auth: githubToken });
 
   // Fetch branches (to mark branch heads on commits)

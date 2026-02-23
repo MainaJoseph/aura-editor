@@ -44,7 +44,12 @@ export const GitBranchesPopover = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId, branchName: branch }),
       });
-      const data = await res.json();
+      let data: { error?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
       if (!res.ok) {
         setError(data.error || "Failed to switch branch");
       } else {
@@ -85,7 +90,7 @@ export const GitBranchesPopover = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) setError(null); }}>
       <PopoverTrigger asChild>
         <button className="flex items-center gap-1.5 px-2 py-1 text-xs rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
           <GitBranchIcon className="size-3" />
@@ -130,6 +135,7 @@ export const GitBranchesPopover = ({
               onChange={(e) => setNewBranchName(e.target.value)}
               placeholder="New branch name..."
               disabled={isCreating}
+              aria-label="New branch name"
               className="flex-1 px-2 py-1 text-xs rounded border bg-background focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
             />
             <button

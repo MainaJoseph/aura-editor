@@ -230,7 +230,9 @@ function RowSvg({ row, svgWidth }: { row: GraphRow; svgWidth: number }) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function formatRelativeDate(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
+  const diff = Date.now() - date.getTime();
   const s = Math.floor(diff / 1000);
   if (s < 60) return "just now";
   const m = Math.floor(s / 60);

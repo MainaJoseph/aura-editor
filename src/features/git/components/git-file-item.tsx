@@ -38,11 +38,14 @@ export const GitFileItem = ({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
         "flex items-center gap-2 px-3 py-1 hover:bg-accent/50 cursor-pointer group",
         selected && "bg-accent/70"
       )}
       onClick={() => onOpenDiff(path)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpenDiff(path); }}
     >
       {/* Checkbox only toggles staged — does not open diff */}
       <input

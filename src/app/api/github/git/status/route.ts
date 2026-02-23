@@ -60,7 +60,11 @@ export async function GET(request: Request) {
     );
   }
 
-  const [owner, repo] = project.gitRepo.split("/");
+  const repoParts = project.gitRepo.split("/");
+  if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
+    return NextResponse.json({ error: "Invalid git repository format" }, { status: 400 });
+  }
+  const [owner, repo] = repoParts;
   const octokit = new Octokit({ auth: githubToken });
 
   // Fetch the remote tree at the stored commit SHA

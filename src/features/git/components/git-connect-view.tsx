@@ -41,8 +41,8 @@ export const GitConnectView = ({ projectId, projectName, isSyncing, exportRepoUr
         body: JSON.stringify(body),
       });
 
-      const data = await res.json();
       if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         setError(data.error || "Failed to connect repository");
       }
     } catch {
@@ -156,7 +156,7 @@ export const GitConnectView = ({ projectId, projectName, isSyncing, exportRepoUr
               {busy ? (
                 <>
                   <Loader2Icon className="size-4 animate-spin" />
-                  {isSyncing ? "Connecting..." : "Connecting..."}
+                  {isSyncing ? "Syncing..." : "Connecting..."}
                 </>
               ) : mode === "create" ? (
                 "Create & Connect"

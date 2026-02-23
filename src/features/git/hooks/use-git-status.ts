@@ -115,7 +115,7 @@ export function useGitStatus(projectId: Id<"projects">, isActive = false) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files, project?.gitRemoteTree, setChangeCount]);
+  }, [files, project?.gitRemoteTree, project?.gitLastCommitSha, setChangeCount]);
 
   // Manual refresh — calls GitHub API to check remoteAhead and populate/update gitRemoteTree
   const refresh = useCallback(async () => {
@@ -138,16 +138,19 @@ export function useGitStatus(projectId: Id<"projects">, isActive = false) {
     }
   }, [projectId]);
 
-  // Fetch from GitHub on first activation if no cached tree exists yet
+  // Fetch from GitHub on first activation or when projectId changes while active
   const prevActive = useRef(false);
+  const prevProjectId = useRef(projectId);
   useEffect(() => {
     const becameActive = isActive && !prevActive.current;
+    const projectChanged = projectId !== prevProjectId.current;
     prevActive.current = isActive;
-    if (becameActive && !project?.gitRemoteTree) {
+    prevProjectId.current = projectId;
+    if ((becameActive || (isActive && projectChanged)) && !project?.gitRemoteTree) {
       refresh();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, project?.gitRemoteTree]);
+  }, [isActive, projectId, project?.gitRemoteTree]);
 
   return { data: status, isLoading, error, refresh };
 }

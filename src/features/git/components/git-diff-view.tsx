@@ -143,22 +143,36 @@ export const GitDiffView = ({ projectId, path, onClose }: GitDiffViewProps) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     setIsLoading(true);
     setError(null);
-    fetch(`/api/github/git/diff?projectId=${projectId}&path=${encodeURIComponent(path)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) {
-          setError(data.error);
+    fetch(`/api/github/git/diff?projectId=${projectId}&path=${encodeURIComponent(path)}`, {
+      signal: controller.signal,
+    })
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok || data.error) {
+          setError(data.error || "Failed to load diff");
         } else {
           setOldContent(data.oldContent);
           setNewContent(data.newContent);
           setStatus(data.status);
         }
       })
-      .catch(() => setError("Network error"))
+      .catch((err) => {
+        if (err.name !== "AbortError") setError("Network error");
+      })
       .finally(() => setIsLoading(false));
+    return () => controller.abort();
   }, [projectId, path]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const diffLines = useMemo(() => {
     if (status === "A") {

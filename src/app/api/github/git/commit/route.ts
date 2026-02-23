@@ -65,7 +65,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const [owner, repo] = project.gitRepo.split("/");
+  // Validate repo format before splitting
+  const repoParts = project.gitRepo.split("/");
+  if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
+    return NextResponse.json({ error: "Invalid repository format" }, { status: 400 });
+  }
+  const [owner, repo] = repoParts;
   const octokit = new Octokit({ auth: githubToken });
 
   try {
@@ -123,11 +128,12 @@ export async function POST(request: Request) {
       if (file.content !== undefined) {
         content = file.content;
       } else if (file.storageUrl) {
-        const response = await ky.get(file.storageUrl);
+        const response = await ky.get(file.storageUrl, { timeout: 30000 });
         const buffer = Buffer.from(await response.arrayBuffer());
         content = buffer.toString("base64");
         encoding = "base64";
       } else {
+        console.warn(`Staged file "${path}" has no content or storageUrl — skipping`);
         continue;
       }
 
@@ -153,18 +159,30 @@ export async function POST(request: Request) {
       parents: [project.gitLastCommitSha],
     });
 
-    // Update branch ref
-    await octokit.rest.git.updateRef({
-      owner,
-      repo,
-      ref: `heads/${project.gitBranch}`,
-      sha: newCommit.sha,
-      force: true,
-    });
+    // Update branch ref (non-force — rejects if remote is ahead, protecting concurrent commits)
+    try {
+      await octokit.rest.git.updateRef({
+        owner,
+        repo,
+        ref: `heads/${project.gitBranch}`,
+        sha: newCommit.sha,
+        force: false,
+      });
+    } catch (refErr: unknown) {
+      const status = (refErr as { status?: number })?.status;
+      if (status === 422) {
+        throw new Error("Remote branch has new commits. Please pull the latest changes and try again.");
+      }
+      throw refErr;
+    }
 
     // Prepend new commit to cached history (keep last 60)
-    const existingHistory: { sha: string; message: string; author: string; date: string; parents: string[] }[] =
-      project.gitCommitHistory ? JSON.parse(project.gitCommitHistory) : [];
+    let existingHistory: { sha: string; message: string; author: string; date: string; parents: string[] }[] = [];
+    try {
+      existingHistory = project.gitCommitHistory ? JSON.parse(project.gitCommitHistory) : [];
+    } catch {
+      existingHistory = [];
+    }
     const gitCommitHistory = JSON.stringify([
       {
         sha: newCommit.sha,
@@ -177,9 +195,12 @@ export async function POST(request: Request) {
     ]);
 
     // Merge treeUpdates into cached remote tree
-    const currentRemoteTree: { path: string; sha: string }[] = project.gitRemoteTree
-      ? JSON.parse(project.gitRemoteTree)
-      : [];
+    let currentRemoteTree: { path: string; sha: string }[] = [];
+    try {
+      currentRemoteTree = project.gitRemoteTree ? JSON.parse(project.gitRemoteTree) : [];
+    } catch {
+      currentRemoteTree = [];
+    }
     const treeMap = new Map(currentRemoteTree.map((e) => [e.path, e.sha]));
     for (const update of treeUpdates) {
       if (update.sha !== null) {
@@ -211,7 +232,7 @@ export async function POST(request: Request) {
       clearGitSyncStatus: true,
     }).catch(() => {});
 
-    const message = err instanceof Error ? err.message : "Commit failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : "Commit failed";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -136,7 +136,7 @@ export const gitConnect = inngest.createFunction(
           if (file.content !== undefined) {
             content = file.content;
           } else if (file.storageUrl) {
-            const response = await ky.get(file.storageUrl);
+            const response = await ky.get(file.storageUrl, { timeout: 30000 });
             const buffer = Buffer.from(await response.arrayBuffer());
             content = buffer.toString("base64");
             encoding = "base64";
@@ -201,7 +201,7 @@ export const gitConnect = inngest.createFunction(
         message: "Initial commit from Aura",
         author: user.login,
         date: new Date().toISOString(),
-        parents: [],
+        parents: fileEntries.length > 0 ? [initialCommitSha] : [],
       },
     ]);
 

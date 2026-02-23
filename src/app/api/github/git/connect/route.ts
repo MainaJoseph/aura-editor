@@ -78,25 +78,35 @@ export async function POST(request: Request) {
       gitSyncStatus: "connecting",
     });
 
-    const event = await inngest.send({
-      name: "github/git.connect",
-      data: {
-        projectId: parsed.projectId,
-        repoName: parsed.repoName,
-        visibility: parsed.visibility,
-        description: parsed.description,
-        userId,
-      },
-    });
-
-    return NextResponse.json({ success: true, eventId: event.ids[0] });
+    try {
+      const event = await inngest.send({
+        name: "github/git.connect",
+        data: {
+          projectId: parsed.projectId,
+          repoName: parsed.repoName,
+          visibility: parsed.visibility,
+          description: parsed.description,
+          userId,
+        },
+      });
+      return NextResponse.json({ success: true, eventId: event.ids[0] });
+    } catch (err) {
+      // Clear stuck "connecting" status if event dispatch fails
+      await convex.mutation(api.system.updateGitStateInternal, {
+        internalKey,
+        projectId: parsed.projectId as Id<"projects">,
+        clearGitSyncStatus: true,
+      }).catch(() => {});
+      const message = err instanceof Error ? err.message : "Failed to start connection";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
   } else {
     // Link mode: parse repoUrl to get owner/repo
     let owner: string, repo: string;
     try {
       const url = new URL(parsed.repoUrl);
       const parts = url.pathname.replace(/^\//, "").replace(/\.git$/, "").split("/");
-      if (parts.length < 2) throw new Error("Invalid repo URL");
+      if (parts.length < 2 || !parts[0] || !parts[1]) throw new Error("Invalid repo URL");
       [owner, repo] = parts;
     } catch {
       return NextResponse.json({ error: "Invalid GitHub repository URL" }, { status: 400 });

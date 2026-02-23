@@ -51,7 +51,11 @@ export async function GET(request: Request) {
     );
   }
 
-  const [owner, repo] = project.gitRepo.split("/");
+  const parts = project.gitRepo.split("/");
+  const [owner, repo] = parts.length === 2 ? parts : parts.slice(-2);
+  if (!owner || !repo) {
+    return NextResponse.json({ error: "Invalid git repository format" }, { status: 400 });
+  }
   const octokit = new Octokit({ auth: githubToken });
 
   // Fetch the remote tree to find the blob SHA for this path
@@ -112,7 +116,9 @@ export async function GET(request: Request) {
 
   // Determine status
   let status: "M" | "A" | "D";
-  if (oldContent === null && newContent !== null) {
+  if (oldContent === null && newContent === null) {
+    return NextResponse.json({ error: "File not found" }, { status: 404 });
+  } else if (oldContent === null && newContent !== null) {
     status = "A";
   } else if (oldContent !== null && newContent === null) {
     status = "D";

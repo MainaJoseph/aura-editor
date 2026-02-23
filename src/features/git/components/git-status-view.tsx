@@ -103,22 +103,34 @@ export const GitStatusView = ({ projectId, gitBranch, onPull, isPulling, isActiv
       {/* Stage all / unstage all */}
       {totalChanges > 0 && (
         <div className="flex items-center gap-2 px-3 py-1.5 border-b shrink-0">
-          <input
-            type="checkbox"
-            checked={stagedPaths.size === totalChanges}
-            ref={(el) => {
-              if (el) el.indeterminate = stagedPaths.size > 0 && stagedPaths.size < totalChanges;
-            }}
-            onChange={() => {
-              if (stagedPaths.size === totalChanges) {
-                unstageAll();
-              } else {
-                handleStageAll();
-              }
-            }}
-            className="size-3.5 cursor-pointer accent-primary"
-            title={stagedPaths.size === totalChanges ? "Unstage all" : "Stage all"}
-          />
+          {/* Use intersection count to guard against stale staged paths */}
+          {(() => {
+            const stagedCount = allChangedPaths.filter((p) => stagedPaths.has(p)).length;
+            return (
+              <>
+                <label className="sr-only" htmlFor="stage-all-checkbox">
+                  Stage all changes
+                </label>
+                <input
+                  id="stage-all-checkbox"
+                  type="checkbox"
+                  checked={stagedCount === totalChanges}
+                  ref={(el) => {
+                    if (el) el.indeterminate = stagedCount > 0 && stagedCount < totalChanges;
+                  }}
+                  onChange={() => {
+                    if (stagedCount === totalChanges) {
+                      unstageAll();
+                    } else {
+                      handleStageAll();
+                    }
+                  }}
+                  className="size-3.5 cursor-pointer accent-primary"
+                  title={stagedCount === totalChanges ? "Unstage all" : "Stage all"}
+                />
+              </>
+            );
+          })()}
           <button
             onClick={handleStageAll}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"

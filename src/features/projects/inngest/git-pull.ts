@@ -73,7 +73,11 @@ export const gitPull = inngest.createFunction(
       return p;
     });
 
-    const [owner, repo] = project.gitRepo!.split("/");
+    const repoParts = project.gitRepo!.split("/");
+    if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
+      throw new NonRetriableError("Invalid gitRepo format, expected 'owner/repo'");
+    }
+    const [owner, repo] = repoParts;
     const octokit = new Octokit({ auth: githubToken });
 
     // Cleanup existing files
@@ -180,8 +184,8 @@ export const gitPull = inngest.createFunction(
               parentId,
             });
           }
-        } catch {
-          console.error(`Failed to pull file: ${file.path}`);
+        } catch (error) {
+          console.error(`Failed to pull file: ${file.path}`, error);
         }
       }
     });
