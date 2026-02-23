@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 import { verifyAuth } from "./auth";
 import { requireProjectAccess } from "./members";
 
@@ -202,6 +203,10 @@ export const deleteProject = mutation({
     const project = await ctx.db.get(args.id);
     if (!project) throw new Error("Project not found");
 
+    if (project.isDemoTemplate) {
+      throw new Error("Cannot delete the demo template project");
+    }
+
     await requireProjectAccess(ctx, args.id, identity.subject, "owner");
 
     // Delete files in batches
@@ -321,6 +326,166 @@ export const deleteProject = mutation({
 
     // All related data deleted, now delete the project
     await ctx.db.delete(args.id);
+  },
+});
+
+export const markAsDemoTemplate = internalMutation({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) throw new Error("Project not found");
+    await ctx.db.patch(args.projectId, { isDemoTemplate: true });
+    return { success: true, name: project.name };
+  },
+});
+
+export const getUserDemoProject = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await verifyAuth(ctx);
+
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_owner", (q) => q.eq("ownerId", identity.subject))
+      .collect();
+
+    return projects.find((p) => p.isDemo === true) ?? null;
+  },
+});
+
+export const cloneDemoProject = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await verifyAuth(ctx);
+    const userId = identity.subject;
+
+    // Idempotency guard: return existing demo project if user already has one
+    const existingProjects = await ctx.db
+      .query("projects")
+      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+      .collect();
+
+    const existingDemo = existingProjects.find((p) => p.isDemo === true);
+    if (existingDemo) {
+      return { projectId: existingDemo._id };
+    }
+
+    // Find the demo template
+    const allProjects = await ctx.db.query("projects").collect();
+    const template = allProjects.find((p) => p.isDemoTemplate === true);
+
+    if (!template) {
+      return { error: "no_template" as const };
+    }
+
+    const now = Date.now();
+
+    // Create the new project (copy settings from template)
+    const newProjectId = await ctx.db.insert("projects", {
+      name: "Nexora",
+      ownerId: userId,
+      isDemo: true,
+      updatedAt: now,
+      ...(template.settings ? { settings: template.settings } : {}),
+    });
+
+    // Fetch all template files
+    const templateFiles = await ctx.db
+      .query("files")
+      .withIndex("by_project", (q) => q.eq("projectId", template._id))
+      .collect();
+
+    // Calculate depth for each file (root = 0)
+    const getDepth = (
+      fileId: string,
+      filesById: Map<string, (typeof templateFiles)[0]>,
+      cache: Map<string, number>,
+    ): number => {
+      if (cache.has(fileId)) return cache.get(fileId)!;
+      const file = filesById.get(fileId);
+      if (!file || !file.parentId) {
+        cache.set(fileId, 0);
+        return 0;
+      }
+      const depth = 1 + getDepth(file.parentId, filesById, cache);
+      cache.set(fileId, depth);
+      return depth;
+    };
+
+    const filesById = new Map(templateFiles.map((f) => [f._id, f]));
+    const depthCache = new Map<string, number>();
+    const sortedFiles = [...templateFiles].sort(
+      (a, b) =>
+        getDepth(a._id, filesById, depthCache) -
+        getDepth(b._id, filesById, depthCache),
+    );
+
+    const idMap = new Map<string, string>();
+
+    // Pass 1: create folders top-down
+    for (const file of sortedFiles) {
+      if (file.type !== "folder") continue;
+      const newParentId = file.parentId
+        ? (idMap.get(file.parentId) as Id<"files"> | undefined)
+        : undefined;
+      const newId = await ctx.db.insert("files", {
+        projectId: newProjectId,
+        name: file.name,
+        type: "folder",
+        parentId: newParentId,
+        updatedAt: now,
+      });
+      idMap.set(file._id, newId);
+    }
+
+    // Pass 2: create text files
+    for (const file of sortedFiles) {
+      if (file.type !== "file" || file.content == null) continue;
+      const newParentId = file.parentId
+        ? (idMap.get(file.parentId) as Id<"files"> | undefined)
+        : undefined;
+      await ctx.db.insert("files", {
+        projectId: newProjectId,
+        name: file.name,
+        type: "file",
+        content: file.content,
+        parentId: newParentId,
+        updatedAt: now,
+      });
+    }
+
+    // Clone conversations and their messages
+    const templateConversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_project", (q) => q.eq("projectId", template._id))
+      .collect();
+
+    for (const convo of templateConversations) {
+      const newConvoId = await ctx.db.insert("conversations", {
+        projectId: newProjectId,
+        title: convo.title,
+        updatedAt: convo.updatedAt,
+      });
+
+      const templateMessages = await ctx.db
+        .query("messages")
+        .withIndex("by_conversation", (q) => q.eq("conversationId", convo._id))
+        .collect();
+
+      for (const msg of templateMessages) {
+        await ctx.db.insert("messages", {
+          conversationId: newConvoId,
+          projectId: newProjectId,
+          role: msg.role,
+          content: msg.content,
+          ...(msg.status ? { status: msg.status } : {}),
+        });
+      }
+    }
+
+    return { projectId: newProjectId };
   },
 });
 

@@ -34,6 +34,8 @@ export default defineSchema({
     ),
     gitRemoteTree: v.optional(v.string()),    // JSON: [{path, sha}] cached remote blob tree
     gitCommitHistory: v.optional(v.string()), // JSON: CommitInfo[] cached commit history
+    isDemoTemplate: v.optional(v.boolean()), // marks master Nexora template
+    isDemo: v.optional(v.boolean()),          // marks user's cloned demo copy
     settings: v.optional(
       v.object({
         installCommand: v.optional(v.string()),
