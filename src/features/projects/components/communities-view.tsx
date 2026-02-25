@@ -111,7 +111,7 @@ const ProjectCard = ({
       {/* Content */}
       <Link
         href={`/projects/${project._id}`}
-        className="p-4 flex flex-col gap-2 block hover:bg-accent/5 transition-colors"
+        className="p-4 flex flex-col gap-2 hover:bg-accent/5 transition-colors"
       >
         <h3 className="font-medium text-sm truncate">{project.name}</h3>
         <div className="flex items-center justify-between text-xs text-muted-foreground">

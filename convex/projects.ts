@@ -546,18 +546,38 @@ export const forkProject = mutation({
       ...(source.settings ? { settings: source.settings } : {}),
     });
 
-    const allFiles = await ctx.db
+    const limited = await ctx.db
       .query("files")
       .withIndex("by_project", (q) => q.eq("projectId", args.sourceProjectId))
-      .collect();
+      .take(FORK_MAX_FILES);
 
-    const limited = allFiles.slice(0, FORK_MAX_FILES);
     const idMap = new Map<string, Id<"files">>();
 
-    // Pass 1: folders (no-parent first, approximates depth order)
+    // Depth helper — same approach as cloneDemoProject
+    const filesById = new Map(limited.map((f) => [f._id as string, f]));
+    const depthCache = new Map<string, number>();
+    const getDepth = (
+      fileId: string,
+      visiting = new Set<string>(),
+    ): number => {
+      if (depthCache.has(fileId)) return depthCache.get(fileId)!;
+      if (visiting.has(fileId)) return 0;
+      const file = filesById.get(fileId);
+      if (!file || !file.parentId) {
+        depthCache.set(fileId, 0);
+        return 0;
+      }
+      visiting.add(fileId);
+      const depth = 1 + getDepth(file.parentId, visiting);
+      visiting.delete(fileId);
+      depthCache.set(fileId, depth);
+      return depth;
+    };
+
+    // Pass 1: folders sorted by depth so parents are always inserted before children
     const folders = limited
       .filter((f) => f.type === "folder")
-      .sort((a, b) => (!a.parentId ? -1 : !b.parentId ? 1 : 0));
+      .sort((a, b) => getDepth(a._id) - getDepth(b._id));
 
     for (const folder of folders) {
       const newParentId = folder.parentId
@@ -573,8 +593,9 @@ export const forkProject = mutation({
       idMap.set(folder._id, newId);
     }
 
-    // Pass 2: files
+    // Pass 2: files (skip entries with neither content nor storageId)
     for (const file of limited.filter((f) => f.type === "file")) {
+      if (file.content == null && file.storageId == null) continue;
       const newParentId = file.parentId
         ? idMap.get(file.parentId)
         : undefined;
@@ -584,7 +605,7 @@ export const forkProject = mutation({
         type: "file",
         parentId: newParentId,
         updatedAt: now,
-        ...(file.content !== undefined ? { content: file.content } : {}),
+        ...(file.content != null ? { content: file.content } : {}),
         ...(file.storageId ? { storageId: file.storageId } : {}),
       });
     }

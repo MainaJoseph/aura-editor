@@ -26,7 +26,7 @@ export const ProjectIdLayout = ({
   const project = useProject(projectId);
   const isOwner = !!user && !!project && project.ownerId === user.id;
 
-  // Redirect to /communities if the project becomes inaccessible (e.g. owner made it private)
+  // Redirect to home if the project becomes inaccessible (e.g. deleted or owner made it private)
   useEffect(() => {
     if (project === undefined) return; // still loading
     if (project === null) {

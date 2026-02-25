@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   DownloadIcon,
   StarIcon,
@@ -36,6 +36,15 @@ export const ExtensionDetailPage = ({
   const uninstallExtension = useUninstallExtension();
 
   const [installState, setInstallState] = useState<"idle" | "installing" | "installed">("idle");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const justInstalledRef = useRef(false);
+
+  // Clear the timer on unmount to avoid state updates on unmounted component
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const isInstalled = useMemo(() => {
     if (!installedExtensions) return false;
@@ -44,9 +53,10 @@ export const ExtensionDetailPage = ({
     );
   }, [installedExtensions, extension._id]);
 
-  // Reset state when isInstalled changes externally
+  // Reset state when isInstalled changes externally (e.g. another tab),
+  // but not while our own 2-second "installed" animation is running.
   useEffect(() => {
-    if (isInstalled) {
+    if (isInstalled && !justInstalledRef.current) {
       setInstallState("idle");
     }
   }, [isInstalled]);
@@ -65,8 +75,13 @@ export const ExtensionDetailPage = ({
       }
       return;
     }
+    justInstalledRef.current = true;
     setInstallState("installed");
-    setTimeout(() => setInstallState("idle"), 2000);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setInstallState("idle");
+      justInstalledRef.current = false;
+    }, 2000);
   };
 
   const handleUninstall = async () => {

@@ -115,10 +115,6 @@ export const useSetProjectVisibility = () => {
   );
 };
 
-export const usePublicProjects = () => {
-  return useQuery(api.projects.getPublicProjects);
-};
-
 export const useForkProject = () => {
   return useMutation(api.projects.forkProject);
 };

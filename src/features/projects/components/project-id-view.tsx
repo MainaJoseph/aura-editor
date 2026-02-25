@@ -274,7 +274,8 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
                       setIsForkDialogOpen(true);
                     }
                   }}
-                  className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30"
+                  disabled={myExistingForkId === undefined}
+                  className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30 disabled:opacity-50 disabled:cursor-default"
                 >
                   <RiGitForkLine className="size-3.5" />
                   <span className="text-sm">Fork</span>

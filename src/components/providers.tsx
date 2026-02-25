@@ -37,7 +37,8 @@ function UnauthenticatedContent({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/sign-in") ||
     pathname.startsWith("/sign-up") ||
     pathname.startsWith("/sso-callback");
-  const isPublicRoute = pathname.startsWith("/communities");
+  const isPublicRoute =
+    pathname === "/communities" || pathname.startsWith("/communities/");
   if (isAuthRoute || isPublicRoute) return <>{children}</>;
   return <UnauthenticatedView />;
 }
