@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Allotment } from "allotment";
 import { Trash2Icon, Loader2Icon, SearchIcon, UsersIcon } from "lucide-react";
+import { RiGitForkLine } from "react-icons/ri";
 import { useMutation } from "convex/react";
+import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { SplitEditorView } from "@/features/editor/components/split-editor-view";
@@ -22,7 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-import { useProject } from "../hooks/use-projects";
+import { useProject, useForkProject, useForkCount, useMyForkOf } from "../hooks/use-projects";
 import { FileExplorer } from "./file-explorer";
 import { ActivityBar } from "./activity-bar";
 import { GitPanel } from "@/features/git/components/git-panel";
@@ -36,6 +39,11 @@ import { PreviewView } from "./preview-view";
 import { ExportPopover } from "./export-popover";
 import { ShareDialog } from "./share-dialog";
 import { FileFinderDialog } from "./file-finder-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const DEFAULT_SIDEBAR_WIDTH = 260;
 const MIN_SIDEBAR_WIDTH = 200;
@@ -65,13 +73,21 @@ const Tab = ({
 
 export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
   const router = useRouter();
+  const { user } = useUser();
   const project = useProject(projectId);
+  const isOwner = !!user && !!project && project.ownerId === user.id;
   const [activeView, setActiveView] = useState<"editor" | "preview">("editor");
   const [activePanel, setActivePanel] = useState<"explorer" | "search" | "extensions" | "git" | null>(
     "explorer"
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isForkDialogOpen, setIsForkDialogOpen] = useState(false);
+  const [isAlreadyForkedDialogOpen, setIsAlreadyForkedDialogOpen] = useState(false);
+  const [isForking, setIsForking] = useState(false);
+  const forkProject = useForkProject();
+  const forkCount = useForkCount(projectId);
+  const myExistingForkId = useMyForkOf(projectId);
   const [fileFinderOpen, setFileFinderOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
   const openExtensionTab = useEditorStore((s) => s.openExtensionTab);
@@ -175,6 +191,18 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
     }
   };
 
+  const handleForkProject = async () => {
+    try {
+      setIsForking(true);
+      const result = await forkProject({ sourceProjectId: projectId });
+      router.push(`/projects/${result.projectId}`);
+    } catch {
+      toast.error("Failed to fork project");
+      setIsForking(false);
+      setIsForkDialogOpen(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <nav className="h-8.75 flex items-center bg-sidebar border-b">
@@ -212,53 +240,134 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
                 Demo Project
               </span>
             )}
-            <ShareDialog projectId={projectId}>
-              <button className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30">
-                <UsersIcon className="size-3.5" />
-                <span className="text-sm">Share</span>
-              </button>
-            </ShareDialog>
-            <ExportPopover projectId={projectId} />
-          </div>
-          <AlertDialog
-            open={isDeleteDialogOpen}
-            onOpenChange={setIsDeleteDialogOpen}
-          >
-            <AlertDialogTrigger asChild>
-              <div className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-destructive/10 hover:text-destructive">
-                <Trash2Icon className="size-3.5" />
-              </div>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this project? This action
-                  cannot be undone. All files, conversations, and messages
-                  associated with this project will be permanently deleted.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={isDeleting}>
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteProject}
-                  disabled={isDeleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            {isOwner && !!forkCount && forkCount > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 h-full px-3 text-muted-foreground border-l text-xs">
+                    <RiGitForkLine className="size-3.5" />
+                    <span>{forkCount}</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {forkCount} {forkCount === 1 ? "fork" : "forks"} of this project
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {isOwner && (
+              <>
+                <ShareDialog projectId={projectId}>
+                  <button className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30">
+                    <UsersIcon className="size-3.5" />
+                    <span className="text-sm">Share</span>
+                  </button>
+                </ShareDialog>
+                <ExportPopover projectId={projectId} />
+              </>
+            )}
+            {!isOwner && (
+              <>
+                <button
+                  onClick={() => {
+                    if (myExistingForkId) {
+                      setIsAlreadyForkedDialogOpen(true);
+                    } else {
+                      setIsForkDialogOpen(true);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30"
                 >
-                  {isDeleting ? (
-                    <>
-                      <Loader2Icon className="size-4 animate-spin mr-2" />
-                      Deleting...
-                    </>
-                  ) : (
-                    "Delete Project"
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  <RiGitForkLine className="size-3.5" />
+                  <span className="text-sm">Fork</span>
+                </button>
+                {/* Fork confirmation dialog */}
+                <AlertDialog open={isForkDialogOpen} onOpenChange={setIsForkDialogOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Fork this project?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will create an independent copy of this project in your account.
+                        You can edit it freely without affecting the original.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isForking}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleForkProject} disabled={isForking}>
+                        {isForking ? (
+                          <>
+                            <Loader2Icon className="size-4 animate-spin mr-2" />
+                            Forking...
+                          </>
+                        ) : (
+                          "Fork Project"
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                {/* Already forked dialog */}
+                <AlertDialog
+                  open={isAlreadyForkedDialogOpen}
+                  onOpenChange={setIsAlreadyForkedDialogOpen}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Already forked</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        You already have a fork of this project. Would you like to go to your existing fork?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>No, stay here</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => router.push(`/projects/${myExistingForkId}`)}>
+                        Yes, go to my fork
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
+          </div>
+          {isOwner && (
+            <AlertDialog
+              open={isDeleteDialogOpen}
+              onOpenChange={setIsDeleteDialogOpen}
+            >
+              <AlertDialogTrigger asChild>
+                <div className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-destructive/10 hover:text-destructive">
+                  <Trash2Icon className="size-3.5" />
+                </div>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this project? This action
+                    cannot be undone. All files, conversations, and messages
+                    associated with this project will be permanently deleted.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeleting}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteProject}
+                    disabled={isDeleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2Icon className="size-4 animate-spin mr-2" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete Project"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </nav>
       <div className="flex-1 relative">
@@ -273,6 +382,7 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
             onPanelToggle={handlePanelToggle}
             sidebarWidth={sidebarWidth}
             gitChangeCount={gitChangeCount}
+            isOwner={isOwner}
           />
           <div className="flex-1 flex overflow-hidden">
             {/* Keep panels mounted to avoid refetching on toggle */}
@@ -313,14 +423,16 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
                     }
                   />
                 </div>
-                <div
-                  className={cn(
-                    "h-full",
-                    activePanel !== "git" && "hidden"
-                  )}
-                >
-                  <GitPanel projectId={projectId} isActive={activePanel === "git"} />
-                </div>
+                {isOwner && (
+                  <div
+                    className={cn(
+                      "h-full",
+                      activePanel !== "git" && "hidden"
+                    )}
+                  >
+                    <GitPanel projectId={projectId} isActive={activePanel === "git"} />
+                  </div>
+                )}
               </div>
             </div>
             {activePanel && (
@@ -331,7 +443,7 @@ export const ProjectIdView = ({ projectId }: { projectId: Id<"projects"> }) => {
             )}
             <div className="flex-1 min-w-0 min-h-0 flex flex-col">
               {/* Show diff view when a git file is selected, otherwise show normal editor */}
-              {diffPath && activePanel === "git" ? (
+              {isOwner && diffPath && activePanel === "git" ? (
                 <GitDiffView
                   projectId={projectId}
                   path={diffPath}

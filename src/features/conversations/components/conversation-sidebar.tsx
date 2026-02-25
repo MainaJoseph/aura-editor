@@ -1,9 +1,10 @@
 import ky from "ky";
+import Image from "next/image";
 import { UserButton } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { useCallback, useState } from "react";
 import { useMutation } from "convex/react";
-import { AlertCircleIcon, CameraIcon, ClipboardCopyIcon, CopyIcon, HistoryIcon, ImageIcon, LoaderIcon, PanelLeftClose, PanelLeftOpen, PencilIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
+import { AlertCircleIcon, CameraIcon, ClipboardCopyIcon, CopyIcon, HistoryIcon, ImageIcon, LoaderIcon, LockIcon, PanelLeftClose, PanelLeftOpen, PencilIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
 
 import {
   Conversation,
@@ -119,12 +120,14 @@ interface ConversationSidebarProps {
   projectId: Id<"projects">;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  readOnly?: boolean;
 }
 
 export const ConversationSidebar = ({
   projectId,
   isCollapsed,
   onToggleCollapse,
+  readOnly = false,
 }: ConversationSidebarProps) => {
   const [input, setInput] = useState("");
   const [selectedConversationId, setSelectedConversationId] =
@@ -345,20 +348,24 @@ export const ConversationSidebar = ({
             {activeConversation?.title ?? DEFAULT_CONVERSATION_TITLE}
           </div>
           <div className="flex items-center px-1 gap-1">
-            <Button
-              size="icon-xs"
-              variant="highlight"
-              onClick={() => setPastConversationsOpen(true)}
-            >
-              <HistoryIcon className="size-3.5" />
-            </Button>
-            <Button
-              size="icon-xs"
-              variant="highlight"
-              onClick={handleCreateConversation}
-            >
-              <PlusIcon className="size-3.5" />
-            </Button>
+            {!readOnly && (
+              <>
+                <Button
+                  size="icon-xs"
+                  variant="highlight"
+                  onClick={() => setPastConversationsOpen(true)}
+                >
+                  <HistoryIcon className="size-3.5" />
+                </Button>
+                <Button
+                  size="icon-xs"
+                  variant="highlight"
+                  onClick={handleCreateConversation}
+                >
+                  <PlusIcon className="size-3.5" />
+                </Button>
+              </>
+            )}
             <Button
               size="icon-xs"
               variant="highlight"
@@ -368,6 +375,17 @@ export const ConversationSidebar = ({
             </Button>
           </div>
         </div>
+        {readOnly ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground px-6 text-center">
+            <LockIcon className="size-7 opacity-40" />
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium text-foreground">Read-only view</p>
+              <p className="text-xs">Only the project owner can use AI features for this project.</p>
+            </div>
+            <Image src="/logo.svg" alt="Aura" width={56} height={56} className="opacity-35" />
+          </div>
+        ) : (
+        <>
         <Conversation className="flex-1">
           <ConversationContent>
             {conversationMessages?.map((message, messageIndex) => {
@@ -550,6 +568,8 @@ export const ConversationSidebar = ({
             </PromptInputFooter>
           </PromptInput>
         </div>
+        </>
+        )}
       </div>
     </>
   );

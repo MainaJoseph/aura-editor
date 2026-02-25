@@ -75,10 +75,9 @@ export const CodeEditor = ({
       customSetup,
       multiCursor(),
       languageExtension,
-      suggestion(fileName),
-      quickEdit(fileName),
-      explain(fileName),
-      selectionTooltip(),
+      ...(!readOnly
+        ? [suggestion(fileName), quickEdit(fileName), explain(fileName), selectionTooltip()]
+        : []),
       keymap.of([indentWithTab]),
       minimap(),
       indentationMarkers(),

@@ -13,10 +13,12 @@ export const getFiles = query({
     const project = await ctx.db.get(args.projectId);
     if (!project) return [];
 
-    try {
-      await requireProjectAccess(ctx, args.projectId, identity.subject, "viewer");
-    } catch {
-      return [];
+    if (!project.isPublic) {
+      try {
+        await requireProjectAccess(ctx, args.projectId, identity.subject, "viewer");
+      } catch {
+        return [];
+      }
     }
 
     return await ctx.db
@@ -37,10 +39,12 @@ export const getFile = query({
     const project = await ctx.db.get(file.projectId);
     if (!project) return null;
 
-    try {
-      await requireProjectAccess(ctx, file.projectId, identity.subject, "viewer");
-    } catch {
-      return null;
+    if (!project.isPublic) {
+      try {
+        await requireProjectAccess(ctx, file.projectId, identity.subject, "viewer");
+      } catch {
+        return null;
+      }
     }
 
     return file;
@@ -58,10 +62,12 @@ export const getFilePath = query({
     const project = await ctx.db.get(file.projectId);
     if (!project) return [];
 
-    try {
-      await requireProjectAccess(ctx, file.projectId, identity.subject, "viewer");
-    } catch {
-      return [];
+    if (!project.isPublic) {
+      try {
+        await requireProjectAccess(ctx, file.projectId, identity.subject, "viewer");
+      } catch {
+        return [];
+      }
     }
 
     const path: { _id: string; name: string }[] = [];
@@ -90,10 +96,12 @@ export const getFolderContents = query({
     const project = await ctx.db.get(args.projectId);
     if (!project) return [];
 
-    try {
-      await requireProjectAccess(ctx, args.projectId, identity.subject, "viewer");
-    } catch {
-      return [];
+    if (!project.isPublic) {
+      try {
+        await requireProjectAccess(ctx, args.projectId, identity.subject, "viewer");
+      } catch {
+        return [];
+      }
     }
 
     const files = await ctx.db

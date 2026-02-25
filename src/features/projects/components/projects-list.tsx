@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FaGithub } from "react-icons/fa";
+import { RiGitForkLine } from "react-icons/ri";
 import { formatDistanceToNow } from "date-fns";
 import {
   AlertCircleIcon,
@@ -7,6 +8,7 @@ import {
   GlobeIcon,
   Loader2Icon,
 } from "lucide-react";
+import { FaRegCirclePlay } from "react-icons/fa6";
 
 import { Kbd } from "@/components/ui/kbd";
 import { Spinner } from "@/components/ui/spinner";
@@ -37,6 +39,14 @@ const getProjectIcon = (project: Doc<"projects">) => {
     );
   }
 
+  if (project.isForked) {
+    return <RiGitForkLine className="size-3.5 text-muted-foreground" />;
+  }
+
+  if (project.isDemo) {
+    return <FaRegCirclePlay className="size-3.5 text-muted-foreground" />;
+  }
+
   return <GlobeIcon className="size-3.5 text-muted-foreground" />;
 };
 
@@ -65,6 +75,11 @@ const ContinueCard = ({ data }: { data: Doc<"projects"> }) => {
                   Demo Project
                 </span>
               )}
+              {data.isForked && (
+                <span className="text-[10px] bg-yellow-500/10 border border-yellow-500/30 rounded-sm px-1.5 py-0.5 text-yellow-600 dark:text-yellow-400">
+                  Forked
+                </span>
+              )}
               <ArrowRightIcon className="size-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
@@ -89,6 +104,11 @@ const ProjectItem = ({ data }: { data: Doc<"projects"> }) => {
         {data.isDemo && (
           <span className="text-[10px] bg-green-500/10 border border-green-500/30 rounded-sm px-1.5 py-0.5 text-green-600 dark:text-green-400">
             Demo
+          </span>
+        )}
+        {data.isForked && (
+          <span className="text-[10px] bg-yellow-500/10 border border-yellow-500/30 rounded-sm px-1.5 py-0.5 text-yellow-600 dark:text-yellow-400">
+            Forked
           </span>
         )}
       </div>

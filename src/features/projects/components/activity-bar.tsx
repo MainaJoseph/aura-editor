@@ -33,6 +33,7 @@ interface ActivityBarProps {
   onPanelToggle: (panel: string) => void;
   sidebarWidth: number;
   gitChangeCount?: number;
+  isOwner?: boolean;
 }
 
 const topItems = [
@@ -53,13 +54,14 @@ const settingsMenuItems = [
   { id: "themes", icon: SunMoonIcon, label: "Themes" },
 ];
 
-export const ActivityBar = ({ activePanel, onPanelToggle, sidebarWidth, gitChangeCount = 0 }: ActivityBarProps) => {
+export const ActivityBar = ({ activePanel, onPanelToggle, sidebarWidth, gitChangeCount = 0, isOwner = false }: ActivityBarProps) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const visibleTopItems = topItems.filter((item) => item.id !== "git" || isOwner);
 
   return (
     <div className="w-12 h-full bg-sidebar border-r flex flex-col justify-between">
       <div className="flex flex-col items-center">
-        {topItems.map((item) => {
+        {visibleTopItems.map((item) => {
           const isActive = activePanel === item.id;
           const showBadge = item.id === "git" && gitChangeCount > 0;
 
