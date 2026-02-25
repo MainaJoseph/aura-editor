@@ -111,7 +111,7 @@ export const ProjectsView = () => {
               Docs
             </Button>
             <Button variant="ghost" size="sm" className="text-sm" asChild>
-              <Link href="/communities">Communities</Link>
+              <Link href="/community">Community</Link>
             </Button>
             <UserButton />
           </div>

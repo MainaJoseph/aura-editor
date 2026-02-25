@@ -128,7 +128,9 @@ const ProjectCard = ({
               </span>
             )}
           </div>
-          <span>{formatDistanceToNow(project.updatedAt, { addSuffix: true })}</span>
+          <span>
+            {formatDistanceToNow(project.updatedAt, { addSuffix: true })}
+          </span>
         </div>
       </Link>
     </div>
@@ -140,8 +142,11 @@ export const CommunitiesView = () => {
 
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [uploadingProjectId, setUploadingProjectId] = useState<Id<"projects"> | null>(null);
-  const [pendingUploadId, setPendingUploadId] = useState<Id<"projects"> | null>(null);
+  const [uploadingProjectId, setUploadingProjectId] =
+    useState<Id<"projects"> | null>(null);
+  const [pendingUploadId, setPendingUploadId] = useState<Id<"projects"> | null>(
+    null,
+  );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -167,8 +172,9 @@ export const CommunitiesView = () => {
     ? (searchResults ?? [])
     : results;
 
-  const isLoadingFirstPage =
-    isSearching ? searchResults === undefined : status === "LoadingFirstPage";
+  const isLoadingFirstPage = isSearching
+    ? searchResults === undefined
+    : status === "LoadingFirstPage";
 
   // Infinite scroll sentinel
   useEffect(() => {
@@ -266,7 +272,7 @@ export const CommunitiesView = () => {
               className="text-sm underline underline-offset-4"
               asChild
             >
-              <Link href="/communities">Communities</Link>
+              <Link href="/community">Community</Link>
             </Button>
             {isSignedIn && <UserButton />}
           </div>
@@ -277,7 +283,7 @@ export const CommunitiesView = () => {
         {/* Header */}
         <div className="mb-10">
           <h1 className={cn("text-3xl font-semibold mb-2", font.className)}>
-            Community
+            Aura Community
           </h1>
           <p className="text-sm text-muted-foreground mb-6">
             Discover and explore projects shared by the Aura community
@@ -306,7 +312,9 @@ export const CommunitiesView = () => {
           <div className="flex flex-col items-center justify-center py-32 gap-3 text-muted-foreground">
             <GlobeIcon className="size-10 opacity-30" />
             <p className="text-sm font-medium">
-              {isSearching ? `No results for "${debouncedSearch}"` : "No public projects yet"}
+              {isSearching
+                ? `No results for "${debouncedSearch}"`
+                : "No public projects yet"}
             </p>
             {!isSearching && (
               <p className="text-xs opacity-60">

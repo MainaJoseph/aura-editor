@@ -105,8 +105,8 @@ export const Navbar = ({ projectId }: { projectId: Id<"projects"> }) => {
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
                     <Button variant="ghost" className="w-fit! p-1.5! h-7!" asChild>
-                      <Link href="/communities">
-                        <span className="text-sm font-medium">Communities</span>
+                      <Link href="/community">
+                        <span className="text-sm font-medium">Community</span>
                       </Link>
                     </Button>
                   </BreadcrumbLink>
@@ -200,8 +200,8 @@ export const Navbar = ({ projectId }: { projectId: Id<"projects"> }) => {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {isPublic
-                ? "This project will be hidden from the Communities page and only accessible to you and collaborators."
-                : "This project will appear on the Communities page and be discoverable by anyone."}
+                ? "This project will be hidden from the Community page and only accessible to you and collaborators."
+                : "This project will appear on the Community page and be discoverable by anyone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
