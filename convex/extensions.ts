@@ -86,7 +86,7 @@ export const installExtension = mutation({
 
     const project = await ctx.db.get(args.projectId);
     if (!project || project.ownerId !== identity.subject) {
-      throw new Error("Unauthorized");
+      return { success: false, error: "unauthorized" } as const;
     }
 
     // Check for duplicate
@@ -98,13 +98,13 @@ export const installExtension = mutation({
       .first();
 
     if (existing) {
-      throw new Error("Extension already installed");
+      return { success: false, error: "already_installed" } as const;
     }
 
     // Verify extension exists
     const extension = await ctx.db.get(args.extensionId);
     if (!extension) {
-      throw new Error("Extension not found");
+      return { success: false, error: "not_found" } as const;
     }
 
     await ctx.db.insert("installedExtensions", {
@@ -118,6 +118,8 @@ export const installExtension = mutation({
     await ctx.db.patch(args.extensionId, {
       downloads: extension.downloads + 1,
     });
+
+    return { success: true } as const;
   },
 });
 
@@ -131,7 +133,7 @@ export const uninstallExtension = mutation({
 
     const project = await ctx.db.get(args.projectId);
     if (!project || project.ownerId !== identity.subject) {
-      throw new Error("Unauthorized");
+      return { success: false, error: "unauthorized" } as const;
     }
 
     const installed = await ctx.db
@@ -144,6 +146,8 @@ export const uninstallExtension = mutation({
     if (installed) {
       await ctx.db.delete(installed._id);
     }
+
+    return { success: true } as const;
   },
 });
 
@@ -158,7 +162,7 @@ export const toggleExtension = mutation({
 
     const project = await ctx.db.get(args.projectId);
     if (!project || project.ownerId !== identity.subject) {
-      throw new Error("Unauthorized");
+      return { success: false, error: "unauthorized" } as const;
     }
 
     const installed = await ctx.db
@@ -169,9 +173,11 @@ export const toggleExtension = mutation({
       .first();
 
     if (!installed) {
-      throw new Error("Extension not installed");
+      return { success: false, error: "not_installed" } as const;
     }
 
     await ctx.db.patch(installed._id, { enabled: args.enabled });
+
+    return { success: true } as const;
   },
 });

@@ -36,6 +36,10 @@ export default defineSchema({
     gitCommitHistory: v.optional(v.string()), // JSON: CommitInfo[] cached commit history
     isDemoTemplate: v.optional(v.boolean()), // marks master Nexora template
     isDemo: v.optional(v.boolean()),          // marks user's cloned demo copy
+    isPublic: v.optional(v.boolean()),        // public discovery in Communities
+    isForked: v.optional(v.boolean()),        // marks a forked project
+    forkedFromId: v.optional(v.id("projects")), // tracks lineage for fork counting
+    bannerStorageId: v.optional(v.id("_storage")), // community card banner image
     settings: v.optional(
       v.object({
         installCommand: v.optional(v.string()),
@@ -44,7 +48,13 @@ export default defineSchema({
     ),
   })
     .index("by_owner", ["ownerId"])
-    .index("by_demo_template", ["isDemoTemplate"]),
+    .index("by_demo_template", ["isDemoTemplate"])
+    .index("by_public", ["isPublic"])
+    .index("by_forked_from", ["forkedFromId"])
+    .searchIndex("search_name", {
+      searchField: "name",
+      filterFields: ["isPublic"],
+    }),
 
   files: defineTable({
     projectId: v.id("projects"),

@@ -106,7 +106,15 @@ export const ProjectsView = () => {
               Aura
             </span>
           </Link>
-          <UserButton />
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="text-sm text-muted-foreground cursor-default" disabled>
+              Docs
+            </Button>
+            <Button variant="ghost" size="sm" className="text-sm" asChild>
+              <Link href="/communities">Communities</Link>
+            </Button>
+            <UserButton />
+          </div>
         </div>
       </nav>
 

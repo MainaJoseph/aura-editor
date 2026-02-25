@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   DownloadIcon,
   StarIcon,
   CheckCircle2Icon,
   Loader2Icon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,6 +36,15 @@ export const ExtensionDetailPage = ({
   const uninstallExtension = useUninstallExtension();
 
   const [installState, setInstallState] = useState<"idle" | "installing" | "installed">("idle");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const justInstalledRef = useRef(false);
+
+  // Clear the timer on unmount to avoid state updates on unmounted component
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const isInstalled = useMemo(() => {
     if (!installedExtensions) return false;
@@ -43,26 +53,42 @@ export const ExtensionDetailPage = ({
     );
   }, [installedExtensions, extension._id]);
 
-  // Reset state when isInstalled changes externally
+  // Reset state when isInstalled changes externally (e.g. another tab),
+  // but not while our own 2-second "installed" animation is running.
   useEffect(() => {
-    if (isInstalled) {
+    if (isInstalled && !justInstalledRef.current) {
       setInstallState("idle");
     }
   }, [isInstalled]);
 
   const handleInstall = async () => {
     setInstallState("installing");
-    try {
-      await installExtension({ projectId, extensionId: extension._id });
-      setInstallState("installed");
-      setTimeout(() => setInstallState("idle"), 2000);
-    } catch {
+    const result = await installExtension({ projectId, extensionId: extension._id });
+    if (!result.success) {
       setInstallState("idle");
+      if (result.error === "unauthorized") {
+        toast.error("Only the project owner can install extensions.");
+      } else if (result.error === "already_installed") {
+        toast.error("Extension is already installed.");
+      } else {
+        toast.error("Failed to install extension.");
+      }
+      return;
     }
+    justInstalledRef.current = true;
+    setInstallState("installed");
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setInstallState("idle");
+      justInstalledRef.current = false;
+    }, 2000);
   };
 
   const handleUninstall = async () => {
-    await uninstallExtension({ projectId, extensionId: extension._id });
+    const result = await uninstallExtension({ projectId, extensionId: extension._id });
+    if (!result.success && result.error === "unauthorized") {
+      toast.error("Only the project owner can uninstall extensions.");
+    }
   };
 
   const stars = Array.from({ length: 5 }, (_, i) => i < Math.round(extension.rating));

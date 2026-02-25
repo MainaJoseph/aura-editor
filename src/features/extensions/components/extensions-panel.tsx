@@ -6,6 +6,7 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -79,11 +80,17 @@ export const ExtensionsPanel = ({ projectId, onSelectExtension }: ExtensionsPane
   }, [installedExtensions, search]);
 
   const handleInstall = async (extensionId: Id<"extensions">) => {
-    await installExtension({ projectId, extensionId });
+    const result = await installExtension({ projectId, extensionId });
+    if (!result.success && result.error === "unauthorized") {
+      toast.error("Only the project owner can install extensions.");
+    }
   };
 
   const handleToggle = async (extensionId: Id<"extensions">, enabled: boolean) => {
-    await toggleExtension({ projectId, extensionId, enabled });
+    const result = await toggleExtension({ projectId, extensionId, enabled });
+    if (!result.success && result.error === "unauthorized") {
+      toast.error("Only the project owner can manage extensions.");
+    }
   };
 
   return (

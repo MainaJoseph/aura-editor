@@ -431,6 +431,14 @@ export const getProjectRole = query({
   handler: async (ctx, args) => {
     const identity = await verifyAuth(ctx);
 
-    return await getProjectRoleHelper(ctx, args.projectId, identity.subject);
+    const role = await getProjectRoleHelper(ctx, args.projectId, identity.subject);
+
+    // Non-members get read-only (viewer) access to public projects
+    if (!role) {
+      const project = await ctx.db.get(args.projectId);
+      if (project?.isPublic) return "viewer" as const;
+    }
+
+    return role;
   },
 });

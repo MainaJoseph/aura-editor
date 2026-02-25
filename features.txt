@@ -41,6 +41,7 @@ Editor Experience
   - Real-time multiplayer editing — Multiple users editing the same project simultaneously (Convex's real-time subscriptions make this      
   feasible) ✅
   - Share project links — Read-only or editable access via link ✅
+  - Public/private project visibility — Toggle projects between private and public; public projects are discoverable in the Communities page ✅
   - Comments on code — Leave comments on specific lines for async collaboration
   - Fork/remix — Let users fork public projects as starting points
 

@@ -65,6 +65,16 @@ export async function POST(request: Request) {
 
   const projectId = conversation.projectId;
 
+  // Verify the authenticated user owns this project
+  const projectOwnerId = await convex.query(api.system.getProjectOwner, {
+    internalKey,
+    projectId,
+  });
+
+  if (!projectOwnerId || projectOwnerId !== userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   // Find all processing messages in this project
   const processingMessages = await convex.query(
     api.system.getProcessingMessages,

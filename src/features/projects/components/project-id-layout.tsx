@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 import { ConversationSidebar } from "@/features/conversations/components/conversation-sidebar";
 
 import { Navbar } from "./navbar";
+import { useProject } from "../hooks/use-projects";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 const MIN_SIDEBAR_WIDTH = 200;
@@ -18,6 +21,19 @@ export const ProjectIdLayout = ({
   children: React.ReactNode;
   projectId: Id<"projects">;
 }) => {
+  const router = useRouter();
+  const { user } = useUser();
+  const project = useProject(projectId);
+  const isOwner = !!user && !!project && project.ownerId === user.id;
+
+  // Redirect to home if the project becomes inaccessible (e.g. deleted or owner made it private)
+  useEffect(() => {
+    if (project === undefined) return; // still loading
+    if (project === null) {
+      router.replace("/");
+    }
+  }, [project, router]);
+
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_CONVERSATION_SIDEBAR_WIDTH);
   const isDragging = useRef(false);
@@ -81,6 +97,7 @@ export const ProjectIdLayout = ({
             projectId={projectId}
             isCollapsed={isCollapsed}
             onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+            readOnly={!isOwner}
           />
         </div>
         {/* Drag-to-resize handle, only visible when expanded */}

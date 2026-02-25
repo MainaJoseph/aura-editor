@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/purity */
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, usePaginatedQuery } from "convex/react";
 
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -91,4 +91,54 @@ export const useUserDemoProject = () => {
 export const useCloneDemoProject = () => {
   const cloneDemo = useMutation(api.projects.cloneDemoProject);
   return { cloneDemo };
+};
+
+export const useSetProjectVisibility = () => {
+  return useMutation(api.projects.setVisibility).withOptimisticUpdate(
+    (localStore, args) => {
+      const existingProject = localStore.getQuery(api.projects.getById, {
+        id: args.id,
+      });
+
+      if (existingProject !== undefined && existingProject !== null) {
+        localStore.setQuery(
+          api.projects.getById,
+          { id: args.id },
+          {
+            ...existingProject,
+            isPublic: args.isPublic,
+            updatedAt: Date.now(),
+          },
+        );
+      }
+    },
+  );
+};
+
+export const useForkProject = () => {
+  return useMutation(api.projects.forkProject);
+};
+
+export const useForkCount = (projectId: Id<"projects">) => {
+  return useQuery(api.projects.getForkCount, { projectId });
+};
+
+export const useMyForkOf = (sourceProjectId: Id<"projects">) => {
+  return useQuery(api.projects.getMyForkOf, { sourceProjectId });
+};
+
+export const usePublicProjectsPaginated = () => {
+  return usePaginatedQuery(api.projects.getPublicProjectsPaginated, {}, { initialNumItems: 12 });
+};
+
+export const useSearchPublicProjects = (query: string) => {
+  return useQuery(api.projects.searchPublicProjects, query ? { query } : "skip");
+};
+
+export const useGenerateBannerUploadUrl = () => {
+  return useMutation(api.projects.generateBannerUploadUrl);
+};
+
+export const useUpdateProjectBanner = () => {
+  return useMutation(api.projects.updateProjectBanner);
 };

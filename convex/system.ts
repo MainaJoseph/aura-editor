@@ -16,6 +16,18 @@ const validateInternalKey = (key: string) => {
   }
 };
 
+export const getProjectOwner = query({
+  args: {
+    internalKey: v.string(),
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    validateInternalKey(args.internalKey);
+    const project = await ctx.db.get(args.projectId);
+    return project?.ownerId ?? null;
+  },
+});
+
 export const getConversationById = query({
   args: {
     conversationId: v.id("conversations"),

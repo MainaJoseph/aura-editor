@@ -3,10 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { CloudCheckIcon, LoaderIcon } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
+import { CloudCheckIcon, LoaderIcon, LockIcon, GlobeIcon } from "lucide-react";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { Poppins } from "next/font/google";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 import {
   Tooltip,
@@ -21,11 +22,21 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { Id } from "../../../../convex/_generated/dataModel";
-import { useProject, useRenameProject } from "../hooks/use-projects";
+import { useProject, useRenameProject, useSetProjectVisibility } from "../hooks/use-projects";
 import { OnlineUsers } from "@/features/editor/components/online-users";
 
 const font = Poppins({
@@ -36,9 +47,16 @@ const font = Poppins({
 export const Navbar = ({ projectId }: { projectId: Id<"projects"> }) => {
   const project = useProject(projectId);
   const renameProject = useRenameProject();
+  const { user } = useUser();
+  const setVisibility = useSetProjectVisibility();
 
   const [isRenaming, setIsRenaming] = useState(false);
   const [name, setName] = useState("");
+  const [visibilityDialogOpen, setVisibilityDialogOpen] = useState(false);
+
+  const isOwner = !!project && !!user && project.ownerId === user.id;
+  const isPublic = project?.isPublic ?? false;
+  const isDemoProject = project?.isDemo === true || project?.isDemoTemplate === true;
 
   const handleStartRename = () => {
     if (!project) return;
@@ -82,8 +100,22 @@ export const Navbar = ({ projectId }: { projectId: Id<"projects"> }) => {
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="ml-0! mr-1" />
+            {!isOwner && (
+              <>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Button variant="ghost" className="w-fit! p-1.5! h-7!" asChild>
+                      <Link href="/communities">
+                        <span className="text-sm font-medium">Communities</span>
+                      </Link>
+                    </Button>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="ml-0! mr-1" />
+              </>
+            )}
             <BreadcrumbItem>
-              {isRenaming ? (
+              {isOwner && isRenaming ? (
                 <input
                   autoFocus
                   type="text"
@@ -96,8 +128,11 @@ export const Navbar = ({ projectId }: { projectId: Id<"projects"> }) => {
                 />
               ) : (
                 <BreadcrumbPage
-                  onClick={handleStartRename}
-                  className="text-sm cursor-pointer hover:text-primary font-medium max-w-40 truncate"
+                  onClick={isOwner ? handleStartRename : undefined}
+                  className={cn(
+                    "text-sm font-medium max-w-40 truncate",
+                    isOwner && "cursor-pointer hover:text-primary",
+                  )}
                 >
                   {project?.name ?? "Loading..."}
                 </BreadcrumbPage>
@@ -127,9 +162,69 @@ export const Navbar = ({ projectId }: { projectId: Id<"projects"> }) => {
         )}
       </div>
       <div className="flex items-center gap-2">
+        {isOwner && !isDemoProject && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                onClick={() => setVisibilityDialogOpen(true)}
+              >
+                {isPublic ? (
+                  <GlobeIcon className="size-3.5 text-green-500" />
+                ) : (
+                  <LockIcon className="size-3.5" />
+                )}
+                {isPublic ? "Public" : "Private"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isPublic
+                ? "Project is public — click to make private"
+                : "Project is private — click to make public"}
+            </TooltipContent>
+          </Tooltip>
+        )}
         <OnlineUsers projectId={projectId} />
         <UserButton />
       </div>
+      <AlertDialog
+        open={visibilityDialogOpen}
+        onOpenChange={setVisibilityDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isPublic ? "Make Project Private?" : "Make Project Public?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isPublic
+                ? "This project will be hidden from the Communities page and only accessible to you and collaborators."
+                : "This project will appear on the Communities page and be discoverable by anyone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                try {
+                  await setVisibility({ id: projectId, isPublic: !isPublic });
+                  toast.success(
+                    !isPublic
+                      ? "Project is now public"
+                      : "Project is now private",
+                  );
+                } catch {
+                  toast.error("Failed to update project visibility");
+                }
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </nav>
   );
 };
