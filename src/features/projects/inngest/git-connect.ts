@@ -25,7 +25,7 @@ export const gitConnect = inngest.createFunction(
   {
     id: "git-connect",
     onFailure: async ({ event, step }) => {
-      const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+      const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
       if (!internalKey) return;
 
       const { projectId } = event.data.event.data as GitConnectEvent;
@@ -44,13 +44,17 @@ export const gitConnect = inngest.createFunction(
     const { projectId, repoName, visibility, description, userId } =
       event.data as GitConnectEvent;
 
-    const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+    const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
     if (!internalKey) {
-      throw new NonRetriableError("AURA_CONVEX_INTERNAL_KEY is not configured");
+      throw new NonRetriableError(
+        "CODURA_CONVEX_INTERNAL_KEY  is not configured",
+      );
     }
 
     // Fetch token outside a step so Inngest does not persist credentials in step history
-    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
     const tokens = await clerk.users.getUserOauthAccessToken(userId, "github");
     const githubToken = tokens.data[0]?.token;
     if (!githubToken) {
@@ -66,7 +70,7 @@ export const gitConnect = inngest.createFunction(
     const { data: repo } = await step.run("create-repo", async () => {
       return await octokit.rest.repos.createForAuthenticatedUser({
         name: repoName,
-        description: description || `Connected from Aura`,
+        description: description || `Connected from Codura`,
         private: visibility === "private",
         auto_init: true,
       });
@@ -174,7 +178,7 @@ export const gitConnect = inngest.createFunction(
           return await octokit.rest.git.createCommit({
             owner: user.login,
             repo: repoName,
-            message: "Initial commit from Aura",
+            message: "Initial commit from Codura",
             tree: tree.sha,
             parents: [initialCommitSha],
           });
@@ -191,7 +195,10 @@ export const gitConnect = inngest.createFunction(
         });
 
         newCommitSha = commit.sha;
-        createdBlobItems = treeItems.map((item) => ({ path: item.path, sha: item.sha }));
+        createdBlobItems = treeItems.map((item) => ({
+          path: item.path,
+          sha: item.sha,
+        }));
       }
     }
 
@@ -202,7 +209,7 @@ export const gitConnect = inngest.createFunction(
     const gitCommitHistory = JSON.stringify([
       {
         sha: newCommitSha,
-        message: "Initial commit from Aura",
+        message: "Initial commit from Codura",
         author: user.login,
         date: new Date().toISOString(),
         parents: fileEntries.length > 0 ? [initialCommitSha] : [],

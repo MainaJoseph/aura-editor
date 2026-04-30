@@ -29,12 +29,18 @@ export async function POST(request: Request) {
   try {
     ({ projectId, branchName } = requestSchema.parse(body));
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
   if (!internalKey) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 },
+    );
   }
 
   const project = await convex.query(api.system.getProjectById, {
@@ -43,11 +49,17 @@ export async function POST(request: Request) {
   });
 
   if (!project || project.ownerId !== userId) {
-    return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Project not found or unauthorized" },
+      { status: 403 },
+    );
   }
 
   if (!project.gitRepo) {
-    return NextResponse.json({ error: "Project not connected to a git repository" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Project not connected to a git repository" },
+      { status: 400 },
+    );
   }
 
   const client = await clerkClient();
@@ -70,19 +82,26 @@ export async function POST(request: Request) {
   });
 
   try {
-    const { headSha } = await performPull({ projectId, githubToken, internalKey });
+    const { headSha } = await performPull({
+      projectId,
+      githubToken,
+      internalKey,
+    });
     return NextResponse.json({ success: true, branchName, headSha });
   } catch (err) {
     // Restore the previous branch so downstream routes (diff, status, commit)
     // don't read a branch whose content was never pulled.
-    await convex.mutation(api.system.updateGitStateInternal, {
-      internalKey,
-      projectId: projectId as Id<"projects">,
-      ...(previousBranch ? { gitBranch: previousBranch } : {}),
-      clearGitSyncStatus: true,
-    }).catch(() => {});
+    await convex
+      .mutation(api.system.updateGitStateInternal, {
+        internalKey,
+        projectId: projectId as Id<"projects">,
+        ...(previousBranch ? { gitBranch: previousBranch } : {}),
+        clearGitSyncStatus: true,
+      })
+      .catch(() => {});
 
-    const message = err instanceof Error ? err.message : "Pull failed after branch switch";
+    const message =
+      err instanceof Error ? err.message : "Pull failed after branch switch";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

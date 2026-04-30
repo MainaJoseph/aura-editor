@@ -34,7 +34,7 @@ export const gitCommit = inngest.createFunction(
   {
     id: "git-commit",
     onFailure: async ({ event, step }) => {
-      const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+      const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
       if (!internalKey) return;
 
       const { projectId } = event.data.event.data as GitCommitEvent;
@@ -53,9 +53,11 @@ export const gitCommit = inngest.createFunction(
     const { projectId, message, stagedPaths, userId } =
       event.data as GitCommitEvent;
 
-    const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+    const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
     if (!internalKey) {
-      throw new NonRetriableError("AURA_CONVEX_INTERNAL_KEY is not configured");
+      throw new NonRetriableError(
+        "CODURA_CONVEX_INTERNAL_KEY  is not configured",
+      );
     }
 
     await step.run("set-committing-status", async () => {
@@ -67,7 +69,9 @@ export const gitCommit = inngest.createFunction(
     });
 
     // Fetch token outside a step so Inngest does not persist credentials in step history
-    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
     const tokens = await clerk.users.getUserOauthAccessToken(userId, "github");
     const githubToken = tokens.data[0]?.token;
     if (!githubToken) {
@@ -80,26 +84,33 @@ export const gitCommit = inngest.createFunction(
         projectId,
       });
       if (!p || !p.gitRepo || !p.gitBranch || !p.gitLastCommitSha) {
-        throw new NonRetriableError("Project not connected to a git repository");
+        throw new NonRetriableError(
+          "Project not connected to a git repository",
+        );
       }
       return p;
     });
 
     const repoParts = project.gitRepo!.split("/");
     if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
-      throw new NonRetriableError(`Invalid repository format: ${project.gitRepo}`);
+      throw new NonRetriableError(
+        `Invalid repository format: ${project.gitRepo}`,
+      );
     }
     const [owner, repo] = repoParts;
     const octokit = new Octokit({ auth: githubToken });
 
     // Get current HEAD commit to find base tree SHA
-    const { data: parentCommit } = await step.run("get-parent-commit", async () => {
-      return await octokit.rest.git.getCommit({
-        owner,
-        repo,
-        commit_sha: project.gitLastCommitSha!,
-      });
-    });
+    const { data: parentCommit } = await step.run(
+      "get-parent-commit",
+      async () => {
+        return await octokit.rest.git.getCommit({
+          owner,
+          repo,
+          commit_sha: project.gitLastCommitSha!,
+        });
+      },
+    );
 
     // Fetch all project files (we only need staged ones)
     const allFiles = await step.run("fetch-project-files", async () => {
@@ -157,7 +168,9 @@ export const gitCommit = inngest.createFunction(
           content = buffer.toString("base64");
           encoding = "base64";
         } else {
-          console.warn(`Skipping staged file "${path}" with no content or storageUrl`);
+          console.warn(
+            `Skipping staged file "${path}" with no content or storageUrl`,
+          );
           continue;
         }
 
@@ -228,13 +241,19 @@ export const gitCommit = inngest.createFunction(
     });
 
     // Prepend new commit to cached history (keep last 60)
-    const existingHistory: { sha: string; message: string; author: string; date: string; parents: string[] }[] =
-      safeJsonParse(project.gitCommitHistory, []);
+    const existingHistory: {
+      sha: string;
+      message: string;
+      author: string;
+      date: string;
+      parents: string[];
+    }[] = safeJsonParse(project.gitCommitHistory, []);
     const gitCommitHistory = JSON.stringify([
       {
         sha: newCommit.sha,
         message: (message.split("\n")[0] ?? "").trim(),
-        author: newCommit.author?.name ?? newCommit.committer?.name ?? "Unknown",
+        author:
+          newCommit.author?.name ?? newCommit.committer?.name ?? "Unknown",
         date: newCommit.author?.date ?? new Date().toISOString(),
         parents: [project.gitLastCommitSha!],
       },
@@ -242,8 +261,10 @@ export const gitCommit = inngest.createFunction(
     ]);
 
     // Merge treeUpdates into the cached remote tree
-    const currentRemoteTree: { path: string; sha: string }[] =
-      safeJsonParse(project.gitRemoteTree, []);
+    const currentRemoteTree: { path: string; sha: string }[] = safeJsonParse(
+      project.gitRemoteTree,
+      [],
+    );
     const treeMap = new Map(currentRemoteTree.map((e) => [e.path, e.sha]));
     for (const update of treeUpdates) {
       if (update.sha !== null) {

@@ -4,7 +4,21 @@ import { UserButton } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { useCallback, useState } from "react";
 import { useMutation } from "convex/react";
-import { AlertCircleIcon, CameraIcon, ClipboardCopyIcon, CopyIcon, HistoryIcon, ImageIcon, LoaderIcon, LockIcon, PanelLeftClose, PanelLeftOpen, PencilIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
+import {
+  AlertCircleIcon,
+  CameraIcon,
+  ClipboardCopyIcon,
+  CopyIcon,
+  HistoryIcon,
+  ImageIcon,
+  LoaderIcon,
+  LockIcon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PencilIcon,
+  PlusIcon,
+  RefreshCwIcon,
+} from "lucide-react";
 
 import {
   Conversation,
@@ -193,7 +207,9 @@ export const ConversationSidebar = ({
     }
 
     // Upload attached files to Convex storage
-    let attachments: { storageId: string; mediaType: string; filename?: string }[] | undefined;
+    let attachments:
+      | { storageId: string; mediaType: string; filename?: string }[]
+      | undefined;
 
     if (message.files && message.files.length > 0) {
       try {
@@ -209,7 +225,9 @@ export const ConversationSidebar = ({
             // Upload to Convex storage
             const result = await fetch(uploadUrl, {
               method: "POST",
-              headers: { "Content-Type": file.mediaType || "application/octet-stream" },
+              headers: {
+                "Content-Type": file.mediaType || "application/octet-stream",
+              },
               body: blob,
             });
 
@@ -251,7 +269,11 @@ export const ConversationSidebar = ({
   const handleRetry = useCallback(
     async (
       text: string,
-      messageAttachments?: { storageId: string; mediaType: string; filename?: string }[],
+      messageAttachments?: {
+        storageId: string;
+        mediaType: string;
+        filename?: string;
+      }[],
     ) => {
       if (!activeConversationId || isProcessing) return;
       try {
@@ -379,196 +401,228 @@ export const ConversationSidebar = ({
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground px-6 text-center">
             <LockIcon className="size-7 opacity-40" />
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-foreground">Read-only view</p>
-              <p className="text-xs">Only the project owner can use AI features for this project.</p>
+              <p className="text-sm font-medium text-foreground">
+                Read-only view
+              </p>
+              <p className="text-xs">
+                Only the project owner can use AI features for this project.
+              </p>
             </div>
-            <Image src="/logo.svg" alt="Aura" width={56} height={56} className="opacity-35" />
+            <Image
+              src="/logo.svg"
+              alt="Codura"
+              width={56}
+              height={56}
+              className="opacity-35"
+            />
           </div>
         ) : (
-        <>
-        <Conversation className="flex-1">
-          <ConversationContent>
-            {conversationMessages?.map((message, messageIndex) => {
-              // Skip cancelled assistant placeholders — they're merged into the preceding user message
-              if (
-                message.role === "assistant" &&
-                message.status === "cancelled"
-              ) {
-                return null;
-              }
+          <>
+            <Conversation className="flex-1">
+              <ConversationContent>
+                {conversationMessages?.map((message, messageIndex) => {
+                  // Skip cancelled assistant placeholders — they're merged into the preceding user message
+                  if (
+                    message.role === "assistant" &&
+                    message.status === "cancelled"
+                  ) {
+                    return null;
+                  }
 
-              // Check if the next message is a cancelled assistant placeholder
-              const nextMsg = conversationMessages[messageIndex + 1];
-              const wasCancelled =
-                nextMsg?.role === "assistant" &&
-                nextMsg?.status === "cancelled";
+                  // Check if the next message is a cancelled assistant placeholder
+                  const nextMsg = conversationMessages[messageIndex + 1];
+                  const wasCancelled =
+                    nextMsg?.role === "assistant" &&
+                    nextMsg?.status === "cancelled";
 
-              const isEditing = editingMessageId === message._id;
+                  const isEditing = editingMessageId === message._id;
 
-              return (
-              <Message key={message._id} from={message.role}>
-                <MessageContent>
-                  {message.attachments && message.attachments.length > 0 && (
-                    <MessageAttachments attachments={message.attachments} projectId={projectId} />
-                  )}
-                  {message.status === "processing" ? (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <LoaderIcon className="size-4 animate-spin" />
-                      <span>Thinking...</span>
-                    </div>
-                  ) : isEditing ? (
-                    <div className="flex flex-col gap-2 w-full">
-                      <textarea
-                        className="w-full rounded-md bg-background/50 border border-border p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-                        value={editingText}
-                        onChange={(e) => setEditingText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleEditSubmit();
-                          }
-                          if (e.key === "Escape") {
-                            setEditingMessageId(null);
-                            setEditingText("");
-                          }
-                        }}
-                        rows={3}
-                        autoFocus
-                      />
-                      <div className="flex items-center gap-2 justify-end">
-                        <button
-                          type="button"
-                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                          onClick={() => {
-                            setEditingMessageId(null);
-                            setEditingText("");
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          className="text-xs bg-primary text-primary-foreground rounded-md px-3 py-1 hover:bg-primary/90 transition-colors"
-                          onClick={() => handleEditSubmit()}
-                        >
-                          Send
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <MessageResponse>{message.content}</MessageResponse>
-                  )}
-                  {wasCancelled && (
-                    <span className="mt-1.5 flex items-center gap-1 text-muted-foreground text-xs italic">
-                      Request cancelled
-                      <AlertCircleIcon className="size-3 text-yellow-500" />
-                    </span>
-                  )}
-                </MessageContent>
-                {message.role === "user" && !isEditing && (
-                  <MessageActions className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                    <TooltipProvider delayDuration={300}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-xs text-muted-foreground mr-1 cursor-default">
-                            {formatMessageTime(message._creationTime)}
+                  return (
+                    <Message key={message._id} from={message.role}>
+                      <MessageContent>
+                        {message.attachments &&
+                          message.attachments.length > 0 && (
+                            <MessageAttachments
+                              attachments={message.attachments}
+                              projectId={projectId}
+                            />
+                          )}
+                        {message.status === "processing" ? (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <LoaderIcon className="size-4 animate-spin" />
+                            <span>Thinking...</span>
+                          </div>
+                        ) : isEditing ? (
+                          <div className="flex flex-col gap-2 w-full">
+                            <textarea
+                              className="w-full rounded-md bg-background/50 border border-border p-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleEditSubmit();
+                                }
+                                if (e.key === "Escape") {
+                                  setEditingMessageId(null);
+                                  setEditingText("");
+                                }
+                              }}
+                              rows={3}
+                              autoFocus
+                            />
+                            <div className="flex items-center gap-2 justify-end">
+                              <button
+                                type="button"
+                                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                onClick={() => {
+                                  setEditingMessageId(null);
+                                  setEditingText("");
+                                }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                className="text-xs bg-primary text-primary-foreground rounded-md px-3 py-1 hover:bg-primary/90 transition-colors"
+                                onClick={() => handleEditSubmit()}
+                              >
+                                Send
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <MessageResponse>{message.content}</MessageResponse>
+                        )}
+                        {wasCancelled && (
+                          <span className="mt-1.5 flex items-center gap-1 text-muted-foreground text-xs italic">
+                            Request cancelled
+                            <AlertCircleIcon className="size-3 text-yellow-500" />
                           </span>
-                        </TooltipTrigger>
-                        <TooltipContent><p>{formatFullTimestamp(message._creationTime)}</p></TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <MessageAction
-                            label="Retry"
-                            onClick={() => handleRetry(message.content, message.attachments)}
-                          >
-                            <RefreshCwIcon className="size-3" />
-                          </MessageAction>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Retry</p></TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <MessageAction
-                            label="Edit"
-                            onClick={() => {
-                              setEditingMessageId(message._id);
-                              setEditingText(message.content);
-                            }}
-                          >
-                            <PencilIcon className="size-3" />
-                          </MessageAction>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Edit</p></TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <MessageAction
-                            label="Copy"
-                            onClick={() => {
-                              navigator.clipboard.writeText(message.content);
-                              toast.success("Copied to clipboard");
-                            }}
-                          >
-                            <ClipboardCopyIcon className="size-3" />
-                          </MessageAction>
-                        </TooltipTrigger>
-                        <TooltipContent><p>Copy</p></TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </MessageActions>
-                )}
-                {message.role === "assistant" &&
-                  message.status === "completed" &&
-                  messageIndex === (conversationMessages?.length ?? 0) - 1 && (
-                    <MessageActions>
-                      <MessageAction
-                        onClick={() => {
-                          navigator.clipboard.writeText(message.content);
-                        }}
-                        label="Copy"
-                      >
-                        <CopyIcon className="size-3" />
-                      </MessageAction>
-                    </MessageActions>
-                  )}
-              </Message>
-              );
-            })}
-          </ConversationContent>
-          <ConversationScrollButton />
-        </Conversation>
-        <div className="p-3">
-          <PromptInput
-            onSubmit={handleSubmit}
-            className="mt-2"
-            accept="image/*"
-            maxFileSize={5 * 1024 * 1024}
-            onError={(err) => toast.error(err.message)}
-          >
-            <PromptInputAttachments>
-              {(attachment) => <PromptInputAttachment data={attachment} />}
-            </PromptInputAttachments>
-            <PromptInputBody>
-              <PromptInputTextarea
-                placeholder="Ask Aura anything..."
-                onChange={(e) => setInput(e.target.value)}
-                value={input}
-                disabled={isProcessing}
-              />
-            </PromptInputBody>
-            <PromptInputFooter>
-              <PromptInputTools>
-                <AttachMenu />
-              </PromptInputTools>
-              <PromptInputSubmit
-                disabled={isProcessing ? false : !input}
-                status={isProcessing ? "streaming" : undefined}
-              />
-            </PromptInputFooter>
-          </PromptInput>
-        </div>
-        </>
+                        )}
+                      </MessageContent>
+                      {message.role === "user" && !isEditing && (
+                        <MessageActions className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-xs text-muted-foreground mr-1 cursor-default">
+                                  {formatMessageTime(message._creationTime)}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  {formatFullTimestamp(message._creationTime)}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <MessageAction
+                                  label="Retry"
+                                  onClick={() =>
+                                    handleRetry(
+                                      message.content,
+                                      message.attachments,
+                                    )
+                                  }
+                                >
+                                  <RefreshCwIcon className="size-3" />
+                                </MessageAction>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Retry</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <MessageAction
+                                  label="Edit"
+                                  onClick={() => {
+                                    setEditingMessageId(message._id);
+                                    setEditingText(message.content);
+                                  }}
+                                >
+                                  <PencilIcon className="size-3" />
+                                </MessageAction>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <MessageAction
+                                  label="Copy"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(
+                                      message.content,
+                                    );
+                                    toast.success("Copied to clipboard");
+                                  }}
+                                >
+                                  <ClipboardCopyIcon className="size-3" />
+                                </MessageAction>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Copy</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </MessageActions>
+                      )}
+                      {message.role === "assistant" &&
+                        message.status === "completed" &&
+                        messageIndex ===
+                          (conversationMessages?.length ?? 0) - 1 && (
+                          <MessageActions>
+                            <MessageAction
+                              onClick={() => {
+                                navigator.clipboard.writeText(message.content);
+                              }}
+                              label="Copy"
+                            >
+                              <CopyIcon className="size-3" />
+                            </MessageAction>
+                          </MessageActions>
+                        )}
+                    </Message>
+                  );
+                })}
+              </ConversationContent>
+              <ConversationScrollButton />
+            </Conversation>
+            <div className="p-3">
+              <PromptInput
+                onSubmit={handleSubmit}
+                className="mt-2"
+                accept="image/*"
+                maxFileSize={5 * 1024 * 1024}
+                onError={(err) => toast.error(err.message)}
+              >
+                <PromptInputAttachments>
+                  {(attachment) => <PromptInputAttachment data={attachment} />}
+                </PromptInputAttachments>
+                <PromptInputBody>
+                  <PromptInputTextarea
+                    placeholder="Ask Codura anything..."
+                    onChange={(e) => setInput(e.target.value)}
+                    value={input}
+                    disabled={isProcessing}
+                  />
+                </PromptInputBody>
+                <PromptInputFooter>
+                  <PromptInputTools>
+                    <AttachMenu />
+                  </PromptInputTools>
+                  <PromptInputSubmit
+                    disabled={isProcessing ? false : !input}
+                    status={isProcessing ? "streaming" : undefined}
+                  />
+                </PromptInputFooter>
+              </PromptInput>
+            </div>
+          </>
         )}
       </div>
     </>

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Aura is an AI-powered code editor with in-browser project runtime. Users can create projects, edit code with AI assistance, and preview running applications directly in the browser using WebContainer.
+Codura is an AI-powered code editor with in-browser project runtime. Users can create projects, edit code with AI assistance, and preview running applications directly in the browser using WebContainer.
 
 ## Commands
 
@@ -19,6 +19,7 @@ Note: No test suite is currently configured.
 ## Architecture
 
 ### Tech Stack
+
 - **Frontend**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4
 - **Backend**: Convex (serverless database with real-time subscriptions)
 - **Auth**: Clerk (JWT-based)
@@ -83,9 +84,10 @@ src/
 ### Environment Variables
 
 Required:
+
 - `NEXT_PUBLIC_CONVEX_URL` - Convex deployment URL
 - `CLERK_JWT_ISSUER_DOMAIN` - Clerk authentication domain
-- `AURA_CONVEX_INTERNAL_KEY` - Internal Convex operations key
+- `CODURA_CONVEX_INTERNAL_KEY ` - Internal Convex operations key
 - `ANTHROPIC_API_KEY` - Primary AI model
 - `INNGEST_EVENT_KEY` - Background job events
 

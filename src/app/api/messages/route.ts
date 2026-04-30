@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
 
   if (!internalKey) {
     return NextResponse.json(
@@ -43,11 +43,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  let conversationId: string, message: string, attachments: z.infer<typeof attachmentSchema>[] | undefined;
+  let conversationId: string,
+    message: string,
+    attachments: z.infer<typeof attachmentSchema>[] | undefined;
   try {
     ({ conversationId, message, attachments } = requestSchema.parse(body));
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
   // Call convex mutation, query

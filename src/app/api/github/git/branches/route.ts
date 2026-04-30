@@ -19,12 +19,18 @@ export async function GET(request: Request) {
   const projectId = searchParams.get("projectId");
 
   if (!projectId) {
-    return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "projectId is required" },
+      { status: 400 },
+    );
   }
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
   if (!internalKey) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 },
+    );
   }
 
   const project = await convex.query(api.system.getProjectById, {
@@ -33,11 +39,17 @@ export async function GET(request: Request) {
   });
 
   if (!project || project.ownerId !== userId) {
-    return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Project not found or unauthorized" },
+      { status: 403 },
+    );
   }
 
   if (!project.gitRepo) {
-    return NextResponse.json({ error: "Project not connected to a git repository" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Project not connected to a git repository" },
+      { status: 400 },
+    );
   }
 
   const client = await clerkClient();
@@ -66,7 +78,10 @@ export async function GET(request: Request) {
       currentBranch: project.gitBranch ?? branches[0]?.name ?? "main",
     });
   } catch {
-    return NextResponse.json({ error: "Failed to fetch branches" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch branches" },
+      { status: 500 },
+    );
   }
 }
 
@@ -93,12 +108,18 @@ export async function POST(request: Request) {
   try {
     ({ projectId, branchName } = createBranchSchema.parse(body));
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
   if (!internalKey) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 },
+    );
   }
 
   const project = await convex.query(api.system.getProjectById, {
@@ -107,11 +128,17 @@ export async function POST(request: Request) {
   });
 
   if (!project || project.ownerId !== userId) {
-    return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Project not found or unauthorized" },
+      { status: 403 },
+    );
   }
 
   if (!project.gitRepo || !project.gitLastCommitSha) {
-    return NextResponse.json({ error: "Project not connected to a git repository" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Project not connected to a git repository" },
+      { status: 400 },
+    );
   }
 
   const client = await clerkClient();
@@ -138,6 +165,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, branchName });
   } catch {
-    return NextResponse.json({ error: "Failed to create branch" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create branch" },
+      { status: 500 },
+    );
   }
 }

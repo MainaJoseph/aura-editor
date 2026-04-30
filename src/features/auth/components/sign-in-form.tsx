@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Poppins } from "next/font/google";
-import { GithubIcon, MailIcon, EyeIcon, EyeOffIcon, ArrowRightIcon } from "lucide-react";
+import {
+  GithubIcon,
+  MailIcon,
+  EyeIcon,
+  EyeOffIcon,
+  ArrowRightIcon,
+} from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 
 import { Button } from "@/components/ui/button";
@@ -20,7 +26,10 @@ import { AuthNavbar } from "./auth-navbar";
 import { Boxes } from "@/components/ui/background-boxes";
 
 const signInSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Enter a valid email address"),
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -45,12 +54,14 @@ export function SignInForm() {
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<"github" | "google" | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<"github" | "google" | null>(
+    null,
+  );
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [lastAuth, setLastAuth] = useState<LastAuth>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("aura:last-auth");
+    const stored = localStorage.getItem("codura:last-auth");
     if (stored === "github" || stored === "google" || stored === "email") {
       setLastAuth(stored);
     }
@@ -78,7 +89,7 @@ export function SignInForm() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        localStorage.setItem("aura:last-auth", "email");
+        localStorage.setItem("codura:last-auth", "email");
         router.push("/");
       } else if (result.status === "needs_second_factor") {
         // Client Trust is enabled — Clerk requires a second factor (OTP to email)
@@ -86,20 +97,29 @@ export function SignInForm() {
         setStep("second-factor");
       }
     } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ code?: string; message: string }> };
+      const clerkError = err as {
+        errors?: Array<{ code?: string; message: string }>;
+      };
       const code = clerkError.errors?.[0]?.code;
 
-      if (code === "strategy_for_user_invalid" || code === "verification_strategy_invalid") {
+      if (
+        code === "strategy_for_user_invalid" ||
+        code === "verification_strategy_invalid"
+      ) {
         // Account was created with social login — no password set yet.
         // Fall back to OTP: sign in via email code, then they can set a password after.
         try {
           await signIn.create({ strategy: "email_code", identifier: email });
           setStep("otp-fallback");
         } catch {
-          setError("Could not send verification code. Try signing in with GitHub or Google.");
+          setError(
+            "Could not send verification code. Try signing in with GitHub or Google.",
+          );
         }
       } else {
-        setError(clerkError.errors?.[0]?.message ?? "Invalid email or password.");
+        setError(
+          clerkError.errors?.[0]?.message ?? "Invalid email or password.",
+        );
       }
     } finally {
       setIsLoading(false);
@@ -120,7 +140,7 @@ export function SignInForm() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        localStorage.setItem("aura:last-auth", "email");
+        localStorage.setItem("codura:last-auth", "email");
         router.push("/");
       } else {
         setError("Verification incomplete. Please try again.");
@@ -147,7 +167,7 @@ export function SignInForm() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        localStorage.setItem("aura:last-auth", "email");
+        localStorage.setItem("codura:last-auth", "email");
         router.push("/");
       } else {
         setError("Verification incomplete. Please try again.");
@@ -167,7 +187,7 @@ export function SignInForm() {
     setOauthLoading(method);
     // Write to sessionStorage only — promoted to localStorage in /sso-callback
     // after Clerk confirms successful authentication (avoids false "Last used" on cancel)
-    sessionStorage.setItem("aura:pending-auth", method);
+    sessionStorage.setItem("codura:pending-auth", method);
 
     try {
       await signIn.authenticateWithRedirect({
@@ -199,12 +219,22 @@ export function SignInForm() {
           />
           <div className="relative z-30 flex flex-col items-center text-center">
             <div className="flex items-center gap-3 mb-6">
-              <Image src="/logo.svg" alt="Aura" width={40} height={40} />
-              <span className={cn("text-3xl font-bold text-white", poppins.className)}>
-                Aura
+              <Image src="/logo.svg" alt="Codura" width={40} height={40} />
+              <span
+                className={cn(
+                  "text-3xl font-bold text-white",
+                  poppins.className,
+                )}
+              >
+                Codura
               </span>
             </div>
-            <h2 className={cn("text-2xl font-semibold text-white leading-tight", poppins.className)}>
+            <h2
+              className={cn(
+                "text-2xl font-semibold text-white leading-tight",
+                poppins.className,
+              )}
+            >
               Build. Edit. Preview.
               <br />
               <span className="bg-gradient-to-r from-[#FFD200] via-[#1F84EF] to-[#06E07F] bg-clip-text text-transparent">
@@ -212,8 +242,8 @@ export function SignInForm() {
               </span>
             </h2>
             <p className="mt-4 max-w-xs text-sm text-white/50 leading-relaxed">
-              An AI-powered code editor with in-browser runtime. Write code through
-              conversation, see it run instantly.
+              An AI-powered code editor with in-browser runtime. Write code
+              through conversation, see it run instantly.
             </p>
           </div>
         </div>
@@ -221,14 +251,20 @@ export function SignInForm() {
         {/* Right form column */}
         <div className="flex flex-1 flex-col items-center justify-center bg-background px-6 py-12">
           <div className="w-full max-w-sm">
-
             {step === "credentials" ? (
               <>
                 <div className="mb-8">
-                  <h1 className={cn("text-2xl font-semibold text-white", poppins.className)}>
+                  <h1
+                    className={cn(
+                      "text-2xl font-semibold text-white",
+                      poppins.className,
+                    )}
+                  >
                     Welcome back
                   </h1>
-                  <p className="mt-1.5 text-sm text-white/50">Sign in to your Aura account</p>
+                  <p className="mt-1.5 text-sm text-white/50">
+                    Sign in to your Codura account
+                  </p>
                 </div>
 
                 {/* OAuth buttons */}
@@ -240,7 +276,11 @@ export function SignInForm() {
                       onClick={() => handleOAuth("oauth_github")}
                       disabled={!!oauthLoading || isLoading}
                     >
-                      {oauthLoading === "github" ? <Spinner className="size-4" /> : <GithubIcon className="size-4" />}
+                      {oauthLoading === "github" ? (
+                        <Spinner className="size-4" />
+                      ) : (
+                        <GithubIcon className="size-4" />
+                      )}
                       Continue with GitHub
                     </Button>
                     {lastAuth === "github" && (
@@ -256,7 +296,11 @@ export function SignInForm() {
                       onClick={() => handleOAuth("oauth_google")}
                       disabled={!!oauthLoading || isLoading}
                     >
-                      {oauthLoading === "google" ? <Spinner className="size-4" /> : <FcGoogle className="size-4" />}
+                      {oauthLoading === "google" ? (
+                        <Spinner className="size-4" />
+                      ) : (
+                        <FcGoogle className="size-4" />
+                      )}
                       Continue with Google
                     </Button>
                     {lastAuth === "google" && (
@@ -275,7 +319,9 @@ export function SignInForm() {
 
                 <form onSubmit={handleEmailSignIn} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="email" className="text-sm text-white/70">Email</Label>
+                    <Label htmlFor="email" className="text-sm text-white/70">
+                      Email
+                    </Label>
                     <div className="relative">
                       <MailIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/30" />
                       <Input
@@ -283,8 +329,14 @@ export function SignInForm() {
                         type="email"
                         placeholder="you@example.com"
                         value={email}
-                        onChange={(e) => { setEmail(e.target.value); setFieldErrors((f) => ({ ...f, email: undefined })); }}
-                        className={cn("pl-9 border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0", fieldErrors.email && "border-red-500/60")}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setFieldErrors((f) => ({ ...f, email: undefined }));
+                        }}
+                        className={cn(
+                          "pl-9 border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0",
+                          fieldErrors.email && "border-red-500/60",
+                        )}
                         disabled={isLoading || !!oauthLoading}
                       />
                       {lastAuth === "email" && (
@@ -293,19 +345,34 @@ export function SignInForm() {
                         </span>
                       )}
                     </div>
-                    {fieldErrors.email && <p className="text-xs text-red-400">{fieldErrors.email}</p>}
+                    {fieldErrors.email && (
+                      <p className="text-xs text-red-400">
+                        {fieldErrors.email}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="password" className="text-sm text-white/70">Password</Label>
+                    <Label htmlFor="password" className="text-sm text-white/70">
+                      Password
+                    </Label>
                     <div className="relative">
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
-                        onChange={(e) => { setPassword(e.target.value); setFieldErrors((f) => ({ ...f, password: undefined })); }}
-                        className={cn("pr-9 border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0", fieldErrors.password && "border-red-500/60")}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setFieldErrors((f) => ({
+                            ...f,
+                            password: undefined,
+                          }));
+                        }}
+                        className={cn(
+                          "pr-9 border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0",
+                          fieldErrors.password && "border-red-500/60",
+                        )}
                         disabled={isLoading || !!oauthLoading}
                       />
                       <button
@@ -313,25 +380,46 @@ export function SignInForm() {
                         onClick={() => setShowPassword((v) => !v)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
                         tabIndex={-1}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
                       >
-                        {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                        {showPassword ? (
+                          <EyeOffIcon className="size-4" />
+                        ) : (
+                          <EyeIcon className="size-4" />
+                        )}
                       </button>
                     </div>
-                    {fieldErrors.password && <p className="text-xs text-red-400">{fieldErrors.password}</p>}
+                    {fieldErrors.password && (
+                      <p className="text-xs text-red-400">
+                        {fieldErrors.password}
+                      </p>
+                    )}
                   </div>
 
                   {error && <p className="text-sm text-destructive">{error}</p>}
 
-                  <Button type="submit" className="w-full gap-2" disabled={isLoading || !!oauthLoading}>
-                    {isLoading ? <Spinner className="size-4" /> : <ArrowRightIcon className="size-4" />}
+                  <Button
+                    type="submit"
+                    className="w-full gap-2"
+                    disabled={isLoading || !!oauthLoading}
+                  >
+                    {isLoading ? (
+                      <Spinner className="size-4" />
+                    ) : (
+                      <ArrowRightIcon className="size-4" />
+                    )}
                     Sign in
                   </Button>
                 </form>
 
                 <p className="mt-6 text-center text-sm text-white/40">
                   Don&apos;t have an account?{" "}
-                  <Link href="/sign-up" className="text-[#7c5aed] underline-offset-4 hover:underline">
+                  <Link
+                    href="/sign-up"
+                    className="text-[#7c5aed] underline-offset-4 hover:underline"
+                  >
                     Sign up
                   </Link>
                 </p>
@@ -339,21 +427,31 @@ export function SignInForm() {
             ) : step === "otp-fallback" ? (
               <>
                 <div className="mb-8">
-                  <h1 className={cn("text-2xl font-semibold text-white", poppins.className)}>
+                  <h1
+                    className={cn(
+                      "text-2xl font-semibold text-white",
+                      poppins.className,
+                    )}
+                  >
                     Verify your identity
                   </h1>
                   <p className="mt-1.5 text-sm text-white/50">
                     Your account uses social login. We sent a 6-digit code to{" "}
-                    <span className="text-white/70">{email}</span> to confirm it&apos;s you.
+                    <span className="text-white/70">{email}</span> to confirm
+                    it&apos;s you.
                   </p>
                   <p className="mt-2 text-xs text-white/35">
-                    After signing in you can set a password in your account settings.
+                    After signing in you can set a password in your account
+                    settings.
                   </p>
                 </div>
 
                 <form onSubmit={handleOtpFallback} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="otp-fallback" className="text-sm text-white/70">
+                    <Label
+                      htmlFor="otp-fallback"
+                      className="text-sm text-white/70"
+                    >
                       Verification code
                     </Label>
                     <Input
@@ -363,7 +461,9 @@ export function SignInForm() {
                       placeholder="000000"
                       maxLength={6}
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                      onChange={(e) =>
+                        setOtp(e.target.value.replace(/\D/g, ""))
+                      }
                       className="text-center tracking-[0.5em] border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0"
                       required
                       disabled={isLoading}
@@ -373,15 +473,27 @@ export function SignInForm() {
 
                   {error && <p className="text-sm text-destructive">{error}</p>}
 
-                  <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                    {isLoading ? <Spinner className="size-4" /> : <ArrowRightIcon className="size-4" />}
+                  <Button
+                    type="submit"
+                    className="w-full gap-2"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <Spinner className="size-4" />
+                    ) : (
+                      <ArrowRightIcon className="size-4" />
+                    )}
                     Verify & sign in
                   </Button>
                 </form>
 
                 <button
                   type="button"
-                  onClick={() => { setStep("credentials"); setError(""); setOtp(""); }}
+                  onClick={() => {
+                    setStep("credentials");
+                    setError("");
+                    setOtp("");
+                  }}
                   className="mt-4 w-full text-center text-sm text-white/40 hover:text-white/60"
                 >
                   ← Back to sign in
@@ -390,7 +502,12 @@ export function SignInForm() {
             ) : (
               <>
                 <div className="mb-8">
-                  <h1 className={cn("text-2xl font-semibold text-white", poppins.className)}>
+                  <h1
+                    className={cn(
+                      "text-2xl font-semibold text-white",
+                      poppins.className,
+                    )}
+                  >
                     Check your email
                   </h1>
                   <p className="mt-1.5 text-sm text-white/50">
@@ -411,7 +528,9 @@ export function SignInForm() {
                       placeholder="000000"
                       maxLength={6}
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                      onChange={(e) =>
+                        setOtp(e.target.value.replace(/\D/g, ""))
+                      }
                       className="text-center tracking-[0.5em] border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus-visible:border-[#7c5aed] focus-visible:ring-0"
                       required
                       disabled={isLoading}
@@ -420,22 +539,33 @@ export function SignInForm() {
 
                   {error && <p className="text-sm text-destructive">{error}</p>}
 
-                  <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                    {isLoading ? <Spinner className="size-4" /> : <ArrowRightIcon className="size-4" />}
+                  <Button
+                    type="submit"
+                    className="w-full gap-2"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <Spinner className="size-4" />
+                    ) : (
+                      <ArrowRightIcon className="size-4" />
+                    )}
                     Verify & sign in
                   </Button>
                 </form>
 
                 <button
                   type="button"
-                  onClick={() => { setStep("credentials"); setError(""); setOtp(""); }}
+                  onClick={() => {
+                    setStep("credentials");
+                    setError("");
+                    setOtp("");
+                  }}
                   className="mt-4 w-full text-center text-sm text-white/40 hover:text-white/60"
                 >
                   ← Back to sign in
                 </button>
               </>
             )}
-
           </div>
         </div>
       </div>

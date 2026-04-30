@@ -27,7 +27,7 @@ export default withSentryConfig(nextConfig, {
 
   org: "digitech-0z",
 
-  project: "aura",
+  project: "codura",
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,

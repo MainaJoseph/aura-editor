@@ -61,7 +61,7 @@ export const processMessage = inngest.createFunction(
     ],
     onFailure: async ({ event, step }) => {
       const { messageId } = event.data.event.data as MessageEvent;
-      const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+      const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
 
       // Update the message with error content
       if (internalKey) {
@@ -83,10 +83,12 @@ export const processMessage = inngest.createFunction(
     const { messageId, conversationId, projectId, message, attachments } =
       event.data as MessageEvent;
 
-    const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+    const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
 
     if (!internalKey) {
-      throw new NonRetriableError("AURA_CONVEX_INTERNAL_KEY is not configured");
+      throw new NonRetriableError(
+        "CODURA_CONVEX_INTERNAL_KEY  is not configured",
+      );
     }
 
     // TODO: Check if this is needed
@@ -172,7 +174,7 @@ export const processMessage = inngest.createFunction(
 
     // Create the coding agent with file tools
     const codingAgent = createAgent({
-      name: "aura",
+      name: "codura",
       description: "An expert AI coding assistant",
       system: systemPrompt,
       model: anthropic({
@@ -193,7 +195,7 @@ export const processMessage = inngest.createFunction(
 
     // Create network with single agent
     const network = createNetwork({
-      name: "aura-network",
+      name: "codura-network",
       agents: [codingAgent],
       maxIter: 20,
       router: ({ network }) => {
@@ -219,51 +221,60 @@ export const processMessage = inngest.createFunction(
     let agentInput = message;
 
     if (attachments && attachments.length > 0) {
-      const visionDescription = await step.run("analyze-attachment-images", async () => {
-        const imageParts: Array<{ type: "image"; image: URL }> = [];
+      const visionDescription = await step.run(
+        "analyze-attachment-images",
+        async () => {
+          const imageParts: Array<{ type: "image"; image: URL }> = [];
 
-        for (const attachment of attachments) {
+          for (const attachment of attachments) {
+            try {
+              const url = await convex.query(
+                api.system.getAttachmentUrlInternal,
+                {
+                  internalKey,
+                  storageId: attachment.storageId,
+                },
+              );
+
+              if (url) {
+                imageParts.push({
+                  type: "image" as const,
+                  image: new URL(url),
+                });
+              }
+            } catch (err) {
+              console.error("Failed to fetch attachment URL:", err);
+            }
+          }
+
+          if (imageParts.length === 0) return null;
+
           try {
-            const url = await convex.query(api.system.getAttachmentUrlInternal, {
-              internalKey,
-              storageId: attachment.storageId,
+            const { text } = await generateText({
+              model: anthropicAi("claude-sonnet-4-6"),
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    ...imageParts,
+                    {
+                      type: "text" as const,
+                      text: `The user has shared ${imageParts.length > 1 ? "these images" : "this image"} with the following message: "${message}"\n\nProvide a detailed description of what you see in the image(s), then respond to the user's message in context. Be thorough about visual details like layout, colors, text, UI elements, code, errors, or any other relevant information visible in the image(s).`,
+                    },
+                  ],
+                },
+              ],
             });
 
-            if (url) {
-              imageParts.push({ type: "image" as const, image: new URL(url) });
-            }
+            return text;
           } catch (err) {
-            console.error("Failed to fetch attachment URL:", err);
+            if (isRateLimitError(err)) {
+              throw new RetryAfterError("Anthropic rate limit reached", "60s");
+            }
+            throw err;
           }
-        }
-
-        if (imageParts.length === 0) return null;
-
-        try {
-          const { text } = await generateText({
-            model: anthropicAi("claude-sonnet-4-6"),
-            messages: [
-              {
-                role: "user",
-                content: [
-                  ...imageParts,
-                  {
-                    type: "text" as const,
-                    text: `The user has shared ${imageParts.length > 1 ? "these images" : "this image"} with the following message: "${message}"\n\nProvide a detailed description of what you see in the image(s), then respond to the user's message in context. Be thorough about visual details like layout, colors, text, UI elements, code, errors, or any other relevant information visible in the image(s).`,
-                  },
-                ],
-              },
-            ],
-          });
-
-          return text;
-        } catch (err) {
-          if (isRateLimitError(err)) {
-            throw new RetryAfterError("Anthropic rate limit reached", "60s");
-          }
-          throw err;
-        }
-      });
+        },
+      );
 
       if (visionDescription) {
         agentInput = `[The user shared ${attachments.length > 1 ? "images" : "an image"} with this message: "${message}"]\n\n[Image Analysis]\n${visionDescription}\n\n[User's Request]\n${message}`;

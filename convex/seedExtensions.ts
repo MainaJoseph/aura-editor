@@ -190,7 +190,7 @@ const SEED_EXTENSIONS = [
     description: "Intelligent AI-powered code suggestions and completion",
     longDescription:
       "Get intelligent code completions powered by advanced AI models. Supports all major programming languages with context-aware suggestions that understand your codebase patterns and coding style.",
-    author: "Aura AI",
+    author: "Codura AI",
     version: "2.1.0",
     icon: "Sparkles",
     category: "ai" as const,
@@ -206,7 +206,7 @@ const SEED_EXTENSIONS = [
     description: "AI-powered code explanation and documentation generator",
     longDescription:
       "Select any code block and get an instant AI-generated explanation. Perfect for understanding unfamiliar codebases, learning new patterns, and generating documentation for your code.",
-    author: "Aura AI",
+    author: "Codura AI",
     version: "1.3.0",
     icon: "MessageSquare",
     category: "ai" as const,

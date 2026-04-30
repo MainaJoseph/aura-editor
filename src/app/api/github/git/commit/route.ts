@@ -30,12 +30,18 @@ export async function POST(request: Request) {
   try {
     ({ projectId, message, stagedPaths } = requestSchema.parse(body));
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
   if (!internalKey) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 },
+    );
   }
 
   const project = await convex.query(api.system.getProjectById, {
@@ -44,17 +50,26 @@ export async function POST(request: Request) {
   });
 
   if (!project || project.ownerId !== userId) {
-    return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Project not found or unauthorized" },
+      { status: 403 },
+    );
   }
 
   if (!project.gitRepo || !project.gitBranch || !project.gitLastCommitSha) {
-    return NextResponse.json({ error: "Project not connected to a git repository" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Project not connected to a git repository" },
+      { status: 400 },
+    );
   }
 
   // Validate repo format
   const repoParts = project.gitRepo.split("/");
   if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
-    return NextResponse.json({ error: "Invalid repository format" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid repository format" },
+      { status: 400 },
+    );
   }
 
   // Validate GitHub token before dispatching to give immediate feedback

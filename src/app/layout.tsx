@@ -19,9 +19,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aura — AI-Powered Code Editor",
+  title: "Codura — AI-Powered Code Editor",
   description:
-    "Build, edit, and preview applications with AI assistance. Aura combines an intelligent code editor with in-browser runtime — no setup required.",
+    "Build, edit, and preview applications with AI assistance. Codura combines an intelligent code editor with in-browser runtime — no setup required.",
   icons: {
     icon: "/logo.svg",
     apple: "/logo.svg",

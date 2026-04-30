@@ -38,14 +38,14 @@ function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-background/70 backdrop-blur-lg">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-2.5">
-          <Image src="/logo.svg" alt="Aura" width={24} height={24} />
+          <Image src="/logo.svg" alt="Codura" width={24} height={24} />
           <span
             className={cn(
               "text-base font-semibold text-white",
               poppins.className,
             )}
           >
-            Aura
+            Codura
           </span>
         </div>
 
@@ -151,19 +151,19 @@ const CODE_LINES: React.ReactNode[] = [
 ];
 
 const CHAT_MESSAGES = [
-  { from: "user" as const, text: "Hello Aura, create a modern To-Do App" },
+  { from: "user" as const, text: "Hello Codura, create a modern To-Do App" },
   {
-    from: "aura" as const,
+    from: "codura" as const,
     text: "I'll create a Vite + React app with a live clock, task list, and motivational quotes...",
   },
   {
-    from: "aura" as const,
+    from: "codura" as const,
     text: "Created 6 files: App.tsx, App.css, index.css, main.tsx, index.html, vite.config.ts",
   },
 ];
 
 const MODAL_PROMPT =
-  "Hello Aura, please create a modern and clean To-Do App using Vite, React, and TypeScript. The app should have a responsive design that works well on both mobile and desktop, and it should allow users to add, edit, delete, and mark tasks as completed.";
+  "Hello Codura, please create a modern and clean To-Do App using Vite, React, and TypeScript. The app should have a responsive design that works well on both mobile and desktop, and it should allow users to add, edit, delete, and mark tasks as completed.";
 
 const TERMINAL_LINES = [
   "$ npm run dev",
@@ -539,11 +539,11 @@ function MockDashboardContent({
       <div className="w-full max-w-[400px]">
         {/* Logo + title */}
         <div className="mb-6 flex items-center gap-2.5">
-          <Image src="/logo.svg" alt="Aura" width={28} height={28} />
+          <Image src="/logo.svg" alt="Codura" width={28} height={28} />
           <span
             className={cn("text-2xl font-bold text-white", poppins.className)}
           >
-            Aura
+            Codura
           </span>
         </div>
 
@@ -806,12 +806,12 @@ function MockIDE() {
         </div>
         <Image
           src="/logo.svg"
-          alt="Aura"
+          alt="Codura"
           width={16}
           height={16}
           className="ml-2"
         />
-        <span className="text-xs font-medium text-white/50">Aura</span>
+        <span className="text-xs font-medium text-white/50">Codura</span>
         {!isDashboardPhase && (
           <>
             <span className="text-white/20">&gt;</span>
@@ -875,14 +875,14 @@ function MockIDE() {
             <div className="hidden w-full flex-col md:flex">
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
                 <div className="flex items-center gap-2">
-                  <Image src="/logo.svg" alt="Aura" width={18} height={18} />
+                  <Image src="/logo.svg" alt="Codura" width={18} height={18} />
                   <span
                     className={cn(
                       "text-sm font-semibold text-white/80",
                       poppins.className,
                     )}
                   >
-                    Aura
+                    Codura
                   </span>
                 </div>
                 <div className="size-6 rounded-full bg-white/10" />
@@ -968,7 +968,7 @@ function MockIDE() {
               <div className="border-t border-white/10 px-3 py-2">
                 <div className="flex items-center rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5">
                   <span className="text-[10px] text-white/25">
-                    Ask Aura anything...
+                    Ask Codura anything...
                   </span>
                   <span className="ml-auto text-[10px] text-white/15">↵</span>
                 </div>
@@ -1162,7 +1162,7 @@ const featuresGrid = [
     icon: GithubIcon,
     title: "GitHub Import & Export",
     description:
-      "Import existing repos directly into Aura or push your projects back to GitHub in a single click.",
+      "Import existing repos directly into Codura or push your projects back to GitHub in a single click.",
     gradient: "from-cyan-500 to-emerald-500",
   },
   {
@@ -1268,7 +1268,7 @@ const steps = [
     icon: MessageSquareIcon,
     title: "Describe what you want",
     description:
-      "Tell the AI what to build in plain English. Aura's agent powered by Claude understands your intent and writes production-ready code across multiple files.",
+      "Tell the AI what to build in plain English. Codura's agent powered by Claude understands your intent and writes production-ready code across multiple files.",
     gradient: "from-purple-500 to-violet-600",
     visual: (
       <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 text-left">
@@ -1292,7 +1292,7 @@ const steps = [
     icon: CodeIcon,
     title: "Edit with AI + full editor",
     description:
-      "Use inline AI autocomplete, multi-cursor editing, quick edits, and code explanations. The full-featured Aura editor gives you the power of a desktop IDE.",
+      "Use inline AI autocomplete, multi-cursor editing, quick edits, and code explanations. The full-featured Codura editor gives you the power of a desktop IDE.",
     gradient: "from-[#1F84EF] to-cyan-500",
     visual: (
       <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 font-mono text-[10px]">
@@ -1452,11 +1452,11 @@ function Footer() {
     <footer className="border-t border-white/10 py-8">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 sm:flex-row sm:justify-between sm:px-6">
         <div className="flex items-center gap-2">
-          <Image src="/logo.svg" alt="Aura" width={16} height={16} />
-          <span className="text-sm text-white/40">Built with Aura</span>
+          <Image src="/logo.svg" alt="Codura" width={16} height={16} />
+          <span className="text-sm text-white/40">Built with Codura</span>
         </div>
         <span className="text-sm text-white/30">
-          &copy; {new Date().getFullYear()} Aura. All rights reserved.
+          &copy; {new Date().getFullYear()} Codura. All rights reserved.
         </span>
       </div>
     </footer>
@@ -1500,7 +1500,7 @@ export const UnauthenticatedView = () => {
               </span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-lg text-white/50">
-              Aura is an AI-powered code editor with in-browser runtime. Write
+              Codura is an AI-powered code editor with in-browser runtime. Write
               code through conversation, see it run instantly — no setup
               required.
             </p>

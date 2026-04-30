@@ -31,7 +31,7 @@ export const exportToGithub = inngest.createFunction(
       },
     ],
     onFailure: async ({ event, step }) => {
-      const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+      const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
       if (!internalKey) return;
 
       const { projectId } = event.data.event.data as ExportToGithubEvent;
@@ -52,9 +52,11 @@ export const exportToGithub = inngest.createFunction(
     const { projectId, repoName, visibility, description, userId } =
       event.data as ExportToGithubEvent;
 
-    const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+    const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
     if (!internalKey) {
-      throw new NonRetriableError("AURA_CONVEX_INTERNAL_KEY is not configured");
+      throw new NonRetriableError(
+        "CODURA_CONVEX_INTERNAL_KEY  is not configured",
+      );
     }
 
     // Set status to exporting
@@ -93,7 +95,7 @@ export const exportToGithub = inngest.createFunction(
     const { data: repo } = await step.run("create-repo", async () => {
       return await octokit.rest.repos.createForAuthenticatedUser({
         name: repoName,
-        description: description || `Exported from Aura`,
+        description: description || `Exported from Codura`,
         private: visibility === "private",
         auto_init: true,
       });
@@ -221,7 +223,7 @@ export const exportToGithub = inngest.createFunction(
       return await octokit.rest.git.createCommit({
         owner: user.login,
         repo: repoName,
-        message: "Initial commit from Aura",
+        message: "Initial commit from Codura",
         tree: tree.sha,
         parents: [initialCommitSha],
       });

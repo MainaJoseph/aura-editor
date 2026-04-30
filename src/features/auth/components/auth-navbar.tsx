@@ -20,9 +20,14 @@ export function AuthNavbar({ page }: AuthNavbarProps) {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/logo.svg" alt="Aura" width={22} height={22} />
-          <span className={cn("text-base font-semibold text-white", poppins.className)}>
-            Aura
+          <Image src="/logo.svg" alt="Codura" width={22} height={22} />
+          <span
+            className={cn(
+              "text-base font-semibold text-white",
+              poppins.className,
+            )}
+          >
+            Codura
           </span>
         </Link>
 
@@ -41,7 +46,12 @@ export function AuthNavbar({ page }: AuthNavbarProps) {
             <span className="hidden text-sm text-white/40 sm:inline">
               Already have an account?
             </span>
-            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white" asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white/70 hover:text-white"
+              asChild
+            >
               <Link href="/sign-in">Sign in</Link>
             </Button>
           </div>

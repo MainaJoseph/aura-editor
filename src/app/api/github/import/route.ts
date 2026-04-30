@@ -44,12 +44,15 @@ export async function POST(request: Request) {
   try {
     ({ url } = requestSchema.parse(body));
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
   const { owner, repo } = parseGitHubUrl(url);
-  // https://github.com/MainaJoseph/aura-editor
-  // { owner: "MainaJoseph", repo: "aura-editor" }
+  // https://github.com/MainaJoseph/codura-editor
+  // { owner: "MainaJoseph", repo: "codura-editor" }
 
   const client = await clerkClient();
   const tokens = await client.users.getUserOauthAccessToken(userId, "github");
@@ -62,7 +65,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
 
   if (!internalKey) {
     return NextResponse.json(

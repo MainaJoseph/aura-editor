@@ -28,17 +28,29 @@ export interface GitCommitsResponse {
 
 export async function GET(request: Request) {
   const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get("projectId");
   const parsedLimit = parseInt(searchParams.get("limit") ?? "60", 10);
-  const limit = Number.isNaN(parsedLimit) || parsedLimit < 1 ? 60 : Math.min(parsedLimit, 100);
+  const limit =
+    Number.isNaN(parsedLimit) || parsedLimit < 1
+      ? 60
+      : Math.min(parsedLimit, 100);
 
-  if (!projectId) return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+  if (!projectId)
+    return NextResponse.json(
+      { error: "projectId is required" },
+      { status: 400 },
+    );
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
-  if (!internalKey) return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
+  if (!internalKey)
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 },
+    );
 
   const project = await convex.query(api.system.getProjectById, {
     internalKey,
@@ -46,11 +58,17 @@ export async function GET(request: Request) {
   });
 
   if (!project || project.ownerId !== userId) {
-    return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Project not found or unauthorized" },
+      { status: 403 },
+    );
   }
 
   if (!project.gitRepo || !project.gitBranch) {
-    return NextResponse.json({ error: "Project not connected to a git repository" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Project not connected to a git repository" },
+      { status: 400 },
+    );
   }
 
   const client = await clerkClient();
@@ -58,12 +76,18 @@ export async function GET(request: Request) {
   const githubToken = tokens.data[0]?.token;
 
   if (!githubToken) {
-    return NextResponse.json({ error: "GitHub not connected." }, { status: 400 });
+    return NextResponse.json(
+      { error: "GitHub not connected." },
+      { status: 400 },
+    );
   }
 
   const repoParts = project.gitRepo.split("/");
   if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
-    return NextResponse.json({ error: "Invalid git repository format" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid git repository format" },
+      { status: 400 },
+    );
   }
   const [owner, repo] = repoParts;
   const octokit = new Octokit({ auth: githubToken });
@@ -71,7 +95,11 @@ export async function GET(request: Request) {
   // Fetch branches (to mark branch heads on commits)
   let branches: BranchRef[] = [];
   try {
-    const { data } = await octokit.rest.repos.listBranches({ owner, repo, per_page: 50 });
+    const { data } = await octokit.rest.repos.listBranches({
+      owner,
+      repo,
+      per_page: 50,
+    });
     branches = data.map((b) => ({
       name: b.name,
       sha: b.commit.sha,
@@ -117,6 +145,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(response);
   } catch {
-    return NextResponse.json({ error: "Failed to fetch commits" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch commits" },
+      { status: 500 },
+    );
   }
 }

@@ -43,7 +43,10 @@ export async function POST(request: Request) {
     ({ projectId, repoName, visibility, description } =
       requestSchema.parse(body));
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
   const client = await clerkClient();
@@ -57,7 +60,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
 
   if (!internalKey) {
     return NextResponse.json(

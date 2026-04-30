@@ -21,7 +21,7 @@ export const importGithubRepo = inngest.createFunction(
   {
     id: "import-github-repo",
     onFailure: async ({ event, step }) => {
-      const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+      const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
       if (!internalKey) return;
 
       const { projectId } = event.data.event.data as ImportGithubRepoEvent;
@@ -40,9 +40,11 @@ export const importGithubRepo = inngest.createFunction(
     const { owner, repo, projectId, userId } =
       event.data as ImportGithubRepoEvent;
 
-    const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+    const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
     if (!internalKey) {
-      throw new NonRetriableError("AURA_CONVEX_INTERNAL_KEY is not configured");
+      throw new NonRetriableError(
+        "CODURA_CONVEX_INTERNAL_KEY  is not configured",
+      );
     }
 
     // Fetch GitHub OAuth token from Clerk (avoids storing tokens in event payloads)

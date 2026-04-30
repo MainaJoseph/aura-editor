@@ -14,20 +14,20 @@ export const CONSOLE_BRIDGE_SCRIPT = `(function() {
           try { args.push(typeof arguments[i] === 'object' ? JSON.stringify(arguments[i]) : String(arguments[i])); }
           catch(e) { args.push('[Unserializable]'); }
         }
-        window.parent.postMessage({ type:'aura:console', level:level, args:args, timestamp:Date.now() }, '*');
+        window.parent.postMessage({ type:'codura:console', level:level, args:args, timestamp:Date.now() }, '*');
       } catch(e) {}
     };
   });
   window.addEventListener('error', function(e) {
     window.parent.postMessage({
-      type:'aura:console', level:'error',
+      type:'codura:console', level:'error',
       args:[e.message + (e.filename ? ' at ' + e.filename + ':' + e.lineno + ':' + e.colno : '')],
       timestamp:Date.now()
     }, '*');
   });
   window.addEventListener('unhandledrejection', function(e) {
     window.parent.postMessage({
-      type:'aura:console', level:'error',
+      type:'codura:console', level:'error',
       args:['Unhandled Promise Rejection: ' + String(e.reason)],
       timestamp:Date.now()
     }, '*');

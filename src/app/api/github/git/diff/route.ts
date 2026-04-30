@@ -19,12 +19,18 @@ export async function GET(request: Request) {
   const path = searchParams.get("path");
 
   if (!projectId || !path) {
-    return NextResponse.json({ error: "projectId and path are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "projectId and path are required" },
+      { status: 400 },
+    );
   }
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
   if (!internalKey) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 },
+    );
   }
 
   const project = await convex.query(api.system.getProjectById, {
@@ -33,11 +39,17 @@ export async function GET(request: Request) {
   });
 
   if (!project || project.ownerId !== userId) {
-    return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Project not found or unauthorized" },
+      { status: 403 },
+    );
   }
 
   if (!project.gitRepo || !project.gitLastCommitSha) {
-    return NextResponse.json({ error: "Project not connected to a git repository" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Project not connected to a git repository" },
+      { status: 400 },
+    );
   }
 
   const client = await clerkClient();
@@ -54,7 +66,10 @@ export async function GET(request: Request) {
   const parts = project.gitRepo.split("/");
   const [owner, repo] = parts.length === 2 ? parts : parts.slice(-2);
   if (!owner || !repo) {
-    return NextResponse.json({ error: "Invalid git repository format" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid git repository format" },
+      { status: 400 },
+    );
   }
   const octokit = new Octokit({ auth: githubToken });
 
@@ -67,7 +82,9 @@ export async function GET(request: Request) {
       tree_sha: project.gitLastCommitSha,
       recursive: "1",
     });
-    const entry = tree.tree.find((item) => item.path === path && item.type === "blob");
+    const entry = tree.tree.find(
+      (item) => item.path === path && item.type === "blob",
+    );
     remoteBlobSha = entry?.sha ?? null;
   } catch {
     // Remote tree unavailable — treat as new file

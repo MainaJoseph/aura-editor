@@ -37,7 +37,7 @@ function buildEmailHtml({
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Project Invite — Aura</title>
+  <title>Project Invite — Codura</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #13141f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
 
@@ -63,7 +63,7 @@ function buildEmailHtml({
                     <span style="font-size: 20px; font-weight: 700; color: #ffffff; line-height: 40px;">A</span>
                   </td>
                   <td style="padding-left: 12px;">
-                    <span style="font-size: 22px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px;">Aura</span>
+                    <span style="font-size: 22px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px;">Codura</span>
                   </td>
                 </tr>
               </table>
@@ -152,7 +152,7 @@ function buildEmailHtml({
             <td style="padding: 32px 40px;">
               <div style="height: 1px; background: rgba(255,255,255,0.06); margin-bottom: 20px;"></div>
               <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5; text-align: center;">
-                This invite was sent from <strong style="color: #64748b;">Aura</strong> — the AI&#8209;powered code editor.<br />
+                This invite was sent from <strong style="color: #64748b;">Codura</strong> — the AI&#8209;powered code editor.<br />
                 If you weren't expecting this, you can safely ignore this email.
               </p>
             </td>
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     const inviteUrl = `${request.nextUrl.origin}/invite/${token}`;
 
     const { error } = await resend.emails.send({
-      from: "Aura <noreply@aura.azuritek.com>",
+      from: "Codura <noreply@codura.azuritek.com>",
       to: email,
       subject: `You've been invited to collaborate on ${projectName.replace(/[<>"]/g, "")}`,
       html: buildEmailHtml({ inviterName, projectName, role, inviteUrl }),

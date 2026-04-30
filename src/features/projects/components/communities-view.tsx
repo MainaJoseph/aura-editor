@@ -75,7 +75,7 @@ const ProjectCard = ({
           <div className="w-full h-full flex items-center justify-center">
             <Image
               src="/logo.svg"
-              alt="Aura"
+              alt="Codura"
               width={40}
               height={40}
               className="opacity-10"
@@ -252,9 +252,9 @@ export const CommunitiesView = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-sidebar">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="Aura" width={22} height={22} />
+            <Image src="/logo.svg" alt="Codura" width={22} height={22} />
             <span className={cn("text-sm font-semibold", font.className)}>
-              Aura
+              Codura
             </span>
           </Link>
           <div className="flex items-center gap-1">
@@ -283,10 +283,10 @@ export const CommunitiesView = () => {
         {/* Header */}
         <div className="mb-10">
           <h1 className={cn("text-3xl font-semibold mb-2", font.className)}>
-            Aura Community
+            Codura Community
           </h1>
           <p className="text-sm text-muted-foreground mb-6">
-            Discover and explore projects shared by the Aura community
+            Discover and explore projects shared by the Codura community
           </p>
 
           {/* Search */}

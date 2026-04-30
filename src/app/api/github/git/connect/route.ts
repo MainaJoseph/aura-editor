@@ -42,12 +42,18 @@ export async function POST(request: Request) {
   try {
     parsed = requestSchema.parse(body);
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
   if (!internalKey) {
-    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 },
+    );
   }
 
   const project = await convex.query(api.system.getProjectById, {
@@ -56,7 +62,10 @@ export async function POST(request: Request) {
   });
 
   if (!project || project.ownerId !== userId) {
-    return NextResponse.json({ error: "Project not found or unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Project not found or unauthorized" },
+      { status: 403 },
+    );
   }
 
   const client = await clerkClient();
@@ -92,12 +101,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, eventId: event.ids[0] });
     } catch (err) {
       // Clear stuck "connecting" status if event dispatch fails
-      await convex.mutation(api.system.updateGitStateInternal, {
-        internalKey,
-        projectId: parsed.projectId as Id<"projects">,
-        clearGitSyncStatus: true,
-      }).catch(() => {});
-      const message = err instanceof Error ? err.message : "Failed to start connection";
+      await convex
+        .mutation(api.system.updateGitStateInternal, {
+          internalKey,
+          projectId: parsed.projectId as Id<"projects">,
+          clearGitSyncStatus: true,
+        })
+        .catch(() => {});
+      const message =
+        err instanceof Error ? err.message : "Failed to start connection";
       return NextResponse.json({ error: message }, { status: 500 });
     }
   } else {
@@ -105,11 +117,18 @@ export async function POST(request: Request) {
     let owner: string, repo: string;
     try {
       const url = new URL(parsed.repoUrl);
-      const parts = url.pathname.replace(/^\//, "").replace(/\.git$/, "").split("/");
-      if (parts.length < 2 || !parts[0] || !parts[1]) throw new Error("Invalid repo URL");
+      const parts = url.pathname
+        .replace(/^\//, "")
+        .replace(/\.git$/, "")
+        .split("/");
+      if (parts.length < 2 || !parts[0] || !parts[1])
+        throw new Error("Invalid repo URL");
       [owner, repo] = parts;
     } catch {
-      return NextResponse.json({ error: "Invalid GitHub repository URL" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid GitHub repository URL" },
+        { status: 400 },
+      );
     }
 
     const octokit = new Octokit({ auth: githubToken });
@@ -119,7 +138,10 @@ export async function POST(request: Request) {
       const { data } = await octokit.rest.repos.get({ owner, repo });
       repoData = data;
     } catch {
-      return NextResponse.json({ error: "Repository not found or inaccessible" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Repository not found or inaccessible" },
+        { status: 400 },
+      );
     }
 
     // Get HEAD SHA for the default branch
@@ -132,7 +154,10 @@ export async function POST(request: Request) {
       });
       headSha = ref.object.sha;
     } catch {
-      return NextResponse.json({ error: "Could not fetch branch HEAD" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Could not fetch branch HEAD" },
+        { status: 400 },
+      );
     }
 
     // Fetch commit history for the linked repo
@@ -148,7 +173,8 @@ export async function POST(request: Request) {
         rawCommits.map((c) => ({
           sha: c.sha,
           message: (c.commit.message.split("\n")[0] ?? "").trim(),
-          author: c.commit.author?.name ?? c.commit.committer?.name ?? "Unknown",
+          author:
+            c.commit.author?.name ?? c.commit.committer?.name ?? "Unknown",
           date: c.commit.author?.date ?? c.commit.committer?.date ?? "",
           parents: c.parents.map((p: { sha: string }) => p.sha),
         })),

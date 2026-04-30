@@ -19,7 +19,7 @@ export const gitPull = inngest.createFunction(
   {
     id: "git-pull",
     onFailure: async ({ event, step }) => {
-      const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+      const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
       if (!internalKey) return;
 
       const { projectId } = event.data.event.data as GitPullEvent;
@@ -37,9 +37,11 @@ export const gitPull = inngest.createFunction(
   async ({ event, step }) => {
     const { projectId, userId } = event.data as GitPullEvent;
 
-    const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+    const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
     if (!internalKey) {
-      throw new NonRetriableError("AURA_CONVEX_INTERNAL_KEY is not configured");
+      throw new NonRetriableError(
+        "CODURA_CONVEX_INTERNAL_KEY  is not configured",
+      );
     }
 
     await step.run("set-pulling-status", async () => {
@@ -51,7 +53,9 @@ export const gitPull = inngest.createFunction(
     });
 
     // Fetch token outside a step so Inngest does not persist credentials in step history
-    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
     const tokens = await clerk.users.getUserOauthAccessToken(userId, "github");
     const githubToken = tokens.data[0]?.token;
     if (!githubToken) {
@@ -64,14 +68,18 @@ export const gitPull = inngest.createFunction(
         projectId,
       });
       if (!p || !p.gitRepo || !p.gitBranch) {
-        throw new NonRetriableError("Project not connected to a git repository");
+        throw new NonRetriableError(
+          "Project not connected to a git repository",
+        );
       }
       return p;
     });
 
     const repoParts = project.gitRepo!.split("/");
     if (repoParts.length !== 2 || !repoParts[0] || !repoParts[1]) {
-      throw new NonRetriableError("Invalid gitRepo format, expected 'owner/repo'");
+      throw new NonRetriableError(
+        "Invalid gitRepo format, expected 'owner/repo'",
+      );
     }
     const [owner, repo] = repoParts;
     const octokit = new Octokit({ auth: githubToken });
@@ -116,27 +124,31 @@ export const gitPull = inngest.createFunction(
     });
 
     // Fetch commit history before cleanup (non-fatal)
-    const gitCommitHistory = await step.run("fetch-commit-history", async () => {
-      try {
-        const { data: commits } = await octokit.rest.repos.listCommits({
-          owner,
-          repo,
-          sha: project.gitBranch!,
-          per_page: 60,
-        });
-        return JSON.stringify(
-          commits.map((c) => ({
-            sha: c.sha,
-            message: (c.commit.message.split("\n")[0] ?? "").trim(),
-            author: c.commit.author?.name ?? c.commit.committer?.name ?? "Unknown",
-            date: c.commit.author?.date ?? c.commit.committer?.date ?? "",
-            parents: c.parents.map((p) => p.sha),
-          })),
-        );
-      } catch {
-        return null;
-      }
-    });
+    const gitCommitHistory = await step.run(
+      "fetch-commit-history",
+      async () => {
+        try {
+          const { data: commits } = await octokit.rest.repos.listCommits({
+            owner,
+            repo,
+            sha: project.gitBranch!,
+            per_page: 60,
+          });
+          return JSON.stringify(
+            commits.map((c) => ({
+              sha: c.sha,
+              message: (c.commit.message.split("\n")[0] ?? "").trim(),
+              author:
+                c.commit.author?.name ?? c.commit.committer?.name ?? "Unknown",
+              date: c.commit.author?.date ?? c.commit.committer?.date ?? "",
+              parents: c.parents.map((p) => p.sha),
+            })),
+          );
+        } catch {
+          return null;
+        }
+      },
+    );
 
     // ── Phase 2: Write to the database ───────────────────────────────────────
 
@@ -209,9 +221,12 @@ export const gitPull = inngest.createFunction(
           const parentId = parentPath ? folderIdMap[parentPath] : undefined;
 
           if (isBinary) {
-            const uploadUrl = await convex.mutation(api.system.generateUploadUrl, {
-              internalKey,
-            });
+            const uploadUrl = await convex.mutation(
+              api.system.generateUploadUrl,
+              {
+                internalKey,
+              },
+            );
             const { storageId } = await ky
               .post(uploadUrl, {
                 headers: { "Content-Type": "application/octet-stream" },
@@ -248,7 +263,9 @@ export const gitPull = inngest.createFunction(
     const failedSet = new Set(failedPaths);
     const gitRemoteTree = JSON.stringify(
       tree.tree
-        .filter((e) => e.type === "blob" && e.path && e.sha && !failedSet.has(e.path))
+        .filter(
+          (e) => e.type === "blob" && e.path && e.sha && !failedSet.has(e.path),
+        )
         .map((e) => ({ path: e.path!, sha: e.sha! })),
     );
 

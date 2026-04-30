@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
 
   if (!internalKey) {
     return NextResponse.json(
@@ -53,11 +53,16 @@ export async function POST(request: Request) {
   }
 
   let prompt: string;
-  let attachments: { storageId: string; mediaType: string; filename?: string }[] | undefined;
+  let attachments:
+    | { storageId: string; mediaType: string; filename?: string }[]
+    | undefined;
   try {
     ({ prompt, attachments } = requestSchema.parse(body));
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
   // Generate a random project name

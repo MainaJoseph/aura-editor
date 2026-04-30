@@ -225,7 +225,7 @@ export const NewProjectDialog = ({
           </PromptInputAttachments>
           <PromptInputBody>
             <PromptInputTextarea
-              placeholder="Ask Aura to build..."
+              placeholder="Ask Codura to build..."
               onChange={(e) => setInput(e.target.value)}
               value={input}
               disabled={isSubmitting}

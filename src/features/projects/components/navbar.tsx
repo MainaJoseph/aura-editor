@@ -36,7 +36,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { Id } from "../../../../convex/_generated/dataModel";
-import { useProject, useRenameProject, useSetProjectVisibility } from "../hooks/use-projects";
+import {
+  useProject,
+  useRenameProject,
+  useSetProjectVisibility,
+} from "../hooks/use-projects";
 import { OnlineUsers } from "@/features/editor/components/online-users";
 
 const font = Poppins({
@@ -56,7 +60,8 @@ export const Navbar = ({ projectId }: { projectId: Id<"projects"> }) => {
 
   const isOwner = !!project && !!user && project.ownerId === user.id;
   const isPublic = project?.isPublic ?? false;
-  const isDemoProject = project?.isDemo === true || project?.isDemoTemplate === true;
+  const isDemoProject =
+    project?.isDemo === true || project?.isDemoTemplate === true;
 
   const handleStartRename = () => {
     if (!project) return;
@@ -93,7 +98,7 @@ export const Navbar = ({ projectId }: { projectId: Id<"projects"> }) => {
                   <Link href="/">
                     <Image src="/logo.svg" alt="Logo" width={20} height={20} />
                     <span className={cn("text-sm font-medium", font.className)}>
-                      Aura
+                      Codura
                     </span>
                   </Link>
                 </Button>
@@ -104,7 +109,11 @@ export const Navbar = ({ projectId }: { projectId: Id<"projects"> }) => {
               <>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Button variant="ghost" className="w-fit! p-1.5! h-7!" asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-fit! p-1.5! h-7!"
+                      asChild
+                    >
                       <Link href="/community">
                         <span className="text-sm font-medium">Community</span>
                       </Link>

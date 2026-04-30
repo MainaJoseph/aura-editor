@@ -49,7 +49,7 @@ export const TreeItemWrapper = ({
               e.preventDefault();
               return;
             }
-            e.dataTransfer.setData("application/aura-file-id", item._id);
+            e.dataTransfer.setData("application/codura-file-id", item._id);
             e.dataTransfer.effectAllowed = "copy";
             setIsDragging(true);
           }}
@@ -65,7 +65,7 @@ export const TreeItemWrapper = ({
           className={cn(
             "group flex items-center gap-1 w-full h-5.5 hover:bg-accent/30 outline-none focus:ring-1 focus:ring-inset focus:ring-ring",
             isActive && "bg-accent/30",
-            isDragging && "opacity-50"
+            isDragging && "opacity-50",
           )}
           style={{ paddingLeft: getItemPadding(level, isFile) }}
         >

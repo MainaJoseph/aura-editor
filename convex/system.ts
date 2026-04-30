@@ -5,10 +5,10 @@ import { verifyAuth } from "./auth";
 import { requireProjectAccess } from "./members";
 
 const validateInternalKey = (key: string) => {
-  const internalKey = process.env.AURA_CONVEX_INTERNAL_KEY;
+  const internalKey = process.env.CODURA_CONVEX_INTERNAL_KEY;
 
   if (!internalKey) {
-    throw new Error("AURA_CONVEX_INTERNAL_KEY is not configured");
+    throw new Error("CODURA_CONVEX_INTERNAL_KEY  is not configured");
   }
 
   if (key !== internalKey) {
@@ -557,11 +557,15 @@ export const updateGitStateInternal = mutation({
     const patch: Record<string, unknown> = { updatedAt: Date.now() };
     if (args.gitRepo !== undefined) patch.gitRepo = args.gitRepo;
     if (args.gitBranch !== undefined) patch.gitBranch = args.gitBranch;
-    if (args.gitLastCommitSha !== undefined) patch.gitLastCommitSha = args.gitLastCommitSha;
-    if (args.gitSyncStatus !== undefined) patch.gitSyncStatus = args.gitSyncStatus;
+    if (args.gitLastCommitSha !== undefined)
+      patch.gitLastCommitSha = args.gitLastCommitSha;
+    if (args.gitSyncStatus !== undefined)
+      patch.gitSyncStatus = args.gitSyncStatus;
     if (args.clearGitSyncStatus) patch.gitSyncStatus = undefined;
-    if (args.gitRemoteTree !== undefined) patch.gitRemoteTree = args.gitRemoteTree;
-    if (args.gitCommitHistory !== undefined) patch.gitCommitHistory = args.gitCommitHistory;
+    if (args.gitRemoteTree !== undefined)
+      patch.gitRemoteTree = args.gitRemoteTree;
+    if (args.gitCommitHistory !== undefined)
+      patch.gitCommitHistory = args.gitCommitHistory;
 
     await ctx.db.patch(args.projectId, patch);
   },

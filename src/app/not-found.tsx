@@ -41,9 +41,14 @@ export default function NotFound() {
       <nav className="relative z-50 border-b border-white/10 bg-background/70 backdrop-blur-lg">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.svg" alt="Aura" width={22} height={22} />
-            <span className={cn("text-base font-semibold text-white", poppins.className)}>
-              Aura
+            <Image src="/logo.svg" alt="Codura" width={22} height={22} />
+            <span
+              className={cn(
+                "text-base font-semibold text-white",
+                poppins.className,
+              )}
+            >
+              Codura
             </span>
           </Link>
         </div>
@@ -51,7 +56,6 @@ export default function NotFound() {
 
       {/* Main content — two column on lg */}
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-12 px-6 py-16 lg:flex-row lg:gap-16 lg:px-16 xl:px-24">
-
         {/* Left — text + CTAs */}
         <div className="animate-fade-in-up flex flex-col items-center text-center lg:items-start lg:text-left">
           {/* 404 number */}
@@ -62,7 +66,8 @@ export default function NotFound() {
                 poppins.className,
               )}
               style={{
-                background: "linear-gradient(135deg, #7c5aed 0%, #1F84EF 55%, #06E07F 100%)",
+                background:
+                  "linear-gradient(135deg, #7c5aed 0%, #1F84EF 55%, #06E07F 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -78,7 +83,8 @@ export default function NotFound() {
                 poppins.className,
               )}
               style={{
-                background: "linear-gradient(135deg, #7c5aed 0%, #1F84EF 55%, #06E07F 100%)",
+                background:
+                  "linear-gradient(135deg, #7c5aed 0%, #1F84EF 55%, #06E07F 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -88,7 +94,12 @@ export default function NotFound() {
             </span>
           </div>
 
-          <h1 className={cn("text-2xl font-semibold text-white sm:text-3xl", poppins.className)}>
+          <h1
+            className={cn(
+              "text-2xl font-semibold text-white sm:text-3xl",
+              poppins.className,
+            )}
+          >
             Page not found
           </h1>
           <p className="mt-3 max-w-sm text-base text-white/50">
@@ -124,7 +135,6 @@ export default function NotFound() {
         >
           <NotFoundEditor />
         </div>
-
       </div>
     </div>
   );

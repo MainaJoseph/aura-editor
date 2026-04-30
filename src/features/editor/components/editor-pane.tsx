@@ -53,7 +53,7 @@ export const EditorPane = ({
 }) => {
   const { activeTabId, isActivePane, setActivePane, openFile } = useEditorPane(
     projectId,
-    paneIndex
+    paneIndex,
   );
   const [isDragOver, setIsDragOver] = useState(false);
   const themeConfigKey = useActiveTheme(projectId);
@@ -69,12 +69,15 @@ export const EditorPane = ({
   const projectState = useEditorStore((s) => s.getProjectState(projectId));
   const activeExtension =
     paneIndex === 0
-      ? projectState.openExtensions.find(
-          (e) => e._id === projectState.activeExtensionId
-        ) ?? null
+      ? (projectState.openExtensions.find(
+          (e) => e._id === projectState.activeExtensionId,
+        ) ?? null)
       : null;
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingContentRef = useRef<{ fileId: Id<"files">; content: string } | null>(null);
+  const pendingContentRef = useRef<{
+    fileId: Id<"files">;
+    content: string;
+  } | null>(null);
   const [hasPendingEdits, setHasPendingEdits] = useState(false);
   const saveAllSignal = useEditorStore((s) => s.saveAllSignal);
 
@@ -90,7 +93,9 @@ export const EditorPane = ({
     return hashToColor(user?.id ?? "anonymous");
   }, [user?.id]);
 
-  const cursorBroadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cursorBroadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const sendPresenceNow = useCallback(() => {
     updatePresence({
@@ -119,15 +124,18 @@ export const EditorPane = ({
   }, [projectId, activeTabId, userColor]);
 
   // Broadcast cursor position immediately (debounced 500ms) on move
-  const handleCursorChange = useCallback((offset: number) => {
-    cursorOffsetRef.current = offset;
-    if (cursorBroadcastTimerRef.current) {
-      clearTimeout(cursorBroadcastTimerRef.current);
-    }
-    cursorBroadcastTimerRef.current = setTimeout(() => {
-      sendPresenceNow();
-    }, CURSOR_BROADCAST_DEBOUNCE_MS);
-  }, [sendPresenceNow]);
+  const handleCursorChange = useCallback(
+    (offset: number) => {
+      cursorOffsetRef.current = offset;
+      if (cursorBroadcastTimerRef.current) {
+        clearTimeout(cursorBroadcastTimerRef.current);
+      }
+      cursorBroadcastTimerRef.current = setTimeout(() => {
+        sendPresenceNow();
+      }, CURSOR_BROADCAST_DEBOUNCE_MS);
+    },
+    [sendPresenceNow],
+  );
 
   // --- Remote cursors ---
   const presenceData = useQuery(api.presence.getProjectPresence, { projectId });
@@ -136,8 +144,7 @@ export const EditorPane = ({
     if (!presenceData || !activeTabId) return [];
     return presenceData
       .filter(
-        (entry) =>
-          entry.fileId === activeTabId && entry.cursorOffset != null
+        (entry) => entry.fileId === activeTabId && entry.cursorOffset != null,
       )
       .map((entry) => ({
         offset: entry.cursorOffset!,
@@ -168,46 +175,35 @@ export const EditorPane = ({
     }
   }, [saveAllSignal, updateFile]);
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      if (e.dataTransfer.types.includes("application/aura-file-id")) {
-        e.preventDefault();
-        setIsDragOver(true);
-      }
-    },
-    []
-  );
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (e.dataTransfer.types.includes("application/codura-file-id")) {
+      e.preventDefault();
+      setIsDragOver(true);
+    }
+  }, []);
 
-  const handleDragEnter = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      if (e.dataTransfer.types.includes("application/aura-file-id")) {
-        setIsDragOver(true);
-      }
-    },
-    []
-  );
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (e.dataTransfer.types.includes("application/codura-file-id")) {
+      setIsDragOver(true);
+    }
+  }, []);
 
-  const handleDragLeave = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      if (
-        !e.currentTarget.contains(e.relatedTarget as Node)
-      ) {
-        setIsDragOver(false);
-      }
-    },
-    []
-  );
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setIsDragOver(false);
-      const fileId = e.dataTransfer.getData("application/aura-file-id");
+      const fileId = e.dataTransfer.getData("application/codura-file-id");
       if (fileId) {
         openFile(fileId as Id<"files">, { pinned: true });
       }
     },
-    [openFile]
+    [openFile],
   );
 
   return (
@@ -215,7 +211,7 @@ export const EditorPane = ({
       className={cn(
         "h-full flex flex-col",
         isActivePane && "ring-1 ring-ring/50 ring-inset",
-        isDragOver && "ring-2 ring-ring/50 ring-inset"
+        isDragOver && "ring-2 ring-ring/50 ring-inset",
       )}
       onClick={setActivePane}
       onDragOver={handleDragOver}
@@ -243,7 +239,7 @@ export const EditorPane = ({
               <div className="size-full flex items-center justify-center">
                 <Image
                   src="/logo.svg"
-                  alt="Aura"
+                  alt="Codura"
                   width={50}
                   height={50}
                   className="opacity-25"
@@ -270,14 +266,19 @@ export const EditorPane = ({
                         }
 
                         setHasPendingEdits(true);
-                        pendingContentRef.current = { fileId: activeFile._id, content };
+                        pendingContentRef.current = {
+                          fileId: activeFile._id,
+                          content,
+                        };
                         timeoutRef.current = setTimeout(() => {
                           pendingContentRef.current = null;
-                          updateFile({ id: activeFile._id, content }).then(() => {
-                            setHasPendingEdits(false);
-                          }).catch(() => {
-                            setHasPendingEdits(false);
-                          });
+                          updateFile({ id: activeFile._id, content })
+                            .then(() => {
+                              setHasPendingEdits(false);
+                            })
+                            .catch(() => {
+                              setHasPendingEdits(false);
+                            });
                         }, DEBOUNCE_MS);
                       }
                 }

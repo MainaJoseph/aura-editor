@@ -1,49 +1,61 @@
-# Aura — AI-Powered Code Editor
+# Codura — AI-Powered Code Editor
 
-Aura is a full-featured, AI-powered code editor with in-browser project runtime. Users can create projects, edit code through AI conversation, and preview running applications directly in the browser — no local setup or terminal required.
+Codura is a full-featured, AI-powered code editor with in-browser project runtime. Users can create projects, edit code through AI conversation, and preview running applications directly in the browser — no local setup or terminal required.
 
 Built with Next.js 16, React 19, Convex, Clerk, and WebContainer API.
 
-**[Try Aura Live](https://aura.azuritek.com)**
+**[Try Codura Live](https://codura.tech)**
 
 ---
 
 ## Screenshots
 
 ### Landing Page
+
 ![Landing Page](public/screenshots/landing-page.png)
 
 ### Sign In
+
 ![Sign In](public/screenshots/sign-in.png)
 
 ### Projects Dashboard
+
 ![Projects Dashboard](public/screenshots/projects-dashboard.png)
 
 ### New Project — AI Prompt
+
 ![New Project](public/screenshots/new-project.png)
 
 ### Import from GitHub
+
 ![GitHub Import](public/screenshots/github-import.png)
 
 ### Code Editor — File Explorer & AI Chat
+
 ![Code Editor](public/screenshots/code-editor.png)
 
 ### Live Preview — In-Browser Runtime
+
 ![Live Preview](public/screenshots/live-preview.png)
 
 ### Preview with Terminal
+
 ![Preview Terminal](public/screenshots/preview-terminal.png)
 
 ### Export to GitHub
+
 ![GitHub Export](public/screenshots/github-export.png)
 
 ### Editor Extensions Marketplace
+
 ![Editor Extensions](public/screenshots/editor-extensions.png)
 
 ### File Search / Quick Open
+
 ![File Search](public/screenshots/file-search.png)
 
 ### Share Project
+
 ![Share Project](public/screenshots/share-project.png)
 
 ---
@@ -75,12 +87,14 @@ Built with Next.js 16, React 19, Convex, Clerk, and WebContainer API.
 ## Features
 
 ### AI Code Assistant
+
 - Chat-based coding with Claude Opus 4 as the primary agent
 - The AI can list, read, create, update, delete, and rename files autonomously
 - Automatic conversation title generation with Claude 3.5 Haiku
 - Web scraping capabilities via Firecrawl for referencing external documentation
 
 ### Code Editor
+
 - Full CodeMirror 6 editor with syntax highlighting for 15+ languages (JavaScript, TypeScript, Python, Rust, Go, Java, C++, PHP, SQL, HTML, CSS, JSON, YAML, XML, Markdown)
 - One Dark theme
 - Minimap, indentation markers, search, autocomplete, and linting
@@ -90,6 +104,7 @@ Built with Next.js 16, React 19, Convex, Clerk, and WebContainer API.
   - **Quick Edit** — Describe a change and let AI modify the code
 
 ### In-Browser Preview
+
 - Powered by WebContainer API — runs Node.js projects entirely in the browser
 - Integrated xterm.js terminal with interactive shell
 - Auto-installs dependencies and starts the dev server
@@ -97,12 +112,14 @@ Built with Next.js 16, React 19, Convex, Clerk, and WebContainer API.
 - Configurable install and dev commands per project
 
 ### GitHub Integration
+
 - Import existing GitHub repositories (files, folders, and binary assets)
 - Export projects back to GitHub as new repositories
 - OAuth-based authentication through Clerk
 - Full tree/blob/commit creation via the GitHub API
 
 ### Project Management
+
 - Create new projects or import from GitHub
 - Rename projects inline
 - Keyboard shortcuts: `Cmd+J` (new project), `Cmd+I` (import), `Cmd+K` (command palette)
@@ -110,6 +127,7 @@ Built with Next.js 16, React 19, Convex, Clerk, and WebContainer API.
 - Real-time project list with last-updated timestamps
 
 ### Real-Time Data
+
 - All data operations go through Convex with real-time subscriptions
 - Messages stream in real-time as the AI agent processes them
 - File changes sync instantly across the editor and preview
@@ -118,25 +136,25 @@ Built with Next.js 16, React 19, Convex, Clerk, and WebContainer API.
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **Framework** | Next.js 16.1.1 (App Router, Turbopack) |
-| **UI** | React 19, TypeScript, Tailwind CSS 4 |
-| **Components** | shadcn/ui (50+ components), Radix UI primitives |
-| **Database** | Convex (serverless, real-time subscriptions) |
-| **Auth** | Clerk (JWT-based, OAuth for GitHub) |
-| **AI SDK** | Vercel AI SDK with Anthropic, Google, Groq, OpenAI, DeepSeek providers |
-| **Agent** | Inngest with Agent Kit for reliable multi-step AI orchestration |
-| **Editor** | CodeMirror 6 with extensions |
-| **Runtime** | WebContainer API (in-browser Node.js) |
-| **Terminal** | xterm.js |
-| **State** | Zustand (client), Convex hooks (server) |
-| **Monitoring** | Sentry (traces, logs, Vercel AI integration) |
-| **Scraping** | Firecrawl |
-| **GitHub API** | Octokit |
-| **Forms** | React Hook Form, TanStack Form, Zod validation |
-| **Animations** | Motion (Framer Motion), Rive, CSS keyframes |
-| **Fonts** | Inter (sans), IBM Plex Mono (mono), Poppins (branding) |
+| Layer          | Technology                                                             |
+| -------------- | ---------------------------------------------------------------------- |
+| **Framework**  | Next.js 16.1.1 (App Router, Turbopack)                                 |
+| **UI**         | React 19, TypeScript, Tailwind CSS 4                                   |
+| **Components** | shadcn/ui (50+ components), Radix UI primitives                        |
+| **Database**   | Convex (serverless, real-time subscriptions)                           |
+| **Auth**       | Clerk (JWT-based, OAuth for GitHub)                                    |
+| **AI SDK**     | Vercel AI SDK with Anthropic, Google, Groq, OpenAI, DeepSeek providers |
+| **Agent**      | Inngest with Agent Kit for reliable multi-step AI orchestration        |
+| **Editor**     | CodeMirror 6 with extensions                                           |
+| **Runtime**    | WebContainer API (in-browser Node.js)                                  |
+| **Terminal**   | xterm.js                                                               |
+| **State**      | Zustand (client), Convex hooks (server)                                |
+| **Monitoring** | Sentry (traces, logs, Vercel AI integration)                           |
+| **Scraping**   | Firecrawl                                                              |
+| **GitHub API** | Octokit                                                                |
+| **Forms**      | React Hook Form, TanStack Form, Zod validation                         |
+| **Animations** | Motion (Framer Motion), Rive, CSS keyframes                            |
+| **Fonts**      | Inter (sans), IBM Plex Mono (mono), Poppins (branding)                 |
 
 ---
 
@@ -182,7 +200,7 @@ User (Browser)
 ## Directory Structure
 
 ```
-aura/
+codura/
 ├── convex/                    # Convex backend
 │   ├── schema.ts              # Database schema (projects, files, conversations, messages)
 │   ├── auth.ts                # verifyAuth() helper
@@ -298,7 +316,7 @@ aura/
 │   │           └── file-tree.ts                # File tree builder
 │   │
 │   ├── inngest/
-│   │   ├── client.ts          # Inngest client (id: "aura")
+│   │   ├── client.ts          # Inngest client (id: "codura")
 │   │   └── functions.ts       # Demo functions
 │   │
 │   └── lib/
@@ -307,7 +325,7 @@ aura/
 │       └── firecrawl.ts       # Firecrawl client
 │
 ├── public/
-│   ├── logo.svg               # Aura logo (4-color: red, blue, yellow, green)
+│   ├── logo.svg               # Codura logo (4-color: red, blue, yellow, green)
 │   └── logo1.svg              # Alternate logo
 │
 ├── next.config.ts             # Next.js config (COEP/COOP headers, Sentry)
@@ -325,55 +343,55 @@ aura/
 
 ## Database Schema
 
-Aura uses [Convex](https://convex.dev) as its serverless database with real-time subscriptions.
+Codura uses [Convex](https://convex.dev) as its serverless database with real-time subscriptions.
 
 ### projects
 
-| Field | Type | Description |
-|---|---|---|
-| `name` | `string` | Project name |
-| `ownerId` | `string` | Clerk user ID |
-| `updatedAt` | `number` | Last update timestamp |
-| `importStatus` | `"importing" \| "completed" \| "failed"` | GitHub import status |
-| `exportStatus` | `"exporting" \| "completed" \| "failed" \| "cancelled"` | GitHub export status |
-| `exportRepoUrl` | `string?` | Exported GitHub repo URL |
-| `settings` | `object?` | `{ installCommand?, devCommand? }` |
+| Field           | Type                                                    | Description                        |
+| --------------- | ------------------------------------------------------- | ---------------------------------- |
+| `name`          | `string`                                                | Project name                       |
+| `ownerId`       | `string`                                                | Clerk user ID                      |
+| `updatedAt`     | `number`                                                | Last update timestamp              |
+| `importStatus`  | `"importing" \| "completed" \| "failed"`                | GitHub import status               |
+| `exportStatus`  | `"exporting" \| "completed" \| "failed" \| "cancelled"` | GitHub export status               |
+| `exportRepoUrl` | `string?`                                               | Exported GitHub repo URL           |
+| `settings`      | `object?`                                               | `{ installCommand?, devCommand? }` |
 
 **Index:** `by_owner` on `[ownerId]`
 
 ### files
 
-| Field | Type | Description |
-|---|---|---|
-| `projectId` | `Id<"projects">` | Parent project |
-| `parentId` | `Id<"files">?` | Parent folder (null = root) |
-| `name` | `string` | File or folder name |
-| `type` | `"file" \| "folder"` | Entry type |
-| `content` | `string?` | Text file content |
-| `storageId` | `Id<"_storage">?` | Binary file storage reference |
-| `updatedAt` | `number` | Last update timestamp |
+| Field       | Type                 | Description                   |
+| ----------- | -------------------- | ----------------------------- |
+| `projectId` | `Id<"projects">`     | Parent project                |
+| `parentId`  | `Id<"files">?`       | Parent folder (null = root)   |
+| `name`      | `string`             | File or folder name           |
+| `type`      | `"file" \| "folder"` | Entry type                    |
+| `content`   | `string?`            | Text file content             |
+| `storageId` | `Id<"_storage">?`    | Binary file storage reference |
+| `updatedAt` | `number`             | Last update timestamp         |
 
 **Indexes:** `by_project`, `by_parent`, `by_project_parent`
 
 ### conversations
 
-| Field | Type | Description |
-|---|---|---|
-| `projectId` | `Id<"projects">` | Parent project |
-| `title` | `string` | Conversation title |
-| `updatedAt` | `number` | Last update timestamp |
+| Field       | Type             | Description           |
+| ----------- | ---------------- | --------------------- |
+| `projectId` | `Id<"projects">` | Parent project        |
+| `title`     | `string`         | Conversation title    |
+| `updatedAt` | `number`         | Last update timestamp |
 
 **Index:** `by_project` on `[projectId]`
 
 ### messages
 
-| Field | Type | Description |
-|---|---|---|
-| `conversationId` | `Id<"conversations">` | Parent conversation |
-| `projectId` | `Id<"projects">` | Parent project |
-| `role` | `"user" \| "assistant"` | Message author |
-| `content` | `string` | Message text |
-| `status` | `"processing" \| "completed" \| "cancelled"` | Processing status |
+| Field            | Type                                         | Description         |
+| ---------------- | -------------------------------------------- | ------------------- |
+| `conversationId` | `Id<"conversations">`                        | Parent conversation |
+| `projectId`      | `Id<"projects">`                             | Parent project      |
+| `role`           | `"user" \| "assistant"`                      | Message author      |
+| `content`        | `string`                                     | Message text        |
+| `status`         | `"processing" \| "completed" \| "cancelled"` | Processing status   |
 
 **Indexes:** `by_conversation`, `by_project_status`
 
@@ -381,12 +399,12 @@ Aura uses [Convex](https://convex.dev) as its serverless database with real-time
 
 ## AI Models
 
-| Model | Provider | Purpose | Temperature |
-|---|---|---|---|
-| **claude-opus-4-20250514** | Anthropic | Primary coding agent (chat, file ops, code generation) | 0.3 |
-| **claude-3-5-haiku-20241022** | Anthropic | Conversation title generation | 0 |
-| **gemini-2.5-flash** | Google | Demo generation with URL scraping | — |
-| **llama-3.3-70b-versatile** | Groq | Editor extensions (explain, suggestion, quick-edit) | 0.3 |
+| Model                         | Provider  | Purpose                                                | Temperature |
+| ----------------------------- | --------- | ------------------------------------------------------ | ----------- |
+| **claude-opus-4-20250514**    | Anthropic | Primary coding agent (chat, file ops, code generation) | 0.3         |
+| **claude-3-5-haiku-20241022** | Anthropic | Conversation title generation                          | 0           |
+| **gemini-2.5-flash**          | Google    | Demo generation with URL scraping                      | —           |
+| **llama-3.3-70b-versatile**   | Groq      | Editor extensions (explain, suggestion, quick-edit)    | 0.3         |
 
 Additional providers (OpenAI, DeepSeek) are installed and available for future use.
 
@@ -408,20 +426,21 @@ The AI coding agent is powered by Inngest Agent Kit and runs as a background fun
 
 ### Agent Tools
 
-| Tool | Description |
-|---|---|
-| `listFiles` | Lists all files and folders in the project |
-| `readFiles` | Reads content of multiple files by ID |
-| `createFiles` | Batch-creates files in a specified folder |
-| `createFolder` | Creates a new folder |
-| `updateFile` | Updates an existing file's content |
-| `deleteFiles` | Recursively deletes files and folders |
-| `renameFile` | Renames a file or folder |
-| `scrapeUrls` | Scrapes web content via Firecrawl |
+| Tool           | Description                                |
+| -------------- | ------------------------------------------ |
+| `listFiles`    | Lists all files and folders in the project |
+| `readFiles`    | Reads content of multiple files by ID      |
+| `createFiles`  | Batch-creates files in a specified folder  |
+| `createFolder` | Creates a new folder                       |
+| `updateFile`   | Updates an existing file's content         |
+| `deleteFiles`  | Recursively deletes files and folders      |
+| `renameFile`   | Renames a file or folder                   |
+| `scrapeUrls`   | Scrapes web content via Firecrawl          |
 
 ### System Prompt
 
-The agent identifies as **Aura, an expert AI coding assistant**. Its workflow is:
+The agent identifies as **Codura, an expert AI coding assistant**. Its workflow is:
+
 1. **List** existing files to understand the project
 2. **Read** relevant files for context
 3. **Execute** changes using file tools
@@ -435,15 +454,19 @@ The agent identifies as **Aura, an expert AI coding assistant**. Its workflow is
 CodeMirror 6 extensions provide three AI-powered features accessible from the editor:
 
 ### Explain
+
 Select code, click "Explain" — the AI returns a natural-language explanation of the selected code. Uses Groq (Llama 3.3 70B) via `/api/explain`.
 
 ### Suggestion
+
 Get inline code suggestions based on the current file context. Uses Groq via `/api/suggestion`.
 
 ### Quick Edit
+
 Describe a change in natural language (e.g., "add error handling"), and the AI modifies the selected code. Uses Groq via `/api/quick-edit`.
 
 ### Additional Extensions
+
 - **One Dark theme** — Consistent dark theme across the editor
 - **Minimap** — Bird's-eye view of the file (via @replit/codemirror-minimap)
 - **Indentation markers** — Visual indent guides
@@ -453,7 +476,7 @@ Describe a change in natural language (e.g., "add error handling"), and the AI m
 
 ## WebContainer Runtime
 
-Aura uses [WebContainer API](https://webcontainers.io) to run Node.js projects entirely in the browser.
+Codura uses [WebContainer API](https://webcontainers.io) to run Node.js projects entirely in the browser.
 
 ### How It Works
 
@@ -465,15 +488,20 @@ Aura uses [WebContainer API](https://webcontainers.io) to run Node.js projects e
 6. File changes made inside WebContainer (e.g., by build tools) sync back to Convex
 
 ### Ignored Paths
+
 The following directories are excluded from sync: `node_modules`, `.git`, `.next`, `dist`, `build`, `.cache`, `.turbo`, `.svelte-kit`.
 
 ### Configuration
+
 Each project can customize:
+
 - **Install command** — defaults to `npm install`
 - **Dev command** — defaults to `npm run dev --turbo=false`
 
 ### Required Headers
+
 WebContainer requires specific COOP/COEP headers set in `next.config.ts`:
+
 ```
 Cross-Origin-Embedder-Policy: credentialless
 Cross-Origin-Opener-Policy: same-origin
@@ -484,6 +512,7 @@ Cross-Origin-Opener-Policy: same-origin
 ## GitHub Integration
 
 ### Import
+
 1. User clicks "Import" and selects a GitHub repository
 2. An Inngest function (`github/import.repo`) is triggered
 3. Clerk provides the user's GitHub OAuth token
@@ -493,6 +522,7 @@ Cross-Origin-Opener-Policy: same-origin
 7. Import status updates in real-time
 
 ### Export
+
 1. User clicks "Export" from the project editor
 2. An Inngest function (`github/export.repo`) is triggered
 3. A new GitHub repository is created via the API
@@ -505,27 +535,28 @@ Cross-Origin-Opener-Policy: same-origin
 
 ## API Routes
 
-| Method | Route | Description |
-|---|---|---|
-| `POST` | `/api/messages` | Send a user message, triggers the AI agent |
-| `POST` | `/api/messages/cancel` | Cancel a processing message |
-| `POST` | `/api/explain` | Get AI explanation for selected code |
-| `POST` | `/api/suggestion` | Get inline code suggestions |
-| `POST` | `/api/quick-edit` | AI-powered code modifications |
-| `POST` | `/api/projects/create-with-prompt` | Create a project with an AI prompt |
-| `POST` | `/api/github/import` | Import a GitHub repository |
-| `POST` | `/api/github/export` | Export project to GitHub |
-| `POST` | `/api/github/export/cancel` | Cancel an in-progress export |
-| `POST` | `/api/github/export/reset` | Reset export status |
-| `GET/POST/PUT` | `/api/inngest` | Inngest webhook endpoint |
+| Method         | Route                              | Description                                |
+| -------------- | ---------------------------------- | ------------------------------------------ |
+| `POST`         | `/api/messages`                    | Send a user message, triggers the AI agent |
+| `POST`         | `/api/messages/cancel`             | Cancel a processing message                |
+| `POST`         | `/api/explain`                     | Get AI explanation for selected code       |
+| `POST`         | `/api/suggestion`                  | Get inline code suggestions                |
+| `POST`         | `/api/quick-edit`                  | AI-powered code modifications              |
+| `POST`         | `/api/projects/create-with-prompt` | Create a project with an AI prompt         |
+| `POST`         | `/api/github/import`               | Import a GitHub repository                 |
+| `POST`         | `/api/github/export`               | Export project to GitHub                   |
+| `POST`         | `/api/github/export/cancel`        | Cancel an in-progress export               |
+| `POST`         | `/api/github/export/reset`         | Reset export status                        |
+| `GET/POST/PUT` | `/api/inngest`                     | Inngest webhook endpoint                   |
 
 ---
 
 ## Authentication
 
-Aura uses [Clerk](https://clerk.com) for authentication with JWT verification.
+Codura uses [Clerk](https://clerk.com) for authentication with JWT verification.
 
 ### Flow
+
 1. Users sign in via Clerk's `<SignInButton>` component
 2. Clerk issues JWTs verified by Convex on every query/mutation
 3. The `verifyAuth()` helper in `convex/auth.ts` extracts the user identity
@@ -533,7 +564,8 @@ Aura uses [Clerk](https://clerk.com) for authentication with JWT verification.
 5. The `<UserButton>` component provides account management and sign-out
 
 ### Theme
-Clerk components use the `dark` base theme with custom variables matching Aura's oklch purple-blue palette.
+
+Clerk components use the `dark` base theme with custom variables matching Codura's oklch purple-blue palette.
 
 ---
 
@@ -554,8 +586,8 @@ Clerk components use the `dark` base theme with custom variables matching Aura's
 
 ```bash
 # Clone the repository
-git clone https://github.com/MainaJoseph/aura.git
-cd aura
+git clone https://github.com/MainaJoseph/codura.git
+cd codura
 
 # Install dependencies
 npm install
@@ -582,7 +614,7 @@ Create a `.env.local` file in the project root with the following variables:
 ```env
 # ── Convex ───────────────────────────────────────
 NEXT_PUBLIC_CONVEX_URL=           # Your Convex deployment URL
-AURA_CONVEX_INTERNAL_KEY=        # Internal key for system operations
+CODURA_CONVEX_INTERNAL_KEY =        # Internal key for system operations
 
 # ── Clerk ────────────────────────────────────────
 CLERK_JWT_ISSUER_DOMAIN=         # Clerk JWT issuer domain
@@ -642,9 +674,10 @@ npx convex deploy  # Deploy Convex to production
 
 ## Monitoring
 
-Aura uses [Sentry](https://sentry.io) for error tracking and performance monitoring.
+Codura uses [Sentry](https://sentry.io) for error tracking and performance monitoring.
 
 ### Configuration
+
 - **Traces sample rate:** 100%
 - **Console logging:** `log`, `warn`, `error` levels are sent to Sentry
 - **Vercel AI SDK integration:** AI model calls are automatically traced
@@ -652,6 +685,7 @@ Aura uses [Sentry](https://sentry.io) for error tracking and performance monitor
 - **Tunnel route:** `/monitoring` (avoids ad blockers)
 
 Sentry is configured across three runtimes:
+
 - `sentry.client.config.ts` — Browser
 - `sentry.server.config.ts` — Node.js server
 - `sentry.edge.config.ts` — Edge runtime
@@ -660,11 +694,12 @@ Sentry is configured across three runtimes:
 
 ## UI Components
 
-Aura uses [shadcn/ui](https://ui.shadcn.com) (New York style) with 50+ components built on Radix UI primitives:
+Codura uses [shadcn/ui](https://ui.shadcn.com) (New York style) with 50+ components built on Radix UI primitives:
 
 Accordion, Alert, Alert Dialog, Aspect Ratio, Avatar, Badge, Breadcrumb, Button, Button Group, Calendar, Card, Carousel, Chart, Checkbox, Collapsible, Command, Context Menu, Dialog, Drawer, Dropdown Menu, Empty, Field, Form, Hover Card, Input, Input Group, Input OTP, Item, Kbd, Label, Menubar, Navigation Menu, Pagination, Popover, Progress, Radio Group, Scroll Area, Select, Separator, Sheet, Sidebar, Skeleton, Slider, Sonner (toasts), Spinner, Switch, Table, Tabs, Textarea, Toggle, Toggle Group, Tooltip.
 
 Additionally, AI-specific components live in `src/components/ai-elements/`:
+
 - Message bubbles with markdown rendering
 - Syntax-highlighted code blocks
 - Audio player

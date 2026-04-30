@@ -46,14 +46,15 @@ const Tab = ({
     <div
       draggable
       onDragStart={(e) => {
-        e.dataTransfer.setData("application/aura-tab-index", String(index));
-        e.dataTransfer.setData("application/aura-file-id", fileId);
+        e.dataTransfer.setData("application/codura-tab-index", String(index));
+        e.dataTransfer.setData("application/codura-file-id", fileId);
         e.dataTransfer.effectAllowed = "move";
         setIsDragging(true);
       }}
       onDragEnd={() => setIsDragging(false)}
       onDragOver={(e) => {
-        if (!e.dataTransfer.types.includes("application/aura-tab-index")) return;
+        if (!e.dataTransfer.types.includes("application/codura-tab-index"))
+          return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
         const rect = e.currentTarget.getBoundingClientRect();
@@ -66,7 +67,7 @@ const Tab = ({
         e.stopPropagation();
         setDropSide(null);
         const fromIndex = Number(
-          e.dataTransfer.getData("application/aura-tab-index")
+          e.dataTransfer.getData("application/codura-tab-index"),
         );
         if (isNaN(fromIndex)) return;
         const rect = e.currentTarget.getBoundingClientRect();
@@ -90,7 +91,7 @@ const Tab = ({
         isFirst && "border-l-transparent!",
         isDragging && "opacity-50",
         dropSide === "left" && "border-l-ring!",
-        dropSide === "right" && "border-r-ring!"
+        dropSide === "right" && "border-r-ring!",
       )}
     >
       {file === undefined ? (
@@ -116,7 +117,7 @@ const Tab = ({
         }}
         className={cn(
           "p-0.5 rounded-sm hover:bg-white/10 opacity-0 group-hover:opacity-100",
-          isActive && "opacity-100"
+          isActive && "opacity-100",
         )}
       >
         <XIcon className="size-3.5" />
@@ -149,13 +150,17 @@ const ExtensionTab = ({
     <div
       draggable
       onDragStart={(e) => {
-        e.dataTransfer.setData("application/aura-ext-tab-index", String(index));
+        e.dataTransfer.setData(
+          "application/codura-ext-tab-index",
+          String(index),
+        );
         e.dataTransfer.effectAllowed = "move";
         setIsDragging(true);
       }}
       onDragEnd={() => setIsDragging(false)}
       onDragOver={(e) => {
-        if (!e.dataTransfer.types.includes("application/aura-ext-tab-index")) return;
+        if (!e.dataTransfer.types.includes("application/codura-ext-tab-index"))
+          return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
         const rect = e.currentTarget.getBoundingClientRect();
@@ -167,7 +172,7 @@ const ExtensionTab = ({
         e.preventDefault();
         setDropSide(null);
         const fromIndex = Number(
-          e.dataTransfer.getData("application/aura-ext-tab-index")
+          e.dataTransfer.getData("application/codura-ext-tab-index"),
         );
         if (isNaN(fromIndex)) return;
         const rect = e.currentTarget.getBoundingClientRect();
@@ -190,7 +195,7 @@ const ExtensionTab = ({
         isFirst && "border-l-transparent!",
         isDragging && "opacity-50",
         dropSide === "left" && "border-l-ring!",
-        dropSide === "right" && "border-r-ring!"
+        dropSide === "right" && "border-r-ring!",
       )}
     >
       <BlocksIcon className="size-3.5 text-muted-foreground shrink-0" />
@@ -210,7 +215,7 @@ const ExtensionTab = ({
         }}
         className={cn(
           "p-0.5 rounded-sm hover:bg-white/10 opacity-0 group-hover:opacity-100",
-          isActive && "opacity-100"
+          isActive && "opacity-100",
         )}
       >
         <XIcon className="size-3.5" />
@@ -228,9 +233,10 @@ export const TopNavigation = ({
 }) => {
   const { openTabs, openFile, reorderTab } = useEditorPane(
     projectId,
-    paneIndex
+    paneIndex,
   );
-  const { isSplit, splitEditor, closeSplit, reorderExtensionTab } = useEditor(projectId);
+  const { isSplit, splitEditor, closeSplit, reorderExtensionTab } =
+    useEditor(projectId);
   const materialIcons = useMaterialIcons(projectId);
   const projectState = useEditorStore((s) => s.getProjectState(projectId));
   const openExtensions = paneIndex === 0 ? projectState.openExtensions : [];
@@ -240,103 +246,108 @@ export const TopNavigation = ({
 
   return (
     <IconStyleProvider value={materialIcons}>
-    <div className="flex items-center w-full">
-      <ScrollArea className="flex-1">
-        <nav
-          className={cn(
-            "bg-sidebar flex items-center h-8.75 border-b",
-            isDragOver && "ring-1 ring-inset ring-ring"
-          )}
-          onDragOver={(e) => {
-            if (e.dataTransfer.types.includes("application/aura-file-id")) {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "copy";
-              setIsDragOver(true);
-            }
-          }}
-          onDragEnter={(e) => {
-            if (e.dataTransfer.types.includes("application/aura-file-id")) {
-              setIsDragOver(true);
-            }
-          }}
-          onDragLeave={(e) => {
-            if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget as Node)) {
-              setIsDragOver(false);
-            }
-          }}
-          onDrop={(e) => {
-            setIsDragOver(false);
-            const fileId = e.dataTransfer.getData("application/aura-file-id");
-            if (!fileId) return;
-            e.preventDefault();
-            openFile(fileId as Id<"files">, { pinned: true });
-          }}
-        >
-          {openTabs.map((fileId, index) => (
-            <Tab
-              key={fileId}
-              fileId={fileId}
-              isFirst={index === 0}
-              projectId={projectId}
-              paneIndex={paneIndex}
-              index={index}
-              onReorder={reorderTab}
-            />
-          ))}
-          {openExtensions.map((ext, index) => (
-            <ExtensionTab
-              key={ext._id}
-              ext={ext}
-              projectId={projectId}
-              isFirst={openTabs.length === 0 && index === 0}
-              index={index}
-              onReorder={reorderExtensionTab}
-            />
-          ))}
-        </nav>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
-      <div className="flex items-center h-8.75 border-b bg-sidebar">
-        {paneIndex === 0 && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleTerminalPanel(projectId);
-            }}
+      <div className="flex items-center w-full">
+        <ScrollArea className="flex-1">
+          <nav
             className={cn(
-              "flex items-center justify-center size-8.75 text-muted-foreground hover:text-foreground hover:bg-accent/30",
-              showTerminalPanel && "text-foreground bg-accent/30"
+              "bg-sidebar flex items-center h-8.75 border-b",
+              isDragOver && "ring-1 ring-inset ring-ring",
             )}
-            title="Toggle terminal panel (⌘+`)"
-          >
-            <VscTerminal className="size-3.5" />
-          </button>
-        )}
-        {isSplit ? (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              closeSplit(paneIndex);
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes("application/codura-file-id")) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+                setIsDragOver(true);
+              }
             }}
-            className="flex items-center justify-center size-8.75 text-muted-foreground hover:text-foreground hover:bg-accent/30"
-            title="Close split"
-          >
-            <XIcon className="size-3.5" />
-          </button>
-        ) : (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              splitEditor();
+            onDragEnter={(e) => {
+              if (e.dataTransfer.types.includes("application/codura-file-id")) {
+                setIsDragOver(true);
+              }
             }}
-            className="flex items-center justify-center size-8.75 text-muted-foreground hover:text-foreground hover:bg-accent/30"
-            title="Split editor (Ctrl+\)"
+            onDragLeave={(e) => {
+              if (
+                e.currentTarget === e.target ||
+                !e.currentTarget.contains(e.relatedTarget as Node)
+              ) {
+                setIsDragOver(false);
+              }
+            }}
+            onDrop={(e) => {
+              setIsDragOver(false);
+              const fileId = e.dataTransfer.getData(
+                "application/codura-file-id",
+              );
+              if (!fileId) return;
+              e.preventDefault();
+              openFile(fileId as Id<"files">, { pinned: true });
+            }}
           >
-            <Columns2Icon className="size-3.5" />
-          </button>
-        )}
+            {openTabs.map((fileId, index) => (
+              <Tab
+                key={fileId}
+                fileId={fileId}
+                isFirst={index === 0}
+                projectId={projectId}
+                paneIndex={paneIndex}
+                index={index}
+                onReorder={reorderTab}
+              />
+            ))}
+            {openExtensions.map((ext, index) => (
+              <ExtensionTab
+                key={ext._id}
+                ext={ext}
+                projectId={projectId}
+                isFirst={openTabs.length === 0 && index === 0}
+                index={index}
+                onReorder={reorderExtensionTab}
+              />
+            ))}
+          </nav>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+        <div className="flex items-center h-8.75 border-b bg-sidebar">
+          {paneIndex === 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleTerminalPanel(projectId);
+              }}
+              className={cn(
+                "flex items-center justify-center size-8.75 text-muted-foreground hover:text-foreground hover:bg-accent/30",
+                showTerminalPanel && "text-foreground bg-accent/30",
+              )}
+              title="Toggle terminal panel (⌘+`)"
+            >
+              <VscTerminal className="size-3.5" />
+            </button>
+          )}
+          {isSplit ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                closeSplit(paneIndex);
+              }}
+              className="flex items-center justify-center size-8.75 text-muted-foreground hover:text-foreground hover:bg-accent/30"
+              title="Close split"
+            >
+              <XIcon className="size-3.5" />
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                splitEditor();
+              }}
+              className="flex items-center justify-center size-8.75 text-muted-foreground hover:text-foreground hover:bg-accent/30"
+              title="Split editor (Ctrl+\)"
+            >
+              <Columns2Icon className="size-3.5" />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
     </IconStyleProvider>
   );
 };

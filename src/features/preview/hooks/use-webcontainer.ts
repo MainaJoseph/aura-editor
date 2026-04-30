@@ -8,9 +8,7 @@ import { spawnShellProcess } from "@/features/preview/utils/spawn-shell-process"
 import { useFiles } from "@/features/projects/hooks/use-files";
 import { useTerminalStore } from "@/features/preview/store/use-terminal-store";
 import { useConsoleStore } from "@/features/preview/store/use-console-store";
-import {
-  cleanupAllProcessRefs,
-} from "@/features/preview/store/terminal-process-refs";
+import { cleanupAllProcessRefs } from "@/features/preview/store/terminal-process-refs";
 
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -33,7 +31,7 @@ const IGNORED_PATHS = new Set([
   ".parcel-cache",
   ".DS_Store",
   "thumbs.db",
-  "__aura_console_bridge.js",
+  "__codura_console_bridge.js",
 ]);
 
 // Singleton WebContainer instance
@@ -72,7 +70,7 @@ let devServerProcessRef: { kill: () => void; cleanup: () => void } | null =
 async function injectConsoleBridge(container: WebContainer) {
   // Write bridge script to root (for static sites / Vite)
   await container.fs.writeFile(
-    "/__aura_console_bridge.js",
+    "/__codura_console_bridge.js",
     CONSOLE_BRIDGE_SCRIPT,
   );
 
@@ -81,7 +79,7 @@ async function injectConsoleBridge(container: WebContainer) {
   try {
     await container.fs.mkdir("public", { recursive: true });
     await container.fs.writeFile(
-      "public/__aura_console_bridge.js",
+      "public/__codura_console_bridge.js",
       CONSOLE_BRIDGE_SCRIPT,
     );
   } catch {
@@ -93,10 +91,10 @@ async function injectConsoleBridge(container: WebContainer) {
   for (const htmlPath of htmlPaths) {
     try {
       const html = await container.fs.readFile(htmlPath, "utf-8");
-      if (html.includes("__aura_console_bridge")) return;
+      if (html.includes("__codura_console_bridge")) return;
       const injected = html.replace(
         "<head>",
-        '<head><script src="/__aura_console_bridge.js"></script>',
+        '<head><script src="/__codura_console_bridge.js"></script>',
       );
       if (injected !== html) {
         await container.fs.writeFile(htmlPath, injected);
@@ -117,10 +115,10 @@ async function injectConsoleBridge(container: WebContainer) {
   for (const layoutPath of layoutPaths) {
     try {
       const layout = await container.fs.readFile(layoutPath, "utf-8");
-      if (layout.includes("__aura_console_bridge")) return;
+      if (layout.includes("__codura_console_bridge")) return;
       const injected = layout.replace(
         /(<body[^>]*>)/,
-        '$1\n        <script src="/__aura_console_bridge.js" />',
+        '$1\n        <script src="/__codura_console_bridge.js" />',
       );
       if (injected !== layout) {
         await container.fs.writeFile(layoutPath, injected);
@@ -186,16 +184,18 @@ function spawnDevServerProcess(
         },
       };
 
-      process.output.pipeTo(
-        new WritableStream({
-          write(data) {
-            outputBuffer += data;
-            scheduleFlush();
-          },
-        }),
-      ).catch(() => {
-        flushOutput();
-      });
+      process.output
+        .pipeTo(
+          new WritableStream({
+            write(data) {
+              outputBuffer += data;
+              scheduleFlush();
+            },
+          }),
+        )
+        .catch(() => {
+          flushOutput();
+        });
 
       process.exit.then((code) => {
         flushOutput();
@@ -232,9 +232,9 @@ export const useWebContainer = ({
   enabled,
   settings,
 }: UseWebContainerProps) => {
-  const [status, setStatus] = useState<
-    "idle" | "booting" | "ready" | "error"
-  >("idle");
+  const [status, setStatus] = useState<"idle" | "booting" | "ready" | "error">(
+    "idle",
+  );
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [restartKey, setRestartKey] = useState(0);
@@ -320,8 +320,7 @@ export const useWebContainer = ({
         if (files && files.length > 0) {
           const installCmd = settings?.installCommand || "npm install";
           // Use --turbo=false because Turbopack native bindings don't work in WebContainer
-          const devCmd =
-            settings?.devCommand || "npm run dev -- --turbo=false";
+          const devCmd = settings?.devCommand || "npm run dev -- --turbo=false";
 
           spawnDevServerProcess(
             container,
@@ -443,8 +442,14 @@ export const useWebContainer = ({
     async (
       container: WebContainer,
       dirPath: string = "/",
-    ): Promise<Array<{ path: string; content: string; type: "file" | "folder" }>> => {
-      const results: Array<{ path: string; content: string; type: "file" | "folder" }> = [];
+    ): Promise<
+      Array<{ path: string; content: string; type: "file" | "folder" }>
+    > => {
+      const results: Array<{
+        path: string;
+        content: string;
+        type: "file" | "folder";
+      }> = [];
 
       try {
         const entries = await container.fs.readdir(dirPath, {
@@ -459,8 +464,7 @@ export const useWebContainer = ({
           // Skip ignored paths
           if (IGNORED_PATHS.has(name)) continue;
 
-          const fullPath =
-            dirPath === "/" ? `/${name}` : `${dirPath}/${name}`;
+          const fullPath = dirPath === "/" ? `/${name}` : `${dirPath}/${name}`;
           const relativePath = fullPath.startsWith("/")
             ? fullPath.slice(1)
             : fullPath;

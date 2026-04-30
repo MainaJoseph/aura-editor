@@ -16,15 +16,15 @@ interface UseConsoleReturn {
   clearEntries: () => void;
 }
 
-export const useConsole = ({ projectId }: UseConsoleProps): UseConsoleReturn => {
-  const entries = useConsoleStore(
-    (s) => s.getProjectState(projectId).entries,
-  );
+export const useConsole = ({
+  projectId,
+}: UseConsoleProps): UseConsoleReturn => {
+  const entries = useConsoleStore((s) => s.getProjectState(projectId).entries);
 
   // Listen for postMessage from iframe (browser console bridge)
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      if (event.data?.type !== "aura:console") return;
+      if (event.data?.type !== "codura:console") return;
 
       const { level, args, timestamp } = event.data;
 

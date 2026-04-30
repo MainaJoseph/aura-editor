@@ -101,13 +101,18 @@ export const ProjectsView = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-sidebar">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="Aura" width={22} height={22} />
+            <Image src="/logo.svg" alt="Codura" width={22} height={22} />
             <span className={cn("text-sm font-semibold", font.className)}>
-              Aura
+              Codura
             </span>
           </Link>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="text-sm text-muted-foreground cursor-default" disabled>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-sm text-muted-foreground cursor-default"
+              disabled
+            >
               Docs
             </Button>
             <Button variant="ghost" size="sm" className="text-sm" asChild>
@@ -124,7 +129,7 @@ export const ProjectsView = () => {
             <div className="flex items-center gap-2 w-full group/logo">
               <Image
                 src="/logo.svg"
-                alt="Aura"
+                alt="Codura"
                 width={46}
                 height={46}
                 className="size-[32px] md:size-[46px]"
@@ -135,7 +140,7 @@ export const ProjectsView = () => {
                   font.className,
                 )}
               >
-                Aura
+                Codura
               </h1>
             </div>
           </div>
